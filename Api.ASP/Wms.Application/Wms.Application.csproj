@@ -7,6 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Wms.Domain\Wms.Domain.csproj" />
     <ProjectReference Include="..\Wms.Shared\Wms.Shared.csproj" />
   </ItemGroup>
