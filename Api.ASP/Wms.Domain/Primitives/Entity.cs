@@ -1,0 +1,31 @@
+﻿namespace Wms.Domain.Primitives;
+
+public class Entity
+{
+    public Guid Id { get; protected set; }
+    public DateTime CreatedAt { get; protected set; }
+    public string? CreatedBy { get; protected set; }
+    public DateTime UpdatedAt { get; protected set; }
+    public string? UpdatedBy { get; protected set; }
+
+    protected Entity() 
+    {
+    }
+
+    protected Entity(Guid id)
+    {
+        Id = id;
+    }
+
+    public void SetCreated(DateTime createdAt, string? createdBy)
+    {
+        CreatedAt = createdAt;
+        CreatedBy = createdBy;
+    }
+
+    public void SetUpdated(DateTime updatedAt, string? updatedBy)
+    {
+        UpdatedAt = updatedAt;
+        UpdatedBy = updatedBy;
+    }
+}
