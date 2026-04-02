@@ -1,10 +1,9 @@
 ﻿using Wms.Shared.Common;
 
-namespace Wms.Application.Abstractions.Messaging
+namespace Wms.Application.Abstractions.Messaging;
+
+public interface IQueryHandler<TQuery, TResponse>
+    where TQuery : IQuery<TResponse>
 {
-    internal interface IQueryHandler<TQuery, TResponse>
-        where TQuery : IQuery<TResponse>
-    {
-        Task<Result<TResponse>> Handle(TQuery query, CancellationToken cancellationToken);
-    }
+    Task<Result<TResponse>> Handle(TQuery query, CancellationToken cancellationToken);
 }

@@ -14,8 +14,8 @@ public static class ResultExtensions
     public static TOut Match<TIn, TOut>(
         this Result<TIn> result,
         Func<TIn, TOut> onSuccess,
-        Func<Result<TIn>, TOut> onFailure)
+        Func<Error, TOut> onFailure)
     {
-        return result.IsSuccess ? onSuccess(result.Value) : onFailure(result);
+        return result.IsSuccess ? onSuccess(result.Value) : onFailure(result.Error);
     }
 }

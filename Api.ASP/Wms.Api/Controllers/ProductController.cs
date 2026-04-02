@@ -1,0 +1,44 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Wms.Shared.Common;
+using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Features.Products.Commands;
+using FluentValidation;
+using Wms.Application.Features.Products.Queries;
+
+namespace Wms.Api.Controllers;
+
+[ApiController]
+[Route("api/products")]
+public class ProductController : ControllerBase
+{
+    [HttpGet]
+    public async Task<IEnumerable<ProductDto>> GetProducts(
+        [FromServices] IQueryHandler<GetProductsQuery, IEnumerable<ProductDto>> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new GetProductsQuery(), cancellationToken);
+        return result.Match(
+            products => products,
+            _ => Enumerable.Empty<ProductDto>());
+    }
+
+    [HttpPost]
+    public async Task<IResult> CreateProduct(
+        [FromBody] CreateProductCommand request,
+        [FromServices] IValidator<CreateProductCommand> validator,
+        [FromServices] ICommandHandler<CreateProductCommand,  Guid> handler,
+        CancellationToken cancellationToken)
+    {
+
+        var validationResult = await validator.ValidateAsync(request, cancellationToken);
+
+        if (!validationResult.IsValid)
+        {
+            return Results.BadRequest(validationResult.Errors.Select(e => new { e.PropertyName, e.ErrorMessage }));
+        }
+
+        var result = await handler.Handle(request, cancellationToken);
+
+        return result.Match(Results.Ok, Results.BadRequest);
+    }
+}

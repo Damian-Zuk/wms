@@ -11,7 +11,7 @@ public class Product : Entity
 
     private Product() { }
 
-    public Product(string name, Sku sku, string description = "")
+    public Product(Sku sku, string name, string description = "")
     {
         Id = Guid.NewGuid();
         Name = name;
