@@ -17,9 +17,7 @@ public class ProductController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new GetProductsQuery(), cancellationToken);
-        return result.Match(
-            products => products,
-            _ => Enumerable.Empty<ProductDto>());
+        return result.Match(products => products, _ => []);
     }
 
     [HttpPost]
@@ -29,16 +27,7 @@ public class ProductController : ControllerBase
         [FromServices] ICommandHandler<CreateProductCommand,  Guid> handler,
         CancellationToken cancellationToken)
     {
-
-        var validationResult = await validator.ValidateAsync(request, cancellationToken);
-
-        if (!validationResult.IsValid)
-        {
-            return Results.BadRequest(validationResult.Errors.Select(e => new { e.PropertyName, e.ErrorMessage }));
-        }
-
         var result = await handler.Handle(request, cancellationToken);
-
         return result.Match(Results.Ok, Results.BadRequest);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using Wms.Application.Abstractions.Behaviors;
 using Wms.Application.Abstractions.Messaging;
 
 namespace Wms.Application;
@@ -19,6 +20,13 @@ public static class DependencyInjection
                 .AsImplementedInterfaces()
                 .WithScopedLifetime()
         );
+
+        services.TryDecorate(typeof(ICommandHandler<,>), typeof(ValidationPipelineBehavior.CommandHandler<,>));
+        services.TryDecorate(typeof(ICommandHandler<>), typeof(ValidationPipelineBehavior.CommandBaseHandler<>));
+
+        services.TryDecorate(typeof(IQueryHandler<,>), typeof(LoggingPipelineBehavior.QueryHandler<,>));
+        services.TryDecorate(typeof(ICommandHandler<,>), typeof(LoggingPipelineBehavior.CommandHandler<,>));
+        services.TryDecorate(typeof(ICommandHandler<>), typeof(LoggingPipelineBehavior.CommandBaseHandler<>));
 
         var assembly = typeof(DependencyInjection).Assembly;
         services.AddValidatorsFromAssembly(assembly);

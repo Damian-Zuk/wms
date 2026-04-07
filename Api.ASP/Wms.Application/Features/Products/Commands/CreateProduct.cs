@@ -15,8 +15,8 @@ public sealed class CreateProductValidator: AbstractValidator<CreateProductComma
 {
     public CreateProductValidator()
     {
-        RuleFor(x => x.Sku).NotEmpty().WithMessage("SKU is required.");
-        RuleFor(x => x.Name).NotEmpty().WithMessage("Name is required.");
+        RuleFor(x => x.Sku).NotEmpty().WithMessage("SKU is required");
+        RuleFor(x => x.Name).NotEmpty().WithMessage("Name is required");
     }
 }
 

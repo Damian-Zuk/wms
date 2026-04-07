@@ -1,5 +1,4 @@
 ﻿using System.Diagnostics.CodeAnalysis;
-using System.Net.Http.Headers;
 
 namespace Wms.Shared.Common;
 
@@ -29,6 +28,9 @@ public class Result
         new(value, true, Error.None);
     public static Result<TValue> Failure<TValue>(Error error) =>
         new(default, false, error);
+
+    public static Result ValidationFailure(ValidationError error) => error;
+    public static Result<TValue> ValidationFailure<TValue>(ValidationError<TValue> error) => error;
 }
 
 public class Result<TValue> : Result
@@ -56,6 +58,37 @@ public class Result<TValue> : Result
         new(default, false, error);
 }
 
+public class ValidationError : Result
+{
+    public ValidationError(Error[] errors)
+        : base(false,
+            new("Validation.Failed",
+                string.Join(", ", errors.Select(e => e.Description).ToList())))
+    {
+        Errors = errors;
+    }
+
+    public Error[] Errors { get; }
+
+    public static implicit operator ValidationError(Error[] errors) => new(errors);
+}
+
+public sealed class ValidationError<TValue> : Result<TValue>
+{
+    public ValidationError(Error[] errors)
+        : base(default, false, 
+            new("Validation.Failed",
+                string.Join(", ", errors.Select(e => e.Description).ToList())))
+    {
+        Errors = errors;
+    }
+
+    public Error[] Errors { get; }
+
+    public static implicit operator ValidationError<TValue>(ValidationError error) =>
+        new(error.Errors);
+}
+
 public sealed record Error(
     string Code,
     string Description,
@@ -65,6 +98,9 @@ public sealed record Error(
     public static readonly Error NullValue = new("Error.NullValue", "Null value was provided");
 
     public static implicit operator Result(Error error) => Result.Failure(error);
+
+    public static Error Problem(string code, string description) =>
+        new(code, description);
 
     public static Error Unexpected(string code, string description) => 
         new(code, description, Environment.StackTrace);
