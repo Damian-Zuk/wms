@@ -31,9 +31,7 @@ public sealed class CreateProductCommandHandler(IAppDbContext context)
             .AnyAsync(p => p.Sku.Value == request.Sku, cancellationToken);
 
         if (exists)
-        {
-            return Result<Guid>.ValidationFailure(ProductErrors.SkuExists);
-        }
+            return ProductErrors.SkuExists;
 
         var product = new Product(new Sku(request.Sku), request.Name, request.Description);
 

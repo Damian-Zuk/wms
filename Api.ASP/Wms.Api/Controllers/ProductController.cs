@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Wms.Shared.Common;
+using Wms.Api.Extensions;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Features.Products.Commands;
-using FluentValidation;
 using Wms.Application.Features.Products.Queries;
+using Wms.Shared.Common;
 
 namespace Wms.Api.Controllers;
 
@@ -23,11 +23,10 @@ public class ProductController : ControllerBase
     [HttpPost]
     public async Task<IResult> CreateProduct(
         [FromBody] CreateProductCommand request,
-        [FromServices] IValidator<CreateProductCommand> validator,
         [FromServices] ICommandHandler<CreateProductCommand,  Guid> handler,
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(request, cancellationToken);
-        return result.Match(Results.Ok, Results.BadRequest);
+        return result.IsSuccess ?  Results.Ok(result.Value) : result.ToProblemDetails();
     }
 }
