@@ -1,4 +1,4 @@
-﻿using Wms.Domain.Primitives;
+using Wms.Domain.Primitives;
 using Wms.Domain.ValueObjects;
 
 namespace Wms.Domain.Entities;
@@ -16,6 +16,12 @@ public class Product : Entity
         Id = Guid.NewGuid();
         Name = name;
         Sku = sku;
+        Description = description;
+    }
+
+    public void UpdateDetails(string name, string description)
+    {
+        Name = name;
         Description = description;
     }
 }

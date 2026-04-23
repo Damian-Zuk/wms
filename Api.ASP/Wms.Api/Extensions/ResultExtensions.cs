@@ -4,7 +4,7 @@ namespace Wms.Api.Extensions;
 
 public static class ResultExtensions
 {
-    public static IResult ToProblemDetails<T>(this Result<T> result)
+    public static IResult ToHttpResult<T>(this Result<T> result)
     {
         if (result.IsSuccess)
             return Results.Ok(result.Value);
@@ -16,7 +16,7 @@ public static class ResultExtensions
             statusCode: GetStatusCode(result.Error));
     }
 
-    public static IResult ToProblemDetails(this Result result)
+    public static IResult ToHttpResult(this Result result)
     {
         if (result.IsSuccess)
             return Results.Ok();

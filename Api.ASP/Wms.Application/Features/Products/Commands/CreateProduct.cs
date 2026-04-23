@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
-using Wms.Application.Errors;
 using Wms.Domain.Entities;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
@@ -28,10 +27,11 @@ public sealed class CreateProductCommandHandler(IAppDbContext context)
         CancellationToken cancellationToken)
     {
         var exists = await context.Products
+            .AsNoTracking()
             .AnyAsync(p => p.Sku.Value == request.Sku, cancellationToken);
 
         if (exists)
-            return ProductErrors.SkuExists;
+            return Error.Problem("Product.SkuExists", "Product with this SKU already exists.");
 
         var product = new Product(new Sku(request.Sku), request.Name, request.Description);
 
