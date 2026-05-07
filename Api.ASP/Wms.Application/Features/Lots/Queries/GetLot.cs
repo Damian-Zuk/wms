@@ -1,0 +1,41 @@
+using Microsoft.EntityFrameworkCore;
+using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Interfaces;
+using Wms.Application.Extensions;
+using Wms.Shared.Common;
+
+namespace Wms.Application.Features.Lots.Queries;
+
+public sealed record LotDto(
+    Guid Id,
+    string Number,
+    Guid ProductId,
+    DateTime? ManufacturedDate,
+    DateTime? ExpirationDate,
+    bool IsExpired,
+    bool IsExpiringSoon);
+
+public sealed record GetLotQuery(Guid Id) : IQuery<LotDto>;
+
+public sealed class GetLotQueryHandler(IAppDbContext context)
+    : IQueryHandler<GetLotQuery, LotDto>
+{
+    public async Task<Result<LotDto>> Handle(GetLotQuery query, CancellationToken cancellationToken)
+    {
+        var lot = await context.Lots
+            .AsNoTracking()
+            .ApplyIsDeletedFilter()
+            .Where(l => l.Id == query.Id)
+            .Select(l => new LotDto(
+                l.Id,
+                l.Number.Value,
+                l.ProductId,
+                l.ManufacturedDate,
+                l.ExpirationDate,
+                l.ExpirationDate != null && l.ExpirationDate.Value.Date < DateTime.Today,
+                l.ExpirationDate != null && l.ExpirationDate.Value.Date <= DateTime.Today.AddDays(30)))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return lot is null ? Error.NotFound : lot;
+    }
+}

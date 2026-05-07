@@ -1,0 +1,77 @@
+using Microsoft.AspNetCore.Mvc;
+using Wms.Api.Extensions;
+using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Models;
+using Wms.Application.Features.Lots.Commands;
+using Wms.Application.Features.Lots.Queries;
+
+namespace Wms.Api.Controllers;
+
+[ApiController]
+[Route("api/lots")]
+public class LotController : ControllerBase
+{
+    [HttpGet]
+    public async Task<IResult> ListLots(
+        [FromQuery] Guid? productId,
+        [FromQuery] string? search,
+        [FromQuery] int page,
+        [FromQuery] int pageSize,
+        [FromServices] IQueryHandler<ListLotsQuery, PagedResult<LotDto>> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new ListLotsQuery(
+                productId,
+                search,
+                page == 0 ? 1 : page,
+                pageSize == 0 ? 20 : pageSize),
+            cancellationToken);
+        return result.ToHttpResult();
+    }
+
+    [HttpGet("{id:guid}")]
+    public async Task<IResult> GetLot(
+        [FromRoute] Guid id,
+        [FromServices] IQueryHandler<GetLotQuery, LotDto> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new GetLotQuery(id), cancellationToken);
+        return result.ToHttpResult();
+    }
+
+    [HttpPost]
+    public async Task<IResult> CreateLot(
+        [FromBody] CreateLotCommand request,
+        [FromServices] ICommandHandler<CreateLotCommand, Guid> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(request, cancellationToken);
+        return result.ToHttpResult();
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IResult> UpdateLot(
+        [FromRoute] Guid id,
+        [FromBody] UpdateLotRequest request,
+        [FromServices] ICommandHandler<UpdateLotCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new UpdateLotCommand(id, request.ManufacturedDate, request.ExpirationDate),
+            cancellationToken);
+        return result.ToHttpResult();
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IResult> DeleteLot(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<DeleteLotCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new DeleteLotCommand(id), cancellationToken);
+        return result.ToHttpResult();
+    }
+}
+
+public sealed record UpdateLotRequest(DateTime? ManufacturedDate, DateTime? ExpirationDate);
