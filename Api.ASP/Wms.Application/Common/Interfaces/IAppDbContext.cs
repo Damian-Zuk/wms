@@ -8,6 +8,11 @@ public interface IAppDbContext
     DbSet<Product> Products { get; }
     DbSet<Location> Locations { get; }
     DbSet<Inventory> Inventories { get; }
+    DbSet<Lot> Lots { get; }
+    DbSet<StockIn> StockIns { get; }
+    DbSet<StockInItem> StockInItems { get; }
+    DbSet<StockOut> StockOuts { get; }
+    DbSet<StockOutItem> StockOutItems { get; }
     DbSet<StockMovement> StockMovements { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken);
