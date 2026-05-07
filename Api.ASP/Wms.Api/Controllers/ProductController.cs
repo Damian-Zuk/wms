@@ -60,6 +60,17 @@ public class ProductController : ControllerBase
             cancellationToken);
         return result.ToHttpResult();
     }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IResult> DeleteProduct(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<DeleteProductCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new DeleteProductCommand(id), cancellationToken);
+        return result.ToHttpResult();
+    }
+
 }
 
 public sealed record UpdateProductRequest(string Name, string Description);

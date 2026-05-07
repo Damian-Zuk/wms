@@ -47,4 +47,29 @@ public class LocationController : ControllerBase
         var result = await handler.Handle(request, cancellationToken);
         return result.ToHttpResult();
     }
+
+    [HttpPost("{id:guid}")]
+    public async Task<IResult> UpdateLocation(
+        [FromRoute] Guid id,
+        [FromBody] UpdateLocationRequest request,
+        [FromServices] ICommandHandler<UpdateLocationCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new UpdateLocationCommand(id, request.Code, request.Description),
+            cancellationToken);
+        return result.ToHttpResult();
+    }
+
+    [HttpDelete("{id:guid}")]
+    public async Task<IResult> DeleteLocation(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<DeleteLocationCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new DeleteLocationCommand(id), cancellationToken);
+        return result.ToHttpResult();
+    }
 }
+
+public sealed record UpdateLocationRequest(string Code, string Description);
