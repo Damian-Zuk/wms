@@ -25,5 +25,9 @@ public abstract class EntityConfiguration<T> : IEntityTypeConfiguration<T>
 
         builder.Property(e => e.UpdatedBy)
             .HasMaxLength(256);
+
+        builder.Property(e => e.IsDeleted)
+            .HasDefaultValue(false)
+            .IsRequired();
     }
 }

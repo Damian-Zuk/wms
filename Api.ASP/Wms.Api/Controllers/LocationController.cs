@@ -19,7 +19,12 @@ public class LocationController : ControllerBase
         [FromServices] IQueryHandler<ListLocationsQuery, PagedResult<LocationDto>> handler,
         CancellationToken cancellationToken)
     {
-        var result = await handler.Handle(new ListLocationsQuery(search, page == 0 ? 1 : page, pageSize == 0 ? 20 : pageSize), cancellationToken);
+        var result = await handler.Handle(
+            new ListLocationsQuery(
+                search,
+                page == 0 ? 1 : page,
+                pageSize == 0 ? 20 : pageSize),
+            cancellationToken);
         return result.ToHttpResult();
     }
 

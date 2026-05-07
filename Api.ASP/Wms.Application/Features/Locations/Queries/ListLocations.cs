@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
 using Wms.Application.Common.Models;
+using Wms.Application.Extensions;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Locations.Queries;
@@ -28,7 +29,8 @@ public sealed class ListLocationsQueryHandler(IAppDbContext context)
         ListLocationsQuery query,
         CancellationToken cancellationToken)
     {
-        var locationsQuery = context.Locations.AsNoTracking().AsQueryable();
+        var locationsQuery = context.Locations
+            .AsNoTracking().AsQueryable().ApplyIsDeletedFilter();
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {

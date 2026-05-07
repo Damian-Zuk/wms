@@ -5,16 +5,16 @@ namespace Wms.Domain.Entities;
 
 public class StockMovement : Entity
 {
-    public Guid ProductId { get; private set; }
-    public Guid LocationId { get; private set; }
-    public Guid? LotId { get; private set; }
+    public Guid ProductId { get; set; }
+    public Guid LocationId { get; set; }
+    public Guid? LotId { get; set; }
 
-    public int QuantityChange { get; private set; }
+    public int QuantityChange { get; set; }
 
-    public StockMovementType Type { get; private set; }
-    public StockMovementSource Source { get; private set; }
+    public StockMovementType Type { get; set; }
+    public StockMovementSource Source { get; set; }
 
-    public Guid SourceId { get; private set; }
+    public Guid SourceId { get; set; }
 
     private StockMovement() { }
 

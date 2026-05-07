@@ -5,8 +5,8 @@ namespace Wms.Domain.Entities;
 
 public class Location : Entity
 {
-    public LocationCode Code { get; private set; } = null!;
-    public string? Description { get; private set; }
+    public LocationCode Code { get; set; } = null!;
+    public string? Description { get; set; }
 
     private Location() { }
 

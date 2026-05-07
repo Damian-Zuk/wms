@@ -5,10 +5,10 @@ namespace Wms.Domain.Entities;
 
 public class StockOutItem : Entity
 {
-    public Guid ProductId { get; private set; }
-    public Guid LocationId { get; private set; }
-    public Guid? LotId { get; private set; }
-    public Quantity Quantity { get; private set; } = new Quantity(0);
+    public Guid ProductId { get; set; }
+    public Guid LocationId { get; set; }
+    public Guid? LotId { get; set; }
+    public Quantity Quantity { get; set; } = new Quantity(0);
 
     private StockOutItem() { }
 

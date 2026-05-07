@@ -19,7 +19,12 @@ public class ProductController : ControllerBase
         [FromServices] IQueryHandler<ListProductsQuery, PagedResult<ProductDto>> handler,
         CancellationToken cancellationToken)
     {
-        var result = await handler.Handle(new ListProductsQuery(search, page == 0 ? 1 : page, pageSize == 0 ? 20 : pageSize), cancellationToken);
+        var result = await handler.Handle(
+            new ListProductsQuery(
+                search,
+                page == 0 ? 1 : page,
+                pageSize == 0 ? 20 : pageSize),
+            cancellationToken);
         return result.ToHttpResult();
     }
 
@@ -50,7 +55,9 @@ public class ProductController : ControllerBase
         [FromServices] ICommandHandler<UpdateProductCommand> handler,
         CancellationToken cancellationToken)
     {
-        var result = await handler.Handle(new UpdateProductCommand(id, request.Name, request.Description), cancellationToken);
+        var result = await handler.Handle(
+            new UpdateProductCommand(id, request.Name, request.Description),
+            cancellationToken);
         return result.ToHttpResult();
     }
 }

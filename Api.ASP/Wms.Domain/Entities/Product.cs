@@ -5,9 +5,9 @@ namespace Wms.Domain.Entities;
 
 public class Product : Entity
 {
-    public Sku Sku { get; private set; } = null!;
-    public string Name { get; private set; } = null!;
-    public string Description { get; private set; } = string.Empty;
+    public Sku Sku { get; set; } = null!;
+    public string Name { get; set; } = null!;
+    public string Description { get; set; } = string.Empty;
 
     private Product() { }
 
@@ -16,12 +16,6 @@ public class Product : Entity
         Id = Guid.NewGuid();
         Name = name;
         Sku = sku;
-        Description = description;
-    }
-
-    public void UpdateDetails(string name, string description)
-    {
-        Name = name;
         Description = description;
     }
 }

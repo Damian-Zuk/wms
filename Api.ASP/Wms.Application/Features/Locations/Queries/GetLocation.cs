@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
+using Wms.Application.Extensions;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Locations.Queries;
@@ -16,6 +17,7 @@ public sealed class GetLocationQueryHandler(IAppDbContext context)
     {
         var location = await context.Locations
             .AsNoTracking()
+            .ApplyIsDeletedFilter()
             .Where(l => l.Id == query.Id)
             .Select(l => new LocationDto(l.Id, l.Code.Value, l.Description))
             .FirstOrDefaultAsync(cancellationToken);

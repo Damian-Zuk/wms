@@ -5,10 +5,10 @@ namespace Wms.Domain.Entities;
 
 public class Lot : Entity
 {
-    public LotNumber Number { get; private set; } = null!;
-    public Guid ProductId { get; private set; }
-    public DateTime? ManufacturedDate { get; private set; }
-    public DateTime? ExpirationDate { get; private set; }
+    public LotNumber Number { get; set; } = null!;
+    public Guid ProductId { get; set; }
+    public DateTime? ManufacturedDate { get; set; }
+    public DateTime? ExpirationDate { get; set; }
 
     private Lot() { }
 

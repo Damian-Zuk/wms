@@ -28,7 +28,8 @@ public sealed class UpdateProductCommandHandler(IAppDbContext context)
         if (product is null)
             return Error.NotFound;
         
-        product.UpdateDetails(request.Name, request.Description);
+        product.Name = request.Name;
+        product.Description = request.Description;
         await context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();
