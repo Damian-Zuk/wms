@@ -20,5 +20,7 @@ public class StockInConfiguration : EntityConfiguration<StockIn>
 
         builder.Navigation(s => s.Items)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+        
+        builder.Property<uint>("xmin").IsRowVersion();
     }
 }

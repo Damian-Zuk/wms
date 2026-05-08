@@ -30,5 +30,7 @@ public class LotConfiguration : EntityConfiguration<Lot>
             .WithMany()
             .HasForeignKey(l => l.ProductId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property<uint>("xmin").IsRowVersion();
     }
 }

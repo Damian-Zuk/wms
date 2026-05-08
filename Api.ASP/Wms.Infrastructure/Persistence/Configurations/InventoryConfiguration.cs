@@ -38,5 +38,7 @@ public class InventoryConfiguration : EntityConfiguration<Inventory>
             .WithMany()
             .HasForeignKey(i => i.LotId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property<uint>("xmin").IsRowVersion();
     }
 }

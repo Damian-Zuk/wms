@@ -31,8 +31,7 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
         ListProductsQuery query,
         CancellationToken cancellationToken)
     {
-        var productsQuery = context.Products
-            .AsNoTracking().AsQueryable().ApplyIsDeletedFilter();
+        var productsQuery = context.Products.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
