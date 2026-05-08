@@ -29,8 +29,7 @@ public sealed class ListLocationsQueryHandler(IAppDbContext context)
         ListLocationsQuery query,
         CancellationToken cancellationToken)
     {
-        var locationsQuery = context.Locations
-            .AsNoTracking().AsQueryable().ApplyIsDeletedFilter();
+        var locationsQuery = context.Locations.AsNoTracking().AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {

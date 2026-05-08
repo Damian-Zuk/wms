@@ -30,8 +30,7 @@ public sealed class ListLotsQueryHandler(IAppDbContext context)
         ListLotsQuery query,
         CancellationToken cancellationToken)
     {
-        var lotsQuery = context.Lots
-            .AsNoTracking().AsQueryable().ApplyIsDeletedFilter();
+        var lotsQuery = context.Lots.AsNoTracking().AsQueryable();
 
         if (query.ProductId.HasValue)
             lotsQuery = lotsQuery.Where(l => l.ProductId == query.ProductId.Value);

@@ -15,8 +15,6 @@ public sealed class GetProductQueryHandler(IAppDbContext context)
     {
         var product = await context.Products
             .AsNoTracking()
-            .ApplyIsDeletedFilter()
-            .Where(p => p.Id == query.Id)
             .Select(p => new ProductDto(p.Id, p.Sku.Value, p.Name, p.Description))
             .FirstOrDefaultAsync(cancellationToken);
 

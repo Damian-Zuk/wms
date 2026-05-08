@@ -24,7 +24,6 @@ public sealed class GetLotQueryHandler(IAppDbContext context)
     {
         var lot = await context.Lots
             .AsNoTracking()
-            .ApplyIsDeletedFilter()
             .Where(l => l.Id == query.Id)
             .Select(l => new LotDto(
                 l.Id,

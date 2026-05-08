@@ -17,7 +17,6 @@ public sealed class GetLocationQueryHandler(IAppDbContext context)
     {
         var location = await context.Locations
             .AsNoTracking()
-            .ApplyIsDeletedFilter()
             .Where(l => l.Id == query.Id)
             .Select(l => new LocationDto(l.Id, l.Code.Value, l.Description))
             .FirstOrDefaultAsync(cancellationToken);

@@ -29,5 +29,7 @@ public abstract class EntityConfiguration<T> : IEntityTypeConfiguration<T>
         builder.Property(e => e.IsDeleted)
             .HasDefaultValue(false)
             .IsRequired();
+
+        builder.HasQueryFilter(e => !e.IsDeleted);
     }
 }
