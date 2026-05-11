@@ -90,17 +90,6 @@ public sealed class CreateStockInCommandHandler(IAppDbContext context)
             }
 
             inventory.Increase(qty);
-
-            var movement = new StockMovement(
-                item.ProductId,
-                item.LocationId,
-                item.LotId,
-                item.Quantity,
-                StockMovementType.In,
-                StockMovementSource.StockIn,
-                stockIn.Id);
-
-            await context.StockMovements.AddAsync(movement, cancellationToken);
         }
 
         await context.StockIns.AddAsync(stockIn, cancellationToken);

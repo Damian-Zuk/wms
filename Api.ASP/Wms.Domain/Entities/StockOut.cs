@@ -1,4 +1,5 @@
-﻿using Wms.Domain.Primitives;
+﻿using Wms.Domain.Events;
+using Wms.Domain.Primitives;
 using Wms.Domain.ValueObjects;
 
 namespace Wms.Domain.Entities;
@@ -18,5 +19,6 @@ public class StockOut : Entity
     public void AddItem(Guid productId, Guid locationId, Guid? lotId, Quantity quantity)
     {
         _items.Add(new StockOutItem(productId, locationId, lotId, quantity));
+        Raise(new StockOutItemAddedDomainEvent(Id, productId, locationId, lotId, quantity.Value));
     }
 }

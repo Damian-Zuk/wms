@@ -89,17 +89,6 @@ public sealed class CreateStockOutCommandHandler(IAppDbContext context)
 
             stockOut.AddItem(item.ProductId, item.LocationId, item.LotId, qty);
             inventory.Decrease(qty);
-
-            var movement = new StockMovement(
-                item.ProductId,
-                item.LocationId,
-                item.LotId,
-                item.Quantity,
-                StockMovementType.Out,
-                StockMovementSource.StockOut,
-                stockOut.Id);
-
-            await context.StockMovements.AddAsync(movement, cancellationToken);
         }
 
         await context.StockOuts.AddAsync(stockOut, cancellationToken);
