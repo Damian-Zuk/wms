@@ -9,6 +9,8 @@ using Wms.Application.Common.Interfaces;
 using Wms.Infrastructure.Data;
 using Wms.Infrastructure.Identity;
 using Wms.Infrastructure.Persistence.Interceptors;
+using Wms.Application.Abstractions.DomainEvents;
+using Wms.Infrastructure.DomainEvents;
 
 namespace Wms.Infrastructure;
 
@@ -70,6 +72,9 @@ public static class DependencyInjection
         // CurrentUserService
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+        // Domain Event Dispatcher
+        services.AddTransient<IDomainEventDispatcher, DomainEventDispatcher>();
 
         return services;
     }

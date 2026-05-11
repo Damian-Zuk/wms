@@ -1,7 +1,10 @@
 ﻿namespace Wms.Domain.Primitives;
 
-public class Entity
+public abstract class Entity
 {
+    private readonly List<IDomainEvent> _domainEvents = [];
+    public List<IDomainEvent> DomainEvents => [.. _domainEvents];
+
     public Guid Id { get; protected set; }
     public DateTime CreatedAt { get; protected set; }
     public string? CreatedBy { get; protected set; }
@@ -33,5 +36,15 @@ public class Entity
     public void MarkAsDeleted()
     {
         IsDeleted = true;
+    }
+
+    public void ClearDomainEvents()
+    {
+        _domainEvents.Clear();
+    }
+
+    public void Raise(IDomainEvent domainEvent)
+    {
+        _domainEvents.Add(domainEvent);
     }
 }

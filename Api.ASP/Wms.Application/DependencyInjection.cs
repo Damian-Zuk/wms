@@ -2,6 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Wms.Application.Abstractions.Behaviors;
 using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Abstractions.DomainEvents;
 
 namespace Wms.Application;
 
@@ -27,6 +28,11 @@ public static class DependencyInjection
         services.TryDecorate(typeof(IQueryHandler<,>), typeof(LoggingPipelineBehavior.QueryHandler<,>));
         services.TryDecorate(typeof(ICommandHandler<,>), typeof(LoggingPipelineBehavior.CommandHandler<,>));
         services.TryDecorate(typeof(ICommandHandler<>), typeof(LoggingPipelineBehavior.CommandBaseHandler<>));
+
+        services.Scan(scan => scan.FromAssembliesOf(typeof(DependencyInjection))
+            .AddClasses(classes => classes.AssignableTo(typeof(IDomainEventHandler<>)), publicOnly: false)
+            .AsImplementedInterfaces()
+            .WithScopedLifetime());
 
         var assembly = typeof(DependencyInjection).Assembly;
         services.AddValidatorsFromAssembly(assembly);

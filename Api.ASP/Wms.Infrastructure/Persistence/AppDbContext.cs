@@ -1,12 +1,17 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Wms.Application.Abstractions.DomainEvents;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Entities;
+using Wms.Domain.Primitives;
 using Wms.Infrastructure.Identity;
 
 namespace Wms.Infrastructure.Data;
 
-public class AppDbContext : IdentityDbContext<AppUser>, IAppDbContext
+public class AppDbContext(
+    DbContextOptions<AppDbContext> options,
+    IDomainEventDispatcher domainEventDispatcher)
+    : IdentityDbContext<AppUser>(options), IAppDbContext
 {
     public DbSet<Product> Products => Set<Product>();
     public DbSet<Location> Locations => Set<Location>();
@@ -18,11 +23,31 @@ public class AppDbContext : IdentityDbContext<AppUser>, IAppDbContext
     public DbSet<StockOutItem> StockOutItems => Set<StockOutItem>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
-
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var result = await base.SaveChangesAsync(cancellationToken);
+        await PublishDomainEventsAsync();
+        return result;
+    }
+
+    private async Task PublishDomainEventsAsync()
+    {
+        var domainEvents = ChangeTracker.Entries<Entity>()
+            .Select(entry => entry.Entity)
+            .SelectMany(entity =>
+            {
+                List<IDomainEvent> events = entity.DomainEvents;
+                entity.ClearDomainEvents();
+                return events;
+            })
+            .ToList();
+
+        await domainEventDispatcher.DispatchAsync(domainEvents);
     }
 }
