@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Serilog;
+using Wms.Api.Infrastructure;
 using Wms.Application;
 using Wms.Infrastructure;
 using Wms.Infrastructure.Identity;
@@ -38,6 +39,7 @@ builder.Services.AddProblemDetails(options =>
     };
 });
 
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
 

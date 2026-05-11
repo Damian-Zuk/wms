@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using Wms.Api.Extensions;
+using Wms.Api.Infrastructure;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Features.Lots.Commands;
 using Wms.Application.Features.Lots.Queries;
+using Wms.Shared.Common;
 
 namespace Wms.Api.Controllers;
 
@@ -27,7 +28,8 @@ public class LotController : ControllerBase
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);
-        return result.ToHttpResult();
+
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 
     [HttpGet("{id:guid}")]
@@ -37,7 +39,8 @@ public class LotController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new GetLotQuery(id), cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 
     [HttpPost]
@@ -47,7 +50,8 @@ public class LotController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(request, cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 
     [HttpPut("{id:guid}")]
@@ -60,7 +64,8 @@ public class LotController : ControllerBase
         var result = await handler.Handle(
             new UpdateLotCommand(id, request.ManufacturedDate, request.ExpirationDate),
             cancellationToken);
-        return result.ToHttpResult();
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
     [HttpDelete("{id:guid}")]
@@ -70,7 +75,8 @@ public class LotController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new DeleteLotCommand(id), cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.NoContent, CustomResults.Problem);
     }
 }
 

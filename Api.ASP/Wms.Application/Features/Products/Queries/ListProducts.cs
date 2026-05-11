@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
 using Wms.Application.Common.Models;
-using Wms.Application.Extensions;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Products.Queries;

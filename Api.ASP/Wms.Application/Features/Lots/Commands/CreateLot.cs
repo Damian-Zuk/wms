@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Entities;
+using Wms.Domain.Errors;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
 
@@ -33,23 +34,23 @@ public sealed class CreateLotCommandHandler(IAppDbContext context)
             .AnyAsync(p => p.Id == request.ProductId, cancellationToken);
 
         if (!productExists)
-            return Error.NotFound;
+            return LotErrors.ProductNotFound(request.ProductId);
 
         var exists = await context.Lots
             .AsNoTracking()
             .AnyAsync(l => l.Number.Value == request.Number && l.ProductId == request.ProductId, cancellationToken);
 
         if (exists)
-            return Error.Problem("Lot.NumberExists", "Lot with this number already exists for this product.");
+            return LotErrors.NumberExists(request.Number);
 
         Lot lot;
         try
         {
             lot = new Lot(new LotNumber(request.Number), request.ProductId, request.ManufacturedDate, request.ExpirationDate);
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            return Error.Problem("Lot.InvalidDates", ex.Message);
+            return LotErrors.EmptyNumber;
         }
 
         await context.Lots.AddAsync(lot, cancellationToken);

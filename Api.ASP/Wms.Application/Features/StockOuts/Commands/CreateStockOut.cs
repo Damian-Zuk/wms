@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Entities;
-using Wms.Domain.Enums;
+using Wms.Domain.Errors;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
 
@@ -44,7 +44,7 @@ public sealed class CreateStockOutCommandHandler(IAppDbContext context)
 
         var missingProduct = productIds.Except(existingProductIds).FirstOrDefault();
         if (missingProduct != default)
-            return Error.Problem("StockOut.ProductNotFound", $"Product {missingProduct} not found.");
+            return StockOutErrors.ProductNotFound(missingProduct);
 
         var existingLocationIds = await context.Locations
             .AsNoTracking()
@@ -54,7 +54,7 @@ public sealed class CreateStockOutCommandHandler(IAppDbContext context)
 
         var missingLocation = locationIds.Except(existingLocationIds).FirstOrDefault();
         if (missingLocation != default)
-            return Error.Problem("StockOut.LocationNotFound", $"Location {missingLocation} not found.");
+            return StockOutErrors.LocationNotFound(missingLocation);
 
         if (lotIds.Count > 0)
         {
@@ -66,7 +66,7 @@ public sealed class CreateStockOutCommandHandler(IAppDbContext context)
 
             var missingLot = lotIds.Except(existingLotIds).FirstOrDefault();
             if (missingLot != default)
-                return Error.Problem("StockOut.LotNotFound", $"Lot {missingLot} not found.");
+                return StockOutErrors.LotNotFound(missingLot);
         }
 
         var stockOut = new StockOut(Guid.NewGuid());
@@ -83,9 +83,7 @@ public sealed class CreateStockOutCommandHandler(IAppDbContext context)
                     cancellationToken);
 
             if (inventory is null || inventory.Quantity.Value < item.Quantity)
-                return Error.Problem(
-                    "StockOut.InsufficientInventory",
-                    $"Insufficient inventory for product {item.ProductId} at location {item.LocationId}.");
+                return StockOutErrors.InsufficientInventory(item.ProductId, item.LocationId);
 
             stockOut.AddItem(item.ProductId, item.LocationId, item.LotId, qty);
             inventory.Decrease(qty);

@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
+using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Products.Commands;
@@ -25,7 +26,7 @@ public sealed class DeleteProductCommandHandler(IAppDbContext context)
             .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
 
         if (product is null)
-            return Error.NotFound;
+            return ProductErrors.NotFound(request.Id);
 
         product.MarkAsDeleted();
         await context.SaveChangesAsync(cancellationToken);

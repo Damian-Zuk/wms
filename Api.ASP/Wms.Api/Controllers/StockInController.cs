@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using Wms.Api.Extensions;
+using Wms.Api.Infrastructure;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Features.StockIns.Commands;
 using Wms.Application.Features.StockIns.Queries;
+using Wms.Shared.Common;
 
 namespace Wms.Api.Controllers;
 
@@ -23,7 +24,8 @@ public class StockInController : ControllerBase
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 
     [HttpGet("{id:guid}")]
@@ -33,7 +35,8 @@ public class StockInController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new GetStockInQuery(id), cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 
     [HttpPost]
@@ -43,6 +46,7 @@ public class StockInController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(request, cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 }

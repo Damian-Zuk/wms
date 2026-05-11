@@ -1,46 +1,21 @@
-﻿using Wms.Shared.Common;
-
-namespace Wms.Api.Extensions;
+﻿
+namespace Wms.Shared.Common;
 
 public static class ResultExtensions
 {
-    public static IResult ToHttpResult<T>(this Result<T> result)
+    public static TOut Match<TOut>(
+        this Result result,
+        Func<TOut> onSuccess,
+        Func<Result, TOut> onFailure)
     {
-        if (result.IsSuccess)
-            return Results.Ok(result.Value);
-
-        return Results.Problem(
-            type: GetProblemType(result.Error),
-            title: result.Error.Code,
-            detail: result.Error.Description,
-            statusCode: GetStatusCode(result.Error));
+        return result.IsSuccess ? onSuccess() : onFailure(result);
     }
 
-    public static IResult ToHttpResult(this Result result)
+    public static TOut Match<TIn, TOut>(
+        this Result<TIn> result,
+        Func<TIn, TOut> onSuccess,
+        Func<Result<TIn>, TOut> onFailure)
     {
-        if (result.IsSuccess)
-            return Results.Ok();
-
-        return Results.Problem(
-            type: GetProblemType(result.Error),
-            title: result.Error.Code,
-            detail: result.Error.Description,
-            statusCode: GetStatusCode(result.Error));
+        return result.IsSuccess ? onSuccess(result.Value) : onFailure(result);
     }
-
-    private static int GetStatusCode(Error error) => error.Code switch
-    {
-        "Validation.Failed" => StatusCodes.Status422UnprocessableEntity,
-        "Error.NotFound" => StatusCodes.Status404NotFound,
-        "Error.NullValue" => StatusCodes.Status404NotFound,
-        _ => StatusCodes.Status400BadRequest
-    };
-
-    private static string GetProblemType(Error error) => error.Code switch
-    {
-        "Validation.Failed" => "Unprocessable Entity",
-        "Error.NotFound" => "Not Found",
-        "Error.NullValue" => "Not Found",
-        _ => "Bad Request"
-    };
 }

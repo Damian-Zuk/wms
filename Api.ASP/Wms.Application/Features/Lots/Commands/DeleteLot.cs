@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
+using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Lots.Commands;
@@ -25,7 +26,7 @@ public sealed class DeleteLotCommandHandler(IAppDbContext context)
             .FirstOrDefaultAsync(l => l.Id == request.Id, cancellationToken);
 
         if (lot is null)
-            return Error.NotFound;
+            return LotErrors.NotFound(request.Id);
 
         lot.MarkAsDeleted();
         await context.SaveChangesAsync(cancellationToken);

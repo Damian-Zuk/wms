@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using Wms.Api.Extensions;
+using Wms.Api.Infrastructure;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Features.Products.Commands;
 using Wms.Application.Features.Products.Queries;
+using Wms.Shared.Common;
 
 namespace Wms.Api.Controllers;
 
@@ -25,7 +26,8 @@ public class ProductController : ControllerBase
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);
-        return result.ToHttpResult();
+
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 
     [HttpGet("{id:guid}")]
@@ -35,7 +37,8 @@ public class ProductController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new GetProductQuery(id), cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 
     [HttpPost]
@@ -45,7 +48,8 @@ public class ProductController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(request, cancellationToken);
-        return result.ToHttpResult();
+
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 
     [HttpPut("{id:guid}")]
@@ -58,7 +62,8 @@ public class ProductController : ControllerBase
         var result = await handler.Handle(
             new UpdateProductCommand(id, request.Name, request.Description),
             cancellationToken);
-        return result.ToHttpResult();
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
     [HttpDelete("{id:guid}")]
@@ -68,7 +73,8 @@ public class ProductController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new DeleteProductCommand(id), cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
 }

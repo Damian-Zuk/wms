@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
+using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Inventories.Queries;
@@ -27,6 +28,6 @@ public sealed class GetInventoryQueryHandler(IAppDbContext context)
             .Select(i => new InventoryDto(i.Id, i.ProductId, i.LocationId, i.LotId, i.Quantity.Value))
             .FirstOrDefaultAsync(cancellationToken);
 
-        return inventory is null ? Error.NotFound : inventory;
+        return inventory is null ? InventoryErrors.NotFound(query.Id) : inventory;
     }
 }

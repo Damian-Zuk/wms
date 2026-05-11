@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Enums;
+using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.StockMovements.Queries;
@@ -41,6 +42,6 @@ public sealed class GetStockMovementQueryHandler(IAppDbContext context)
                 m.CreatedAt))
             .FirstOrDefaultAsync(cancellationToken);
 
-        return movement is null ? Error.NotFound : movement;
+        return movement is null ? StockMovementErrors.NotFound(query.Id) : movement;
     }
 }

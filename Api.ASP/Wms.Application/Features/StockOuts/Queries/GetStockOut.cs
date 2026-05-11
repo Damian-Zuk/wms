@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
+using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.StockOuts.Queries;
@@ -27,6 +28,6 @@ public sealed class GetStockOutQueryHandler(IAppDbContext context)
                 s.Items.Select(i => new StockOutItemDto(i.Id, i.ProductId, i.LocationId, i.LotId, i.Quantity.Value)).ToList()))
             .FirstOrDefaultAsync(cancellationToken);
 
-        return stockOut is null ? Error.NotFound : stockOut;
+        return stockOut is null ? StockOutErrors.NotFound(query.Id) : stockOut;
     }
 }

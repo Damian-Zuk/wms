@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
+using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Lots.Commands;
@@ -28,11 +29,11 @@ public sealed class UpdateLotCommandHandler(IAppDbContext context)
             .FirstOrDefaultAsync(l => l.Id == request.Id, cancellationToken);
 
         if (lot is null)
-            return Error.NotFound;
+            return LotErrors.NotFound(request.Id);
 
         if (request.ExpirationDate.HasValue && request.ManufacturedDate.HasValue
             && request.ExpirationDate < request.ManufacturedDate)
-            return Error.Problem("Lot.InvalidDates", "Expiry date cannot be before manufactured date");
+            return LotErrors.InvalidDates;
 
         lot.ManufacturedDate = request.ManufacturedDate;
         lot.ExpirationDate = request.ExpirationDate;

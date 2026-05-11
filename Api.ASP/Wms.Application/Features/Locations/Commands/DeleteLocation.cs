@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
+using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Locations.Commands;
@@ -25,7 +26,7 @@ public sealed class DeleteLocationCommandHandler(IAppDbContext context)
             .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
 
         if (location is null)
-            return Error.NotFound;
+            return LocationErrors.NotFound(request.Id);
 
         location.MarkAsDeleted();
         await context.SaveChangesAsync(cancellationToken);

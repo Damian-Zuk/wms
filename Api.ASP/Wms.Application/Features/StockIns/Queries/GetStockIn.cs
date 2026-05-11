@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
+using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.StockIns.Queries;
@@ -27,6 +28,6 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
                 s.Items.Select(i => new StockInItemDto(i.Id, i.ProductId, i.LocationId, i.LotId, i.Quantity.Value)).ToList()))
             .FirstOrDefaultAsync(cancellationToken);
 
-        return stockIn is null ? Error.NotFound : stockIn;
+        return stockIn is null ? StockInErrors.NotFound(query.Id) : stockIn;
     }
 }

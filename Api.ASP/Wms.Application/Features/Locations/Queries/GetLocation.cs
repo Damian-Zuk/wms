@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
-using Wms.Application.Extensions;
+using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Locations.Queries;
@@ -21,6 +21,6 @@ public sealed class GetLocationQueryHandler(IAppDbContext context)
             .Select(l => new LocationDto(l.Id, l.Code.Value, l.Description))
             .FirstOrDefaultAsync(cancellationToken);
 
-        return location is null ? Error.NotFound : location;
+        return location is null ? LocationErrors.NotFound(query.Id) : location;
     }
 }

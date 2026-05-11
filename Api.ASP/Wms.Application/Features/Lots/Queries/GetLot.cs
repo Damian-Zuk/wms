@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
 using Wms.Application.Extensions;
+using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Lots.Queries;
@@ -35,6 +36,6 @@ public sealed class GetLotQueryHandler(IAppDbContext context)
                 l.ExpirationDate != null && l.ExpirationDate.Value.Date <= DateTime.Today.AddDays(30)))
             .FirstOrDefaultAsync(cancellationToken);
 
-        return lot is null ? Error.NotFound : lot;
+        return lot is null ? LotErrors.NotFound(query.Id) : lot;
     }
 }

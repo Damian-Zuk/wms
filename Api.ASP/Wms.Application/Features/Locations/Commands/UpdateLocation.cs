@@ -2,8 +2,9 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
-using Wms.Shared.Common;
 using Wms.Domain.ValueObjects;
+using Wms.Domain.Errors;
+using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Locations.Commands;
 
@@ -27,7 +28,7 @@ public sealed class UpdateLocationCommandHandler(IAppDbContext context)
             .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken);
 
         if (location is null)
-            return Error.NotFound;
+            return LocationErrors.NotFound(request.Id);
 
         location.Code = new LocationCode(request.Code);
         location.Description = request.Description;

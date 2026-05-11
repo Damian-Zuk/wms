@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using Wms.Api.Extensions;
+using Wms.Api.Infrastructure;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Features.Inventories.Queries;
+using Wms.Shared.Common;
 
 namespace Wms.Api.Controllers;
 
@@ -28,7 +29,8 @@ public class InventoryController : ControllerBase
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 
     [HttpGet("{id:guid}")]
@@ -38,6 +40,7 @@ public class InventoryController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new GetInventoryQuery(id), cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.Ok, CustomResults.Problem);
     }
 }

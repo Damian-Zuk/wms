@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using Wms.Api.Extensions;
+using Wms.Api.Infrastructure;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Features.StockMovements.Queries;
 using Wms.Domain.Enums;
+using Wms.Shared.Common;
 
 namespace Wms.Api.Controllers;
 
@@ -33,7 +34,8 @@ public class StockMovementController : ControllerBase
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.Ok, CustomResults.Problem); ;
     }
 
     [HttpGet("{id:guid}")]
@@ -43,6 +45,7 @@ public class StockMovementController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new GetStockMovementQuery(id), cancellationToken);
-        return result.ToHttpResult();
+        
+        return result.Match(Results.Ok, CustomResults.Problem); ;
     }
 }

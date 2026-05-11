@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Entities;
-using Wms.Domain.Enums;
+using Wms.Domain.Errors;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
 
@@ -44,7 +44,7 @@ public sealed class CreateStockInCommandHandler(IAppDbContext context)
 
         var missingProduct = productIds.Except(existingProductIds).FirstOrDefault();
         if (missingProduct != default)
-            return Error.Problem("StockIn.ProductNotFound", $"Product {missingProduct} not found.");
+            return StockInErrors.ProductNotFound(missingProduct);
 
         var existingLocationIds = await context.Locations
             .AsNoTracking()
@@ -54,7 +54,7 @@ public sealed class CreateStockInCommandHandler(IAppDbContext context)
 
         var missingLocation = locationIds.Except(existingLocationIds).FirstOrDefault();
         if (missingLocation != default)
-            return Error.Problem("StockIn.LocationNotFound", $"Location {missingLocation} not found.");
+            return StockInErrors.LocationNotFound(missingLocation);
 
         if (lotIds.Count > 0)
         {
@@ -66,7 +66,7 @@ public sealed class CreateStockInCommandHandler(IAppDbContext context)
 
             var missingLot = lotIds.Except(existingLotIds).FirstOrDefault();
             if (missingLot != default)
-                return Error.Problem("StockIn.LotNotFound", $"Lot {missingLot} not found.");
+                return StockInErrors.LotNotFound(missingLot);
         }
 
         var stockIn = new StockIn(Guid.NewGuid());

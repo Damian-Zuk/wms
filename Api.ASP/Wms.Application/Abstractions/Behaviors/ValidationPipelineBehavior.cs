@@ -22,7 +22,7 @@ internal static class ValidationPipelineBehavior
                 return await innerHandler.Handle(command, cancellationToken);
             }
 
-            return Result.ValidationFailure(CreateValidationError(validationFailures));
+            return Result.Failure(CreateValidationError(validationFailures));
         }
     }
 
@@ -41,7 +41,7 @@ internal static class ValidationPipelineBehavior
                 return await innerHandler.Handle(command, cancellationToken);
             }
 
-            return Result.ValidationFailure<TResponse>(CreateValidationError(validationFailures));
+            return Result.Failure<TResponse>(CreateValidationError(validationFailures));
         }
     }
 
