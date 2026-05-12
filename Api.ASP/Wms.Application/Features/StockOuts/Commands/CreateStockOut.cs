@@ -73,20 +73,7 @@ public sealed class CreateStockOutCommandHandler(IAppDbContext context)
 
         foreach (var item in request.Items)
         {
-            var qty = new Quantity(item.Quantity);
-
-            var inventory = await context.Inventories
-                .FirstOrDefaultAsync(
-                    inv => inv.ProductId == item.ProductId
-                        && inv.LocationId == item.LocationId
-                        && inv.LotId == item.LotId,
-                    cancellationToken);
-
-            if (inventory is null || inventory.Quantity.Value < item.Quantity)
-                return StockOutErrors.InsufficientInventory(item.ProductId, item.LocationId);
-
-            stockOut.AddItem(item.ProductId, item.LocationId, item.LotId, qty);
-            inventory.Decrease(qty);
+            stockOut.AddItem(item.ProductId, item.LocationId, item.LotId, new Quantity(item.Quantity));
         }
 
         await context.StockOuts.AddAsync(stockOut, cancellationToken);

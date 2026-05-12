@@ -40,6 +40,7 @@ public sealed class ListStockOutsQueryHandler(IAppDbContext context)
             .Take(query.PageSize)
             .Select(s => new StockOutDto(
                 s.Id,
+                s.Status,
                 s.CreatedAt,
                 s.CreatedBy,
                 s.Items.Select(i => new StockOutItemDto(i.Id, i.ProductId, i.LocationId, i.LotId, i.Quantity.Value)).ToList()))

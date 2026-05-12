@@ -40,6 +40,7 @@ public sealed class ListStockInsQueryHandler(IAppDbContext context)
             .Take(query.PageSize)
             .Select(s => new StockInDto(
                 s.Id,
+                s.Status,
                 s.CreatedAt,
                 s.CreatedBy,
                 s.Items.Select(i => new StockInItemDto(i.Id, i.ProductId, i.LocationId, i.LotId, i.Quantity.Value)).ToList()))

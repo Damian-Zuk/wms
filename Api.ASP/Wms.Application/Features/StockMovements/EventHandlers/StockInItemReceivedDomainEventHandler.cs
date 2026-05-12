@@ -1,4 +1,4 @@
-﻿using Wms.Application.Abstractions.DomainEvents;
+using Wms.Application.Abstractions.DomainEvents;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Entities;
 using Wms.Domain.Enums;
@@ -6,10 +6,10 @@ using Wms.Domain.Events;
 
 namespace Wms.Application.Features.StockMovements.EventHandlers;
 
-internal sealed class StockInItemAddedDomainEventHandler(IAppDbContext context)
-    : IDomainEventHandler<StockInItemAddedDomainEvent>
+internal sealed class StockInItemReceivedDomainEventHandler(IAppDbContext context)
+    : IDomainEventHandler<StockInItemReceivedDomainEvent>
 {
-    public async Task Handle(StockInItemAddedDomainEvent domainEvent, CancellationToken cancellationToken)
+    public async Task Handle(StockInItemReceivedDomainEvent domainEvent, CancellationToken cancellationToken)
     {
         var movement = new StockMovement(
             domainEvent.ProductId,

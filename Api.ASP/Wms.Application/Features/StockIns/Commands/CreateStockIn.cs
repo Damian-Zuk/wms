@@ -73,23 +73,7 @@ public sealed class CreateStockInCommandHandler(IAppDbContext context)
 
         foreach (var item in request.Items)
         {
-            var qty = new Quantity(item.Quantity);
-            stockIn.AddItem(item.ProductId, item.LocationId, item.LotId, qty);
-
-            var inventory = await context.Inventories
-                .FirstOrDefaultAsync(
-                    inv => inv.ProductId == item.ProductId
-                        && inv.LocationId == item.LocationId
-                        && inv.LotId == item.LotId,
-                    cancellationToken);
-
-            if (inventory is null)
-            {
-                inventory = new Inventory(item.ProductId, item.LocationId, item.LotId);
-                await context.Inventories.AddAsync(inventory, cancellationToken);
-            }
-
-            inventory.Increase(qty);
+            stockIn.AddItem(item.ProductId, item.LocationId, item.LotId, new Quantity(item.Quantity));
         }
 
         await context.StockIns.AddAsync(stockIn, cancellationToken);

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wms.Domain.Entities;
 
@@ -11,6 +11,10 @@ public class StockOutConfiguration : EntityConfiguration<StockOut>
         base.Configure(builder);
 
         builder.ToTable("StockOuts");
+
+        builder.Property(s => s.Status)
+            .HasConversion<int>()
+            .IsRequired();
 
         builder.HasMany(s => s.Items)
             .WithOne()

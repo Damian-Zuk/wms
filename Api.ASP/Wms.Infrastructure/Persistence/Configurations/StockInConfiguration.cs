@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wms.Domain.Entities;
 
@@ -12,6 +12,10 @@ public class StockInConfiguration : EntityConfiguration<StockIn>
 
         builder.ToTable("StockIns");
 
+        builder.Property(s => s.Status)
+            .HasConversion<int>()
+            .IsRequired();
+
         builder.HasMany(s => s.Items)
             .WithOne()
             .HasForeignKey("StockInId")
@@ -20,7 +24,7 @@ public class StockInConfiguration : EntityConfiguration<StockIn>
 
         builder.Navigation(s => s.Items)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
-        
+
         builder.Property<uint>("xmin").IsRowVersion();
     }
 }

@@ -1,8 +1,8 @@
-﻿using Wms.Domain.Primitives;
+using Wms.Domain.Primitives;
 
 namespace Wms.Domain.Events;
 
-public sealed record StockOutItemAddedDomainEvent(
+public sealed record StockOutItemPickedDomainEvent(
     Guid StockOutId,
     Guid ProductId,
     Guid LocationId,

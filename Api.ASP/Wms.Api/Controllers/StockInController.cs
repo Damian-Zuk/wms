@@ -24,7 +24,7 @@ public class StockInController : ControllerBase
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);
-        
+
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
@@ -35,7 +35,7 @@ public class StockInController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new GetStockInQuery(id), cancellationToken);
-        
+
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
@@ -46,7 +46,51 @@ public class StockInController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(request, cancellationToken);
-        
+
         return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("{id:guid}/start-receiving")]
+    public async Task<IResult> StartReceiving(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<StartReceivingStockInCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new StartReceivingStockInCommand(id), cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPost("{id:guid}/receive")]
+    public async Task<IResult> Receive(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<ReceiveStockInCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new ReceiveStockInCommand(id), cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPost("{id:guid}/complete")]
+    public async Task<IResult> Complete(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<CompleteStockInCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new CompleteStockInCommand(id), cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<IResult> Cancel(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<CancelStockInCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new CancelStockInCommand(id), cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
     }
 }

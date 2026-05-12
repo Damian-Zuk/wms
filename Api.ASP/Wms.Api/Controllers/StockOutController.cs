@@ -24,7 +24,7 @@ public class StockOutController : ControllerBase
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);
-        
+
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
@@ -35,7 +35,7 @@ public class StockOutController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new GetStockOutQuery(id), cancellationToken);
-        
+
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
@@ -46,7 +46,62 @@ public class StockOutController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(request, cancellationToken);
-        
+
         return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpPost("{id:guid}/start-picking")]
+    public async Task<IResult> StartPicking(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<StartPickingStockOutCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new StartPickingStockOutCommand(id), cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPost("{id:guid}/pack")]
+    public async Task<IResult> Pack(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<PackStockOutCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new PackStockOutCommand(id), cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPost("{id:guid}/ship")]
+    public async Task<IResult> Ship(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<ShipStockOutCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new ShipStockOutCommand(id), cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPost("{id:guid}/complete")]
+    public async Task<IResult> Complete(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<CompleteStockOutCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new CompleteStockOutCommand(id), cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [HttpPost("{id:guid}/cancel")]
+    public async Task<IResult> Cancel(
+        [FromRoute] Guid id,
+        [FromServices] ICommandHandler<CancelStockOutCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new CancelStockOutCommand(id), cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
     }
 }
