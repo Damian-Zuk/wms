@@ -1,5 +1,8 @@
-﻿using Wms.Domain.Primitives;
+using Wms.Domain.Errors;
+using Wms.Domain.Events;
+using Wms.Domain.Primitives;
 using Wms.Domain.ValueObjects;
+using Wms.Shared.Common;
 
 namespace Wms.Domain.Entities;
 
@@ -30,5 +33,56 @@ public class Inventory : Entity
     public void Decrease(Quantity qty)
     {
         Quantity = Quantity.Subtract(qty);
+    }
+
+    public Result Adjust(int quantityChange, string? reason)
+    {
+        if (quantityChange == 0)
+            return InventoryErrors.AdjustmentMustBeNonZero();
+
+        if (quantityChange > 0)
+        {
+            Increase(new Quantity(quantityChange));
+        }
+        else
+        {
+            var absoluteChange = Math.Abs(quantityChange);
+            if (Quantity.Value < absoluteChange)
+                return InventoryErrors.InsufficientQuantity(Quantity.Value, absoluteChange);
+
+            Decrease(new Quantity(absoluteChange));
+        }
+
+        Raise(new InventoryAdjustedDomainEvent(
+            Id,
+            ProductId,
+            LocationId,
+            LotId,
+            quantityChange,
+            reason));
+
+        return Result.Success();
+    }
+
+    public Result TransferTo(Inventory destination, Quantity quantity, Guid transferId)
+    {
+        if (LocationId == destination.LocationId)
+            return StockTransferErrors.SameSourceAndDestination();
+
+        if (Quantity.Value < quantity.Value)
+            return InventoryErrors.InsufficientQuantity(Quantity.Value, quantity.Value);
+
+        Decrease(quantity);
+        destination.Increase(quantity);
+
+        Raise(new StockTransferredDomainEvent(
+            transferId,
+            ProductId,
+            LocationId,
+            destination.LocationId,
+            LotId,
+            quantity.Value));
+
+        return Result.Success();
     }
 }

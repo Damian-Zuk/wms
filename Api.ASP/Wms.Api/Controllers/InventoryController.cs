@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Models;
+using Wms.Application.Features.Inventories.Commands;
 using Wms.Application.Features.Inventories.Queries;
 using Wms.Shared.Common;
 
@@ -29,7 +30,7 @@ public class InventoryController : ControllerBase
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);
-        
+
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
@@ -40,7 +41,23 @@ public class InventoryController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(new GetInventoryQuery(id), cancellationToken);
-        
+
         return result.Match(Results.Ok, CustomResults.Problem);
     }
+
+    [HttpPost("{id:guid}/adjust")]
+    public async Task<IResult> AdjustInventory(
+        [FromRoute] Guid id,
+        [FromBody] AdjustInventoryRequest request,
+        [FromServices] ICommandHandler<AdjustInventoryCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new AdjustInventoryCommand(id, request.QuantityChange, request.Reason),
+            cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
 }
+
+public sealed record AdjustInventoryRequest(int QuantityChange, string? Reason);
