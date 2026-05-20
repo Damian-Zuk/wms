@@ -38,31 +38,30 @@ public sealed class TransferStockCommandHandler(IAppDbContext context)
         if (command.SourceLocationId == command.DestinationLocationId)
             return StockTransferErrors.SameSourceAndDestination();
 
-        var productExists = await context.Products
-            .AsNoTracking()
-            .AnyAsync(p => p.Id == command.ProductId, cancellationToken);
+        var product = await context.Products
+            .FirstOrDefaultAsync(p => p.Id == command.ProductId, cancellationToken);
 
-        if (!productExists)
+        if (product is null)
             return StockTransferErrors.ProductNotFound(command.ProductId);
 
         var locationIds = new[] { command.SourceLocationId, command.DestinationLocationId };
-        var existingLocationIds = await context.Locations
-            .AsNoTracking()
+        var locations = await context.Locations
             .Where(l => locationIds.Contains(l.Id))
-            .Select(l => l.Id)
-            .ToListAsync(cancellationToken);
+            .ToDictionaryAsync(l => l.Id, cancellationToken);
 
-        var missingLocation = locationIds.Except(existingLocationIds).FirstOrDefault();
-        if (missingLocation != default)
-            return StockTransferErrors.LocationNotFound(missingLocation);
+        if (!locations.ContainsKey(command.SourceLocationId))
+            return StockTransferErrors.LocationNotFound(command.SourceLocationId);
 
+        if (!locations.TryGetValue(command.DestinationLocationId, out var destinationLocation))
+            return StockTransferErrors.LocationNotFound(command.DestinationLocationId);
+
+        Lot? lot = null;
         if (command.LotId.HasValue)
         {
-            var lotExists = await context.Lots
-                .AsNoTracking()
-                .AnyAsync(l => l.Id == command.LotId.Value, cancellationToken);
+            lot = await context.Lots
+                .FirstOrDefaultAsync(l => l.Id == command.LotId.Value, cancellationToken);
 
-            if (!lotExists)
+            if (lot is null)
                 return StockTransferErrors.LotNotFound(command.LotId.Value);
         }
 
@@ -79,12 +78,18 @@ public sealed class TransferStockCommandHandler(IAppDbContext context)
                 command.SourceLocationId,
                 command.LotId);
 
-        var destinationInventory = await context.Inventories
-            .FirstOrDefaultAsync(
-                i => i.ProductId == command.ProductId
-                    && i.LocationId == command.DestinationLocationId
-                    && i.LotId == command.LotId,
-                cancellationToken);
+        var destinationContents = await context.Inventories
+            .Where(i => i.LocationId == command.DestinationLocationId)
+            .ToListAsync(cancellationToken);
+
+        var quantity = new Quantity(command.Quantity);
+
+        var canAccept = destinationLocation.CanAccept(product, lot, quantity, destinationContents);
+        if (canAccept.IsFailure)
+            return Result.Failure<Guid>(canAccept.Error);
+
+        var destinationInventory = destinationContents.FirstOrDefault(i =>
+            i.ProductId == command.ProductId && i.LotId == command.LotId);
 
         if (destinationInventory is null)
         {
@@ -99,7 +104,7 @@ public sealed class TransferStockCommandHandler(IAppDbContext context)
 
         var result = sourceInventory.TransferTo(
             destinationInventory,
-            new Quantity(command.Quantity),
+            quantity,
             transferId);
 
         if (result.IsFailure)

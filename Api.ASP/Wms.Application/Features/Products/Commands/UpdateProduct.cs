@@ -2,12 +2,17 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
+using Wms.Domain.Enums;
 using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Products.Commands;
 
-public sealed record UpdateProductCommand(Guid Id, string Name, string Description) : ICommand;
+public sealed record UpdateProductCommand(
+    Guid Id,
+    string Name,
+    string Description,
+    TemperatureZone RequiredTemperatureZone) : ICommand;
 
 public sealed class UpdateProductValidator : AbstractValidator<UpdateProductCommand>
 {
@@ -15,6 +20,8 @@ public sealed class UpdateProductValidator : AbstractValidator<UpdateProductComm
     {
         RuleFor(x => x.Id).NotEmpty().WithMessage("Product ID is required");
         RuleFor(x => x.Name).NotEmpty().WithMessage("Name is required");
+        RuleFor(x => x.RequiredTemperatureZone)
+            .IsInEnum().WithMessage("RequiredTemperatureZone must be a valid value");
     }
 }
 
@@ -28,9 +35,10 @@ public sealed class UpdateProductCommandHandler(IAppDbContext context)
 
         if (product is null)
             return ProductErrors.NotFound(request.Id);
-        
+
         product.Name = request.Name;
         product.Description = request.Description;
+        product.RequiredTemperatureZone = request.RequiredTemperatureZone;
         await context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();

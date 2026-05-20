@@ -4,6 +4,7 @@ using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Features.Products.Commands;
 using Wms.Application.Features.Products.Queries;
+using Wms.Domain.Enums;
 using Wms.Shared.Common;
 
 namespace Wms.Api.Controllers;
@@ -60,7 +61,7 @@ public class ProductController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(
-            new UpdateProductCommand(id, request.Name, request.Description),
+            new UpdateProductCommand(id, request.Name, request.Description, request.RequiredTemperatureZone),
             cancellationToken);
 
         return result.Match(Results.NoContent, CustomResults.Problem);
@@ -79,4 +80,7 @@ public class ProductController : ControllerBase
 
 }
 
-public sealed record UpdateProductRequest(string Name, string Description);
+public sealed record UpdateProductRequest(
+    string Name,
+    string Description,
+    TemperatureZone RequiredTemperatureZone);

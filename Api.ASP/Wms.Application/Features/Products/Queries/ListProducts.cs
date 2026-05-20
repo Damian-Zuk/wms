@@ -3,11 +3,17 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Interfaces;
 using Wms.Application.Common.Models;
+using Wms.Domain.Enums;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Products.Queries;
 
-public record ProductDto(Guid Id, string Sku, string Name, string Description);
+public record ProductDto(
+    Guid Id,
+    string Sku,
+    string Name,
+    string Description,
+    TemperatureZone RequiredTemperatureZone);
 
 public sealed record ListProductsQuery(
     string? Search,
@@ -46,7 +52,12 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
             .OrderBy(p => p.Name)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(p => new ProductDto(p.Id, p.Sku.Value, p.Name, p.Description))
+            .Select(p => new ProductDto(
+                p.Id,
+                p.Sku.Value,
+                p.Name,
+                p.Description,
+                p.RequiredTemperatureZone))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ProductDto>(items, query.Page, query.PageSize, totalCount);

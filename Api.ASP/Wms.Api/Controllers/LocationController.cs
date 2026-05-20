@@ -4,6 +4,7 @@ using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Features.Locations.Commands;
 using Wms.Application.Features.Locations.Queries;
+using Wms.Domain.Enums;
 using Wms.Shared.Common;
 
 namespace Wms.Api.Controllers;
@@ -15,6 +16,8 @@ public class LocationController : ControllerBase
     [HttpGet]
     public async Task<IResult> ListLocations(
         [FromQuery] string? search,
+        [FromQuery] string? zone,
+        [FromQuery] LocationType? type,
         [FromQuery] int page,
         [FromQuery] int pageSize,
         [FromServices] IQueryHandler<ListLocationsQuery, PagedResult<LocationDto>> handler,
@@ -23,6 +26,8 @@ public class LocationController : ControllerBase
         var result = await handler.Handle(
             new ListLocationsQuery(
                 search,
+                zone,
+                type,
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);
@@ -60,7 +65,20 @@ public class LocationController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(
-            new UpdateLocationCommand(id, request.Code, request.Description),
+            new UpdateLocationCommand(
+                id,
+                request.Code,
+                request.Zone,
+                request.Aisle,
+                request.Rack,
+                request.Shelf,
+                request.Bin,
+                request.Type,
+                request.Description,
+                request.TemperatureZone,
+                request.Capacity,
+                request.IsMixedSkuAllowed,
+                request.IsMixedLotAllowed),
             cancellationToken);
         
         return result.Match(Results.NoContent, CustomResults.Problem);
@@ -78,4 +96,16 @@ public class LocationController : ControllerBase
     }
 }
 
-public sealed record UpdateLocationRequest(string Code, string Description);
+public sealed record UpdateLocationRequest(
+    string Code,
+    string Zone,
+    string Aisle,
+    string Rack,
+    string Shelf,
+    string Bin,
+    LocationType Type,
+    string? Description,
+    TemperatureZone TemperatureZone,
+    int? Capacity,
+    bool IsMixedSkuAllowed,
+    bool IsMixedLotAllowed);

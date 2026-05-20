@@ -16,7 +16,12 @@ public sealed class GetProductQueryHandler(IAppDbContext context)
         var product = await context.Products
             .AsNoTracking()
             .Where(p => p.Id == query.Id)
-            .Select(p => new ProductDto(p.Id, p.Sku.Value, p.Name, p.Description))
+            .Select(p => new ProductDto(
+                p.Id,
+                p.Sku.Value,
+                p.Name,
+                p.Description,
+                p.RequiredTemperatureZone))
             .FirstOrDefaultAsync(cancellationToken);
 
         return product is null ? ProductErrors.NotFound(query.Id) : product;

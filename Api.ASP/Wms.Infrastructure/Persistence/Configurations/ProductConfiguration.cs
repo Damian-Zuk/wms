@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wms.Domain.Entities;
 
@@ -29,6 +29,10 @@ public class ProductConfiguration : EntityConfiguration<Product>
 
         builder.Property(p => p.Description)
             .HasMaxLength(1000)
+            .IsRequired();
+
+        builder.Property(p => p.RequiredTemperatureZone)
+            .HasConversion<int>()
             .IsRequired();
     }
 }

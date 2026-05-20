@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wms.Domain.Entities;
@@ -24,7 +24,67 @@ public class LocationConfiguration : EntityConfiguration<Location>
                 .IsUnique();
         });
 
+        builder.OwnsOne(l => l.Address, addressBuilder =>
+        {
+            addressBuilder.Property(a => a.Zone)
+                .HasColumnName("AddressZone")
+                .HasMaxLength(8)
+                .IsRequired();
+
+            addressBuilder.Property(a => a.Aisle)
+                .HasColumnName("AddressAisle")
+                .HasMaxLength(8)
+                .IsRequired();
+
+            addressBuilder.Property(a => a.Rack)
+                .HasColumnName("AddressRack")
+                .HasMaxLength(8)
+                .IsRequired();
+
+            addressBuilder.Property(a => a.Shelf)
+                .HasColumnName("AddressShelf")
+                .HasMaxLength(8)
+                .IsRequired();
+
+            addressBuilder.Property(a => a.Bin)
+                .HasColumnName("AddressBin")
+                .HasMaxLength(8)
+                .IsRequired();
+
+            addressBuilder.HasIndex(a => new { a.Zone, a.Aisle, a.Rack, a.Shelf, a.Bin })
+                .IsUnique();
+        });
+
         builder.Property(l => l.Description)
+            .HasMaxLength(500);
+
+        builder.Property(l => l.Type)
+            .HasConversion<int>()
+            .IsRequired();
+
+        builder.Property(l => l.TemperatureZone)
+            .HasConversion<int>()
+            .IsRequired();
+
+        builder.Property(l => l.Capacity);
+
+        builder.Property(l => l.IsMixedSkuAllowed)
+            .HasDefaultValue(true)
+            .IsRequired();
+
+        builder.Property(l => l.IsMixedLotAllowed)
+            .HasDefaultValue(true)
+            .IsRequired();
+
+        builder.Property(l => l.IsActive)
+            .HasDefaultValue(true)
+            .IsRequired();
+
+        builder.Property(l => l.IsBlocked)
+            .HasDefaultValue(false)
+            .IsRequired();
+
+        builder.Property(l => l.BlockedReason)
             .HasMaxLength(500);
     }
 }
