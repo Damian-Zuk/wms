@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Wms.Application.Abstractions.Behaviors;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Abstractions.DomainEvents;
+using Wms.Application.Putaway;
+using Wms.Application.Putaway.Strategies;
 
 namespace Wms.Application;
 
@@ -36,6 +38,11 @@ public static class DependencyInjection
 
         var assembly = typeof(DependencyInjection).Assembly;
         services.AddValidatorsFromAssembly(assembly);
+
+        services.AddScoped<IPutawayStrategy, FixedLocationStrategy>();
+        services.AddScoped<IPutawayStrategy, ConsolidateSameSkuStrategy>();
+        services.AddScoped<IPutawayStrategy, NearestEmptyStrategy>();
+        services.AddScoped<IPutawayService, PutawayService>();
 
         return services;
     }

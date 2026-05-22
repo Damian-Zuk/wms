@@ -14,7 +14,8 @@ public sealed record CreateProductCommand(
     string Sku,
     string Name,
     string Description,
-    TemperatureZone RequiredTemperatureZone = TemperatureZone.Ambient) : ICommand<Guid>;
+    TemperatureZone RequiredTemperatureZone = TemperatureZone.Ambient,
+    IReadOnlyList<Guid>? PreferredLocationIds = null) : ICommand<Guid>;
 
 public sealed class CreateProductValidator: AbstractValidator<CreateProductCommand>
 {
@@ -24,6 +25,9 @@ public sealed class CreateProductValidator: AbstractValidator<CreateProductComma
         RuleFor(x => x.Name).NotEmpty().WithMessage("Name is required");
         RuleFor(x => x.RequiredTemperatureZone)
             .IsInEnum().WithMessage("RequiredTemperatureZone must be a valid value");
+        RuleForEach(x => x.PreferredLocationIds!)
+            .NotEqual(Guid.Empty).WithMessage("Preferred location IDs must be non-empty GUIDs")
+            .When(x => x.PreferredLocationIds is not null);
     }
 }
 
@@ -41,11 +45,31 @@ public sealed class CreateProductCommandHandler(IAppDbContext context)
         if (exists)
             return ProductErrors.SkuExists(request.Sku);
 
+        var distinctPreferred = (request.PreferredLocationIds ?? [])
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
+        if (distinctPreferred.Count > 0)
+        {
+            var existingIds = await context.Locations
+                .AsNoTracking()
+                .Where(l => distinctPreferred.Contains(l.Id))
+                .Select(l => l.Id)
+                .ToListAsync(cancellationToken);
+
+            var missing = distinctPreferred.Except(existingIds).FirstOrDefault();
+            if (missing != default)
+                return LocationErrors.NotFound(missing);
+        }
+
         var product = new Product(
             new Sku(request.Sku),
             request.Name,
             request.Description,
             request.RequiredTemperatureZone);
+
+        product.SetPreferredLocations(distinctPreferred);
 
         await context.Products.AddAsync(product, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);

@@ -21,7 +21,11 @@ public sealed class GetProductQueryHandler(IAppDbContext context)
                 p.Sku.Value,
                 p.Name,
                 p.Description,
-                p.RequiredTemperatureZone))
+                p.RequiredTemperatureZone,
+                p.PreferredLocations
+                    .OrderBy(pl => pl.Sequence)
+                    .Select(pl => pl.LocationId)
+                    .ToList()))
             .FirstOrDefaultAsync(cancellationToken);
 
         return product is null ? ProductErrors.NotFound(query.Id) : product;

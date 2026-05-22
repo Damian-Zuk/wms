@@ -61,7 +61,12 @@ public class ProductController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(
-            new UpdateProductCommand(id, request.Name, request.Description, request.RequiredTemperatureZone),
+            new UpdateProductCommand(
+                id,
+                request.Name,
+                request.Description,
+                request.RequiredTemperatureZone,
+                request.PreferredLocationIds),
             cancellationToken);
 
         return result.Match(Results.NoContent, CustomResults.Problem);
@@ -83,4 +88,5 @@ public class ProductController : ControllerBase
 public sealed record UpdateProductRequest(
     string Name,
     string Description,
-    TemperatureZone RequiredTemperatureZone);
+    TemperatureZone RequiredTemperatureZone,
+    IReadOnlyList<Guid>? PreferredLocationIds);

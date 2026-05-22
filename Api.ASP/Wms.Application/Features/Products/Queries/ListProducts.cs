@@ -13,7 +13,8 @@ public record ProductDto(
     string Sku,
     string Name,
     string Description,
-    TemperatureZone RequiredTemperatureZone);
+    TemperatureZone RequiredTemperatureZone,
+    IReadOnlyList<Guid> PreferredLocationIds);
 
 public sealed record ListProductsQuery(
     string? Search,
@@ -57,7 +58,11 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
                 p.Sku.Value,
                 p.Name,
                 p.Description,
-                p.RequiredTemperatureZone))
+                p.RequiredTemperatureZone,
+                p.PreferredLocations
+                    .OrderBy(pl => pl.Sequence)
+                    .Select(pl => pl.LocationId)
+                    .ToList()))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ProductDto>(items, query.Page, query.PageSize, totalCount);

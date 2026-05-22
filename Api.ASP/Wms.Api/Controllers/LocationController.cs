@@ -94,6 +94,21 @@ public class LocationController : ControllerBase
         
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
+
+    [HttpGet("suggest-putaway")]
+    public async Task<IResult> SuggestPutawayLocation(
+        [FromQuery] Guid productId,
+        [FromQuery] Guid? lotId,
+        [FromQuery] int quantity,
+        [FromServices] IQueryHandler<SuggestPutawayLocationQuery, PutawaySuggestionDto> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new SuggestPutawayLocationQuery(productId, lotId, quantity),
+            cancellationToken);
+
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
 }
 
 public sealed record UpdateLocationRequest(

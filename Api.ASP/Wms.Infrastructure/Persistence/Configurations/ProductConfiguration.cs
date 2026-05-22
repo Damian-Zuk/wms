@@ -34,5 +34,13 @@ public class ProductConfiguration : EntityConfiguration<Product>
         builder.Property(p => p.RequiredTemperatureZone)
             .HasConversion<int>()
             .IsRequired();
+
+        builder.HasMany(p => p.PreferredLocations)
+            .WithOne()
+            .HasForeignKey(pl => pl.ProductId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(p => p.PreferredLocations)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

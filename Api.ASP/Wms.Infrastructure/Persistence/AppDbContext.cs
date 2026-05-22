@@ -14,6 +14,7 @@ public class AppDbContext(
     : IdentityDbContext<AppUser>(options), IAppDbContext
 {
     public DbSet<Product> Products => Set<Product>();
+    public DbSet<ProductPreferredLocation> ProductPreferredLocations => Set<ProductPreferredLocation>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<Inventory> Inventories => Set<Inventory>();
     public DbSet<Lot> Lots => Set<Lot>();
