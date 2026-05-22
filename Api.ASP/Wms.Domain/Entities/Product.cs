@@ -8,10 +8,10 @@ public class Product : Entity
 {
     private readonly List<ProductPreferredLocation> _preferredLocations = [];
 
-    public Sku Sku { get; set; } = null!;
-    public string Name { get; set; } = null!;
-    public string Description { get; set; } = string.Empty;
-    public TemperatureZone RequiredTemperatureZone { get; set; } = TemperatureZone.Ambient;
+    public Sku Sku { get; private set; } = null!;
+    public string Name { get; private set; } = null!;
+    public string Description { get; private set; } = string.Empty;
+    public TemperatureZone RequiredTemperatureZone { get; private set; } = TemperatureZone.Ambient;
 
     public IReadOnlyCollection<ProductPreferredLocation> PreferredLocations => _preferredLocations;
 
@@ -26,6 +26,13 @@ public class Product : Entity
         Id = Guid.NewGuid();
         Name = name;
         Sku = sku;
+        Description = description;
+        RequiredTemperatureZone = requiredTemperatureZone;
+    }
+
+    public void Update(string name, string description, TemperatureZone requiredTemperatureZone)
+    {
+        Name = name;
         Description = description;
         RequiredTemperatureZone = requiredTemperatureZone;
     }

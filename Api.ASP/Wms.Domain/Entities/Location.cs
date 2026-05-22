@@ -8,14 +8,14 @@ namespace Wms.Domain.Entities;
 
 public class Location : Entity
 {
-    public LocationCode Code { get; set; } = null!;
-    public LocationAddress Address { get; set; } = null!;
-    public string? Description { get; set; }
-    public LocationType Type { get; set; }
-    public TemperatureZone TemperatureZone { get; set; } = TemperatureZone.Ambient;
-    public int? Capacity { get; set; }
-    public bool IsMixedSkuAllowed { get; set; } = true;
-    public bool IsMixedLotAllowed { get; set; } = true;
+    public LocationCode Code { get; private set; } = null!;
+    public LocationAddress Address { get; private set; } = null!;
+    public string? Description { get; private set; }
+    public LocationType Type { get; private set; }
+    public TemperatureZone TemperatureZone { get; private set; } = TemperatureZone.Ambient;
+    public int? Capacity { get; private set; }
+    public bool IsMixedSkuAllowed { get; private set; } = true;
+    public bool IsMixedLotAllowed { get; private set; } = true;
     public bool IsActive { get; private set; } = true;
     public bool IsBlocked { get; private set; }
     public string? BlockedReason { get; private set; }
@@ -43,6 +43,32 @@ public class Location : Entity
         IsMixedLotAllowed = isMixedLotAllowed;
         IsActive = true;
         IsBlocked = false;
+    }
+
+    /// <summary>
+    /// Applies the updatable scalar fields. Uniqueness and existence checks
+    /// belong in the command handler; this method just assigns. IsActive,
+    /// IsBlocked, and BlockedReason are controlled via Block/Unblock/Activate/
+    /// Deactivate — they're lifecycle transitions, not arbitrary edits.
+    /// </summary>
+    public void Update(
+        LocationCode code,
+        LocationAddress address,
+        LocationType type,
+        string? description,
+        TemperatureZone temperatureZone,
+        int? capacity,
+        bool isMixedSkuAllowed,
+        bool isMixedLotAllowed)
+    {
+        Code = code;
+        Address = address;
+        Type = type;
+        Description = description;
+        TemperatureZone = temperatureZone;
+        Capacity = capacity;
+        IsMixedSkuAllowed = isMixedSkuAllowed;
+        IsMixedLotAllowed = isMixedLotAllowed;
     }
 
     public Result Block(string reason)

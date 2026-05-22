@@ -87,14 +87,15 @@ public sealed class UpdateLocationCommandHandler(IAppDbContext context)
         if (addressConflict)
             return LocationErrors.AddressExists(address.ToString());
 
-        location.Code = new LocationCode(request.Code);
-        location.Address = address;
-        location.Description = request.Description;
-        location.Type = request.Type;
-        location.TemperatureZone = request.TemperatureZone;
-        location.Capacity = request.Capacity;
-        location.IsMixedSkuAllowed = request.IsMixedSkuAllowed;
-        location.IsMixedLotAllowed = request.IsMixedLotAllowed;
+        location.Update(
+            new LocationCode(request.Code),
+            address,
+            request.Type,
+            request.Description,
+            request.TemperatureZone,
+            request.Capacity,
+            request.IsMixedSkuAllowed,
+            request.IsMixedLotAllowed);
 
         await context.SaveChangesAsync(cancellationToken);
 

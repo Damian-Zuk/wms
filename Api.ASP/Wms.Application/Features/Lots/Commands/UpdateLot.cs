@@ -31,12 +31,10 @@ public sealed class UpdateLotCommandHandler(IAppDbContext context)
         if (lot is null)
             return LotErrors.NotFound(request.Id);
 
-        if (request.ExpirationDate.HasValue && request.ManufacturedDate.HasValue
-            && request.ExpirationDate < request.ManufacturedDate)
-            return LotErrors.InvalidDates;
+        var result = lot.UpdateDates(request.ManufacturedDate, request.ExpirationDate);
+        if (result.IsFailure)
+            return result;
 
-        lot.ManufacturedDate = request.ManufacturedDate;
-        lot.ExpirationDate = request.ExpirationDate;
         await context.SaveChangesAsync(cancellationToken);
 
         return Result.Success();

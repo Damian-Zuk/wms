@@ -59,9 +59,7 @@ public sealed class UpdateProductCommandHandler(IAppDbContext context)
                 return LocationErrors.NotFound(missing);
         }
 
-        product.Name = request.Name;
-        product.Description = request.Description;
-        product.RequiredTemperatureZone = request.RequiredTemperatureZone;
+        product.Update(request.Name, request.Description, request.RequiredTemperatureZone);
         product.SetPreferredLocations(distinctPreferred);
 
         await context.SaveChangesAsync(cancellationToken);

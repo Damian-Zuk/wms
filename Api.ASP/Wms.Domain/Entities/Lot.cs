@@ -1,14 +1,16 @@
-﻿using Wms.Domain.Primitives;
+using Wms.Domain.Errors;
+using Wms.Domain.Primitives;
 using Wms.Domain.ValueObjects;
+using Wms.Shared.Common;
 
 namespace Wms.Domain.Entities;
 
 public class Lot : Entity
 {
-    public LotNumber Number { get; set; } = null!;
-    public Guid ProductId { get; set; }
-    public DateTime? ManufacturedDate { get; set; }
-    public DateTime? ExpirationDate { get; set; }
+    public LotNumber Number { get; private set; } = null!;
+    public Guid ProductId { get; private set; }
+    public DateTime? ManufacturedDate { get; private set; }
+    public DateTime? ExpirationDate { get; private set; }
 
     private Lot() { }
 
@@ -22,6 +24,17 @@ public class Lot : Entity
         ProductId = productId;
         ManufacturedDate = manufacturedDate;
         ExpirationDate = expirationDate;
+    }
+
+    public Result UpdateDates(DateTime? manufacturedDate, DateTime? expirationDate)
+    {
+        if (expirationDate.HasValue && manufacturedDate.HasValue
+            && expirationDate < manufacturedDate)
+            return LotErrors.InvalidDates;
+
+        ManufacturedDate = manufacturedDate;
+        ExpirationDate = expirationDate;
+        return Result.Success();
     }
 
     public bool IsExpired()
