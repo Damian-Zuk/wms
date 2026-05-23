@@ -77,12 +77,37 @@ public class StockOut : Entity
         return Result.Success();
     }
 
+    /// <summary>
+    /// Cancels the stock-out. Allowed from Draft (stock was reserved, not
+    /// physically removed) or from Picking/Packed (stock was physically
+    /// removed — the cancel must return it). Not allowed from Shipped or
+    /// Completed: those require a proper returns workflow which is out of scope.
+    /// </summary>
     public Result Cancel()
     {
-        if (Status != StockOutStatus.Draft)
-            return StockOutErrors.InvalidStatusTransition(Status, StockOutStatus.Cancelled);
+        var statusBeforeCancel = Status;
+
+        if (statusBeforeCancel is not (
+            StockOutStatus.Draft or StockOutStatus.Picking or StockOutStatus.Packed))
+        {
+            return StockOutErrors.InvalidStatusTransition(statusBeforeCancel, StockOutStatus.Cancelled);
+        }
 
         Status = StockOutStatus.Cancelled;
+
+        if (statusBeforeCancel is StockOutStatus.Picking or StockOutStatus.Packed)
+        {
+            foreach (var item in _items)
+            {
+                Raise(new StockOutItemReturnedToStockDomainEvent(
+                    Id,
+                    item.ProductId,
+                    item.LocationId,
+                    item.LotId,
+                    item.Quantity.Value));
+            }
+        }
+
         return Result.Success();
     }
 }

@@ -63,7 +63,7 @@ internal sealed class ConsolidateSameSkuStrategy(IAppDbContext context) : IPutaw
             if (canAccept.IsFailure)
                 continue;
 
-            var currentTotal = contents.Sum(i => i.Quantity.Value);
+            var currentTotal = contents.Sum(i => i.OnHand.Value);
             survivors.Add((location, currentTotal));
         }
 

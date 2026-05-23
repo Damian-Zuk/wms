@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Extensions;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Entities;
 using Wms.Domain.Errors;
@@ -82,7 +83,6 @@ public sealed class ReceiveStockInCommandHandler(IAppDbContext context)
             inventory.Increase(item.Quantity);
         }
 
-        await context.SaveChangesAsync(cancellationToken);
-        return Result.Success();
+        return await context.SaveChangesWithConcurrencyCheckAsync(cancellationToken);
     }
 }

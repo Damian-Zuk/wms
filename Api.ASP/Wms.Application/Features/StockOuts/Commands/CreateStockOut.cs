@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Extensions;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Entities;
 using Wms.Domain.Errors;
@@ -69,15 +70,34 @@ public sealed class CreateStockOutCommandHandler(IAppDbContext context)
                 return StockOutErrors.LotNotFound(missingLot);
         }
 
+        var inventories = await context.Inventories
+            .Where(i => locationIds.Contains(i.LocationId) && productIds.Contains(i.ProductId))
+            .ToListAsync(cancellationToken);
+
         var stockOut = new StockOut(Guid.NewGuid());
 
         foreach (var item in request.Items)
         {
+            var inventory = inventories.FirstOrDefault(i =>
+                i.ProductId == item.ProductId
+                && i.LocationId == item.LocationId
+                && i.LotId == item.LotId);
+
+            if (inventory is null)
+                return InventoryErrors.InsufficientAvailableStock(0, item.Quantity);
+
+            var reserveResult = inventory.Reserve(new Quantity(item.Quantity));
+            if (reserveResult.IsFailure)
+                return Result.Failure<Guid>(reserveResult.Error);
+
             stockOut.AddItem(item.ProductId, item.LocationId, item.LotId, new Quantity(item.Quantity));
         }
 
         await context.StockOuts.AddAsync(stockOut, cancellationToken);
-        await context.SaveChangesAsync(cancellationToken);
+
+        var saveResult = await context.SaveChangesWithConcurrencyCheckAsync(cancellationToken);
+        if (saveResult.IsFailure)
+            return Result.Failure<Guid>(saveResult.Error);
 
         return stockOut.Id;
     }

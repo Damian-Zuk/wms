@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Extensions;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Errors;
+using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.StockOuts.Commands;
@@ -33,13 +35,15 @@ public sealed class StartPickingStockOutCommandHandler(IAppDbContext context)
                         && inv.LotId == item.LotId,
                     cancellationToken);
 
-            if (inventory is null || inventory.Quantity.Value < item.Quantity.Value)
+            if (inventory is null)
                 return StockOutErrors.InsufficientInventory(item.ProductId, item.LocationId);
 
-            inventory.Decrease(item.Quantity);
+            var pickResult = inventory.Pick(item.Quantity);
+            if (pickResult.IsFailure)
+                return pickResult;
         }
 
-        await context.SaveChangesAsync(cancellationToken);
-        return Result.Success();
+        var saveResult = await context.SaveChangesWithConcurrencyCheckAsync(cancellationToken);
+        return saveResult;
     }
 }

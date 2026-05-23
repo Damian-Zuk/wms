@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Extensions;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Entities;
 using Wms.Domain.Errors;
@@ -110,7 +111,9 @@ public sealed class TransferStockCommandHandler(IAppDbContext context)
         if (result.IsFailure)
             return Result.Failure<Guid>(result.Error);
 
-        await context.SaveChangesAsync(cancellationToken);
+        var saveResult = await context.SaveChangesWithConcurrencyCheckAsync(cancellationToken);
+        if (saveResult.IsFailure)
+            return Result.Failure<Guid>(saveResult.Error);
 
         return transferId;
     }

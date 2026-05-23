@@ -45,12 +45,6 @@ public class Location : Entity
         IsBlocked = false;
     }
 
-    /// <summary>
-    /// Applies the updatable scalar fields. Uniqueness and existence checks
-    /// belong in the command handler; this method just assigns. IsActive,
-    /// IsBlocked, and BlockedReason are controlled via Block/Unblock/Activate/
-    /// Deactivate — they're lifecycle transitions, not arbitrary edits.
-    /// </summary>
     public void Update(
         LocationCode code,
         LocationAddress address,
@@ -122,15 +116,19 @@ public class Location : Entity
 
         if (Capacity.HasValue)
         {
-            var totalAfter = contents.Sum(i => i.Quantity.Value) + quantity.Value;
+            // Capacity = physical occupancy. Reserved units still take up
+            // space, so OnHand (not Available) is the right basis here.
+            var totalAfter = contents.Sum(i => i.OnHand.Value) + quantity.Value;
             if (totalAfter > Capacity.Value)
                 return LocationErrors.CapacityExceeded(Id, Capacity.Value, totalAfter);
         }
 
         if (!IsMixedSkuAllowed)
         {
+            // Another product is physically present if its OnHand > 0,
+            // regardless of how much of it is reserved.
             var otherProduct = contents.FirstOrDefault(i =>
-                i.Quantity.Value > 0 && i.ProductId != product.Id);
+                i.OnHand.Value > 0 && i.ProductId != product.Id);
 
             if (otherProduct is not null)
                 return LocationErrors.MixedSkuNotAllowed(Id, otherProduct.ProductId);
@@ -139,7 +137,7 @@ public class Location : Entity
         if (!IsMixedLotAllowed)
         {
             var otherLot = contents.FirstOrDefault(i =>
-                i.Quantity.Value > 0 && i.LotId.HasValue && i.LotId != lot?.Id);
+                i.OnHand.Value > 0 && i.LotId.HasValue && i.LotId != lot?.Id);
 
             if (otherLot is not null)
                 return LocationErrors.MixedLotNotAllowed(Id, otherLot.LotId!.Value);

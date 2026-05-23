@@ -47,7 +47,14 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
             .OrderBy(i => i.ProductId)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(i => new InventoryDto(i.Id, i.ProductId, i.LocationId, i.LotId, i.Quantity.Value))
+            .Select(i => new InventoryDto(
+                i.Id,
+                i.ProductId,
+                i.LocationId,
+                i.LotId,
+                i.OnHand.Value,
+                i.Reserved.Value,
+                i.OnHand.Value - i.Reserved.Value))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<InventoryDto>(items, query.Page, query.PageSize, totalCount);

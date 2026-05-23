@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Extensions;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Errors;
 using Wms.Shared.Common;
@@ -34,7 +35,6 @@ public sealed class AdjustInventoryCommandHandler(IAppDbContext context)
         if (result.IsFailure)
             return result;
 
-        await context.SaveChangesAsync(cancellationToken);
-        return Result.Success();
+        return await context.SaveChangesWithConcurrencyCheckAsync(cancellationToken);
     }
 }

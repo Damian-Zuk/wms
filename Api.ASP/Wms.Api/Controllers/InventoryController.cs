@@ -58,6 +58,21 @@ public class InventoryController : ControllerBase
 
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
+
+    [HttpGet("availability")]
+    public async Task<IResult> GetAvailability(
+        [FromQuery] Guid productId,
+        [FromQuery] Guid? locationId,
+        [FromQuery] Guid? lotId,
+        [FromServices] IQueryHandler<GetAvailabilityQuery, AvailabilityDto> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new GetAvailabilityQuery(productId, locationId, lotId),
+            cancellationToken);
+
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
 }
 
 public sealed record AdjustInventoryRequest(int QuantityChange, string? Reason);

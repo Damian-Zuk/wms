@@ -15,4 +15,25 @@ public static class InventoryErrors
     public static Error InsufficientQuantity(int available, int requested) => Error.Conflict(
         "Inventory.InsufficientQuantity",
         $"Insufficient quantity available (available: {available}, requested: {requested}).");
+
+    public static Error InsufficientAvailableStock(int available, int requested) => Error.Conflict(
+        "Inventory.InsufficientAvailableStock",
+        $"Insufficient available stock to reserve (available: {available}, requested: {requested}).");
+
+    public static Error ReservationExceedsOnHand(int onHand, int reserved) => Error.Conflict(
+        "Inventory.ReservationExceedsOnHand",
+        $"Reservation would exceed on-hand stock (on-hand: {onHand}, reserved: {reserved}).");
+
+    public static Error ReleaseExceedsReserved(int reserved, int requested) => Error.Conflict(
+        "Inventory.ReleaseExceedsReserved",
+        $"Cannot release more than is reserved (reserved: {reserved}, requested: {requested}).");
+
+    public static Error AdjustmentWouldViolateReservation(int onHandAfter, int reserved) => Error.Conflict(
+        "Inventory.AdjustmentWouldViolateReservation",
+        $"Adjustment would push on-hand ({onHandAfter}) below reserved ({reserved}). " +
+        "Release the affected reservation first.");
+
+    public static Error ConcurrencyConflict() => Error.Conflict(
+        "Inventory.ConcurrencyConflict",
+        "Inventory was modified by another operation. Retry the request.");
 }

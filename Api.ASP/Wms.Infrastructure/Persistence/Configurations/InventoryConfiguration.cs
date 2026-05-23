@@ -15,12 +15,21 @@ public class InventoryConfiguration : EntityConfiguration<Inventory>
         builder.HasIndex(i => new { i.ProductId, i.LocationId, i.LotId })
             .IsUnique();
 
-        builder.OwnsOne(i => i.Quantity, qtyBuilder =>
+        builder.OwnsOne(i => i.OnHand, qtyBuilder =>
         {
             qtyBuilder.Property(q => q.Value)
-                .HasColumnName("Quantity")
+                .HasColumnName("OnHand")
                 .IsRequired();
         });
+
+        builder.OwnsOne(i => i.Reserved, qtyBuilder =>
+        {
+            qtyBuilder.Property(q => q.Value)
+                .HasColumnName("Reserved")
+                .IsRequired();
+        });
+
+        builder.Ignore(i => i.Available);
 
         builder.Property(i => i.LotId).IsRequired(false);
 
