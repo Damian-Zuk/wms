@@ -5,7 +5,7 @@ using Wms.Shared.Common;
 
 namespace Wms.Domain.ValueObjects;
 
-public class LocationAddress : ValueObject
+public class LocationAddress : ValueObject, IComparable<LocationAddress>, IComparable
 {
     public const int MaxSegmentLength = 8;
     public const char Separator = '-';
@@ -78,6 +78,33 @@ public class LocationAddress : ValueObject
     }
 
     public override string ToString() => string.Join(Separator, Zone, Aisle, Rack, Shelf, Bin);
+
+    public int CompareTo(LocationAddress? other)
+    {
+        if (other is null) return 1;
+        if (ReferenceEquals(this, other)) return 0;
+
+        var cmp = string.CompareOrdinal(Zone, other.Zone);
+        if (cmp != 0) return cmp;
+
+        cmp = string.CompareOrdinal(Aisle, other.Aisle);
+        if (cmp != 0) return cmp;
+
+        cmp = string.CompareOrdinal(Rack, other.Rack);
+        if (cmp != 0) return cmp;
+
+        cmp = string.CompareOrdinal(Shelf, other.Shelf);
+        if (cmp != 0) return cmp;
+
+        return string.CompareOrdinal(Bin, other.Bin);
+    }
+
+    int IComparable.CompareTo(object? obj)
+    {
+        if (obj is null) return 1;
+        if (obj is LocationAddress other) return CompareTo(other);
+        throw new ArgumentException($"Object must be of type {nameof(LocationAddress)}.", nameof(obj));
+    }
 
     public override IEnumerable<object> GetEqualityComponents()
     {

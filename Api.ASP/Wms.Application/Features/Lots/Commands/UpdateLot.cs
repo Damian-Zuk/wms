@@ -9,8 +9,8 @@ namespace Wms.Application.Features.Lots.Commands;
 
 public sealed record UpdateLotCommand(
     Guid Id,
-    DateTime? ManufacturedDate,
-    DateTime? ExpirationDate) : ICommand;
+    DateOnly? ManufactureDate,
+    DateOnly? ExpirationDate) : ICommand;
 
 public sealed class UpdateLotValidator : AbstractValidator<UpdateLotCommand>
 {
@@ -31,7 +31,7 @@ public sealed class UpdateLotCommandHandler(IAppDbContext context)
         if (lot is null)
             return LotErrors.NotFound(request.Id);
 
-        var result = lot.UpdateDates(request.ManufacturedDate, request.ExpirationDate);
+        var result = lot.UpdateDates(request.ManufactureDate, request.ExpirationDate);
         if (result.IsFailure)
             return result;
 

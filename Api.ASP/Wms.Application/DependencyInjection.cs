@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Wms.Application.Abstractions.Behaviors;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Abstractions.DomainEvents;
+using Wms.Application.Allocations;
 using Wms.Application.Putaway;
 using Wms.Application.Putaway.Strategies;
 
@@ -43,6 +44,8 @@ public static class DependencyInjection
         services.AddScoped<IPutawayStrategy, ConsolidateSameSkuStrategy>();
         services.AddScoped<IPutawayStrategy, NearestEmptyStrategy>();
         services.AddScoped<IPutawayService, PutawayService>();
+
+        services.AddScoped<IFefoAllocator, FefoAllocator>();
 
         return services;
     }

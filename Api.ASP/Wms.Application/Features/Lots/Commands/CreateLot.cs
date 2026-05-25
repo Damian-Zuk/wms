@@ -12,8 +12,8 @@ namespace Wms.Application.Features.Lots.Commands;
 public sealed record CreateLotCommand(
     string Number,
     Guid ProductId,
-    DateTime? ManufacturedDate,
-    DateTime? ExpirationDate) : ICommand<Guid>;
+    DateOnly? ManufactureDate,
+    DateOnly? ExpirationDate) : ICommand<Guid>;
 
 public sealed class CreateLotValidator : AbstractValidator<CreateLotCommand>
 {
@@ -43,14 +43,24 @@ public sealed class CreateLotCommandHandler(IAppDbContext context)
         if (exists)
             return LotErrors.NumberExists(request.Number);
 
-        Lot lot;
+        LotNumber lotNumber;
         try
         {
-            lot = new Lot(new LotNumber(request.Number), request.ProductId, request.ManufacturedDate, request.ExpirationDate);
+            lotNumber = new LotNumber(request.Number);
         }
         catch (ArgumentException)
         {
             return LotErrors.EmptyNumber;
+        }
+
+        Lot lot;
+        try
+        {
+            lot = new Lot(lotNumber, request.ProductId, request.ManufactureDate, request.ExpirationDate);
+        }
+        catch (ArgumentException)
+        {
+            return LotErrors.InvalidDates;
         }
 
         await context.Lots.AddAsync(lot, cancellationToken);

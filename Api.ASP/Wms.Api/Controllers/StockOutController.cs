@@ -39,6 +39,17 @@ public class StockOutController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [HttpGet("{id:guid}/pick-list")]
+    public async Task<IResult> GetPickList(
+        [FromRoute] Guid id,
+        [FromServices] IQueryHandler<GetPickListQuery, PickListDto> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new GetPickListQuery(id), cancellationToken);
+
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
     [HttpPost]
     public async Task<IResult> CreateStockOut(
         [FromBody] CreateStockOutCommand request,

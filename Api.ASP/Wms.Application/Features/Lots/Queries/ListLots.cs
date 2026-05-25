@@ -30,6 +30,9 @@ public sealed class ListLotsQueryHandler(IAppDbContext context)
         ListLotsQuery query,
         CancellationToken cancellationToken)
     {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var soonThreshold = today.AddDays(30);
+
         var lotsQuery = context.Lots.AsNoTracking().AsQueryable();
 
         if (query.ProductId.HasValue)
@@ -51,10 +54,10 @@ public sealed class ListLotsQueryHandler(IAppDbContext context)
                 l.Id,
                 l.Number.Value,
                 l.ProductId,
-                l.ManufacturedDate,
+                l.ManufactureDate,
                 l.ExpirationDate,
-                l.ExpirationDate != null && l.ExpirationDate.Value.Date < DateTime.Today,
-                l.ExpirationDate != null && l.ExpirationDate.Value.Date <= DateTime.Today.AddDays(30)))
+                l.ExpirationDate != null && l.ExpirationDate.Value < today,
+                l.ExpirationDate != null && l.ExpirationDate.Value <= soonThreshold))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<LotDto>(items, query.Page, query.PageSize, totalCount);

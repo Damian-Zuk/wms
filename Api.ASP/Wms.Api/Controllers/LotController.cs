@@ -62,7 +62,7 @@ public class LotController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(
-            new UpdateLotCommand(id, request.ManufacturedDate, request.ExpirationDate),
+            new UpdateLotCommand(id, request.ManufactureDate, request.ExpirationDate),
             cancellationToken);
 
         return result.Match(Results.NoContent, CustomResults.Problem);
@@ -80,4 +80,4 @@ public class LotController : ControllerBase
     }
 }
 
-public sealed record UpdateLotRequest(DateTime? ManufacturedDate, DateTime? ExpirationDate);
+public sealed record UpdateLotRequest(DateOnly? ManufactureDate, DateOnly? ExpirationDate);

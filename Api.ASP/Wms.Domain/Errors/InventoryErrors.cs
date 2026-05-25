@@ -36,4 +36,9 @@ public static class InventoryErrors
     public static Error ConcurrencyConflict() => Error.Conflict(
         "Inventory.ConcurrencyConflict",
         "Inventory was modified by another operation. Retry the request.");
+
+    public static Error InsufficientAvailableStockForFefo(Guid productId, int available, int requested) => Error.Conflict(
+        "Inventory.InsufficientAvailableStockForFefo",
+        $"FEFO cannot fully allocate product '{productId}' " +
+        $"(available across lots: {available}, requested: {requested}).");
 }

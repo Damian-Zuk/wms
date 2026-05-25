@@ -73,6 +73,19 @@ public class InventoryController : ControllerBase
 
         return result.Match(Results.Ok, CustomResults.Problem);
     }
+
+    [HttpGet("expiring")]
+    public async Task<IResult> GetExpiringInventory(
+        [FromQuery] int withinDays,
+        [FromServices] IQueryHandler<GetExpiringInventoryQuery, IReadOnlyList<ExpiringInventoryLineDto>> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new GetExpiringInventoryQuery(withinDays),
+            cancellationToken);
+
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
 }
 
 public sealed record AdjustInventoryRequest(int QuantityChange, string? Reason);

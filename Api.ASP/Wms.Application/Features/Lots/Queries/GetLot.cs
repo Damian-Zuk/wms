@@ -11,8 +11,8 @@ public sealed record LotDto(
     Guid Id,
     string Number,
     Guid ProductId,
-    DateTime? ManufacturedDate,
-    DateTime? ExpirationDate,
+    DateOnly? ManufactureDate,
+    DateOnly? ExpirationDate,
     bool IsExpired,
     bool IsExpiringSoon);
 
@@ -23,6 +23,9 @@ public sealed class GetLotQueryHandler(IAppDbContext context)
 {
     public async Task<Result<LotDto>> Handle(GetLotQuery query, CancellationToken cancellationToken)
     {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var soonThreshold = today.AddDays(30);
+
         var lot = await context.Lots
             .AsNoTracking()
             .Where(l => l.Id == query.Id)
@@ -30,10 +33,10 @@ public sealed class GetLotQueryHandler(IAppDbContext context)
                 l.Id,
                 l.Number.Value,
                 l.ProductId,
-                l.ManufacturedDate,
+                l.ManufactureDate,
                 l.ExpirationDate,
-                l.ExpirationDate != null && l.ExpirationDate.Value.Date < DateTime.Today,
-                l.ExpirationDate != null && l.ExpirationDate.Value.Date <= DateTime.Today.AddDays(30)))
+                l.ExpirationDate != null && l.ExpirationDate.Value < today,
+                l.ExpirationDate != null && l.ExpirationDate.Value <= soonThreshold))
             .FirstOrDefaultAsync(cancellationToken);
 
         return lot is null ? LotErrors.NotFound(query.Id) : lot;

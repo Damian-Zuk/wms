@@ -9,42 +9,44 @@ public class Lot : Entity
 {
     public LotNumber Number { get; private set; } = null!;
     public Guid ProductId { get; private set; }
-    public DateTime? ManufacturedDate { get; private set; }
-    public DateTime? ExpirationDate { get; private set; }
+    public DateOnly? ManufactureDate { get; private set; }
+    public DateOnly? ExpirationDate { get; private set; }
 
     private Lot() { }
 
-    public Lot(LotNumber number, Guid productId, DateTime? manufacturedDate = null, DateTime? expirationDate = null)
+    public Lot(LotNumber number, Guid productId, DateOnly? manufactureDate = null, DateOnly? expirationDate = null)
     {
-        if (expirationDate.HasValue && manufacturedDate.HasValue && expirationDate < manufacturedDate)
-            throw new ArgumentException("Expiry date cannot be before manufactured date");
+        if (expirationDate.HasValue && manufactureDate.HasValue 
+            && expirationDate < manufactureDate)
+            throw new ArgumentException("Expiry date cannot be before manufacture date");
 
         Id = Guid.NewGuid();
         Number = number;
         ProductId = productId;
-        ManufacturedDate = manufacturedDate;
+        ManufactureDate = manufactureDate;
         ExpirationDate = expirationDate;
     }
 
-    public Result UpdateDates(DateTime? manufacturedDate, DateTime? expirationDate)
+    public Result UpdateDates(DateOnly? manufactureDate, DateOnly? expirationDate)
     {
-        if (expirationDate.HasValue && manufacturedDate.HasValue
-            && expirationDate < manufacturedDate)
+        if (expirationDate.HasValue && manufactureDate.HasValue
+            && expirationDate < manufactureDate)
             return LotErrors.InvalidDates;
 
-        ManufacturedDate = manufacturedDate;
+        ManufactureDate = manufactureDate;
         ExpirationDate = expirationDate;
         return Result.Success();
     }
 
     public bool IsExpired()
     {
-        return ExpirationDate.HasValue && ExpirationDate.Value.Date < DateTime.Today;
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        return ExpirationDate.HasValue && ExpirationDate.Value < today;
     }
 
     public bool IsExpiringSoon(int warningDays = 30)
     {
-        return ExpirationDate.HasValue &&
-               ExpirationDate.Value.Date <= DateTime.Today.AddDays(warningDays);
+        var threshold = DateOnly.FromDateTime(DateTime.Today).AddDays(warningDays);
+        return ExpirationDate.HasValue && ExpirationDate.Value <= threshold;
     }
 }

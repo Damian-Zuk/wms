@@ -23,8 +23,11 @@ public class LotConfiguration : EntityConfiguration<Lot>
         });
 
         builder.Property(l => l.ProductId).IsRequired();
-        builder.Property(l => l.ManufacturedDate).IsRequired(false);
+
+        builder.Property(l => l.ManufactureDate).IsRequired(false);
         builder.Property(l => l.ExpirationDate).IsRequired(false);
+
+        builder.HasIndex(l => l.ExpirationDate);
 
         builder.HasOne<Product>()
             .WithMany()
