@@ -57,7 +57,7 @@ public class LocationController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpPost("{id:guid}")]
+    [HttpPut("{id:guid}")]
     public async Task<IResult> UpdateLocation(
         [FromRoute] Guid id,
         [FromBody] UpdateLocationRequest request,

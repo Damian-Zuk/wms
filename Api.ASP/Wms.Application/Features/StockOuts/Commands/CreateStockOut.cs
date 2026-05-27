@@ -85,7 +85,13 @@ public sealed class CreateStockOutCommandHandler(
             .Where(i => locationIds.Contains(i.LocationId) && productIds.Contains(i.ProductId))
             .ToListAsync(cancellationToken);
 
-        var stockOut = new StockOut(Guid.NewGuid());
+        // Pass 1 — build the reservation plan without mutating any
+        // inventory rows. Each planned reservation pins the exact Inventory
+        // entity that will be reserved; the second pass simply applies them.
+        // This means a mid-list failure leaves all earlier inventory rows
+        // exactly as we read them, instead of relying on EF discarding
+        // tracked mutations on the failure return.
+        var plan = new List<(Inventory Inventory, Quantity Quantity, Guid? LotId, Guid ProductId, Guid LocationId)>();
 
         foreach (var item in request.Items)
         {
@@ -111,16 +117,12 @@ public sealed class CreateStockOutCommandHandler(
                     if (allocInventory is null)
                     {
                         // FEFO promised this lot has Available; if the row
-                        // vanished between read and reserve, treat as a
+                        // vanished between read and plan, treat as a
                         // concurrency-style failure so the caller retries.
                         return InventoryErrors.InsufficientAvailableStock(0, allocation.Quantity.Value);
                     }
 
-                    var reserveResult = allocInventory.Reserve(allocation.Quantity);
-                    if (reserveResult.IsFailure)
-                        return Result.Failure<Guid>(reserveResult.Error);
-
-                    stockOut.AddItem(item.ProductId, item.LocationId, allocation.LotId, allocation.Quantity);
+                    plan.Add((allocInventory, allocation.Quantity, allocation.LotId, item.ProductId, item.LocationId));
                 }
 
                 continue;
@@ -135,11 +137,37 @@ public sealed class CreateStockOutCommandHandler(
             if (inventory is null)
                 return InventoryErrors.InsufficientAvailableStock(0, item.Quantity);
 
-            var lineReserveResult = inventory.Reserve(new Quantity(item.Quantity));
-            if (lineReserveResult.IsFailure)
-                return Result.Failure<Guid>(lineReserveResult.Error);
+            plan.Add((inventory, new Quantity(item.Quantity), item.LotId, item.ProductId, item.LocationId));
+        }
 
-            stockOut.AddItem(item.ProductId, item.LocationId, item.LotId, new Quantity(item.Quantity));
+        // Validation pass — the same inventory row may appear multiple
+        // times across plan entries (e.g. two requested lines from the same
+        // product+location+lot). Sum per row and check the total against
+        // Available so we fail fast and don't half-reserve.
+        var totalsByInventory = plan
+            .GroupBy(p => p.Inventory)
+            .Select(g => new { Inventory = g.Key, Total = g.Sum(x => x.Quantity.Value) });
+
+        foreach (var row in totalsByInventory)
+        {
+            if (row.Total > row.Inventory.Available.Value)
+                return InventoryErrors.InsufficientAvailableStock(
+                    row.Inventory.Available.Value,
+                    row.Total);
+        }
+
+        // Pass 2 — apply. By this point the plan is guaranteed to succeed
+        // for every line; Reserve cannot fail because we already checked
+        // Available above.
+        var stockOut = new StockOut(Guid.NewGuid());
+
+        foreach (var entry in plan)
+        {
+            var reserveResult = entry.Inventory.Reserve(entry.Quantity);
+            if (reserveResult.IsFailure)
+                return Result.Failure<Guid>(reserveResult.Error);
+
+            stockOut.AddItem(entry.ProductId, entry.LocationId, entry.LotId, entry.Quantity);
         }
 
         await context.StockOuts.AddAsync(stockOut, cancellationToken);

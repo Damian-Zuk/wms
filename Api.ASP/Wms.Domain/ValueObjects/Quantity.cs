@@ -14,7 +14,15 @@ public class Quantity : ValueObject
         Value = value;
     }
 
-    public Quantity Add(Quantity other) => new(Value + other.Value);
+    public Quantity Add(Quantity other)
+    {
+        // Throw on int overflow instead of silently wrapping into negatives
+        // (which the Quantity invariant then rejects with an unrelated error).
+        checked
+        {
+            return new(Value + other.Value);
+        }
+    }
 
     public Quantity Subtract(Quantity other)
     {

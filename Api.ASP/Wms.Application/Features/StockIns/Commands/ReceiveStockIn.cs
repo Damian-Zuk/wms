@@ -44,10 +44,7 @@ public sealed class ReceiveStockInCommandHandler(IAppDbContext context)
             .Where(i => locationIds.Contains(i.LocationId))
             .ToListAsync(cancellationToken);
 
-        var result = stockIn.Receive();
-        if (result.IsFailure)
-            return result;
-
+        // Pass 1 — validation only.
         foreach (var item in stockIn.Items)
         {
             if (!locations.TryGetValue(item.LocationId, out var location))
@@ -67,7 +64,16 @@ public sealed class ReceiveStockInCommandHandler(IAppDbContext context)
             var canAccept = location.CanAccept(product, lot, item.Quantity, contentsAtLocation);
             if (canAccept.IsFailure)
                 return canAccept;
+        }
 
+        // Pass 2 — status transition.
+        var result = stockIn.Receive();
+        if (result.IsFailure)
+            return result;
+
+        // Pass 3 — mutate inventory.
+        foreach (var item in stockIn.Items)
+        {
             var inventory = inventoriesAtLocations.FirstOrDefault(i =>
                 i.LocationId == item.LocationId
                 && i.ProductId == item.ProductId

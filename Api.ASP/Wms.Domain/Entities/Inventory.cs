@@ -52,10 +52,6 @@ public class Inventory : Entity
             return InventoryErrors.InsufficientAvailableStock(Available.Value, qty.Value);
 
         Reserved = Reserved.Add(qty);
-
-        if (Reserved.Value > OnHand.Value)
-            return InventoryErrors.ReservationExceedsOnHand(OnHand.Value, Reserved.Value);
-
         return Result.Success();
     }
 
