@@ -18,4 +18,8 @@
     <ProjectReference Include="..\Wms.Shared\Wms.Shared.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Wms.Tests" />
+  </ItemGroup>
+
 </Project>
