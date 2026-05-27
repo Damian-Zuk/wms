@@ -69,4 +69,96 @@ public class CreateProductCommandHandlerTests : IntegrationTestBase
             .CountAsync(p => p.Sku.Value == "SKU-DUP", ct);
         count.Should().Be(1);
     }
+
+    public class PreferredLocations : CreateProductCommandHandlerTests
+    {
+        public PreferredLocations(PostgresContainerFixture fixture) : base(fixture) { }
+
+        [Fact]
+        public async Task Non_existent_location_is_rejected()
+        {
+            var realLocation = TestData.Location("PL-EXIST");
+            Context.Locations.Add(realLocation);
+            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            await using var actContext = CreateContext();
+            var handler = new CreateProductCommandHandler(actContext);
+
+            var missing = Guid.NewGuid();
+            var result = await handler.Handle(
+                new CreateProductCommand(
+                    "SKU-PL-1",
+                    "Widget",
+                    "desc",
+                    PreferredLocationIds: new[] { realLocation.Id, missing }),
+                TestContext.Current.CancellationToken);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Location.NotFound");
+
+            await using var verify = CreateContext();
+            var count = await verify.Products
+                .AsNoTracking()
+                .CountAsync(p => p.Sku.Value == "SKU-PL-1", TestContext.Current.CancellationToken);
+            count.Should().Be(0);
+        }
+
+        [Fact]
+        public async Task Duplicates_and_empty_guids_are_collapsed_with_caller_order_preserved()
+        {
+            var locA = TestData.Location("PL-A");
+            var locB = TestData.Location("PL-B");
+            Context.Locations.AddRange(locA, locB);
+            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            await using var actContext = CreateContext();
+            var handler = new CreateProductCommandHandler(actContext);
+
+            // Caller passes B, empty, A, A, B — handler should keep first
+            // occurrence of B then A, drop empties and duplicates.
+            var result = await handler.Handle(
+                new CreateProductCommand(
+                    "SKU-PL-2",
+                    "Widget",
+                    "desc",
+                    PreferredLocationIds: new[]
+                    {
+                        locB.Id, Guid.Empty, locA.Id, locA.Id, locB.Id
+                    }),
+                TestContext.Current.CancellationToken);
+
+            result.IsSuccess.Should().BeTrue();
+
+            await using var verify = CreateContext();
+            var stored = await verify.Products
+                .AsNoTracking()
+                .Include(p => p.PreferredLocations)
+                .SingleAsync(p => p.Id == result.Value, TestContext.Current.CancellationToken);
+
+            stored.PreferredLocations
+                .OrderBy(p => p.Sequence)
+                .Select(p => p.LocationId)
+                .Should().Equal(locB.Id, locA.Id);
+        }
+
+        [Fact]
+        public async Task Null_collection_persists_no_preferred_locations()
+        {
+            await using var actContext = CreateContext();
+            var handler = new CreateProductCommandHandler(actContext);
+
+            var result = await handler.Handle(
+                new CreateProductCommand("SKU-PL-3", "Widget", "desc", PreferredLocationIds: null),
+                TestContext.Current.CancellationToken);
+
+            result.IsSuccess.Should().BeTrue();
+
+            await using var verify = CreateContext();
+            var stored = await verify.Products
+                .AsNoTracking()
+                .Include(p => p.PreferredLocations)
+                .SingleAsync(p => p.Id == result.Value, TestContext.Current.CancellationToken);
+            stored.PreferredLocations.Should().BeEmpty();
+        }
+    }
 }

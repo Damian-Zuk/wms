@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Features.StockTransfers.Commands;
+using Wms.Domain.Enums;
 using Wms.Tests.Common;
 using Xunit;
 
@@ -103,5 +104,127 @@ public class TransferStockCommandHandlerTests : IntegrationTestBase
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("Inventory.InsufficientAvailableStock");
+    }
+
+    [Fact]
+    public async Task Lot_transfer_moves_stock_into_a_new_destination_inventory_row()
+    {
+        var product = TestData.Product("XF-LOT");
+        var source = TestData.Location("XF-LOT-SRC");
+        var destination = TestData.Location("XF-LOT-DST");
+        var lot = TestData.Lot(product.Id, "LOT-1", new DateOnly(2027, 01, 01));
+        var sourceInv = TestData.Inventory(product.Id, source.Id, lot.Id, onHand: 6);
+
+        Context.Products.Add(product);
+        Context.Locations.AddRange(source, destination);
+        Context.Lots.Add(lot);
+        Context.Inventories.Add(sourceInv);
+        await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        await using var actContext = CreateContext();
+        var handler = new TransferStockCommandHandler(actContext);
+
+        var result = await handler.Handle(
+            new TransferStockCommand(product.Id, source.Id, destination.Id, LotId: lot.Id, Quantity: 2),
+            TestContext.Current.CancellationToken);
+
+        result.IsSuccess.Should().BeTrue();
+
+        await using var verify = CreateContext();
+        var ct = TestContext.Current.CancellationToken;
+
+        var destInv = await verify.Inventories
+            .AsNoTracking()
+            .SingleAsync(i => i.LocationId == destination.Id && i.LotId == lot.Id, ct);
+        destInv.OnHand.Value.Should().Be(2);
+
+        var srcInv = await verify.Inventories
+            .AsNoTracking()
+            .SingleAsync(i => i.LocationId == source.Id && i.LotId == lot.Id, ct);
+        srcInv.OnHand.Value.Should().Be(4);
+    }
+
+    public class CanAcceptFailures : TransferStockCommandHandlerTests
+    {
+        public CanAcceptFailures(PostgresContainerFixture fixture) : base(fixture) { }
+
+        [Fact]
+        public async Task Destination_temperature_mismatch_is_rejected()
+        {
+            // Frozen product, Ambient destination.
+            var product = TestData.Product("XF-T", temperatureZone: TemperatureZone.Frozen);
+            var source = TestData.Location("XF-T-SRC", temperatureZone: TemperatureZone.Frozen);
+            var destination = TestData.Location("XF-T-DST", temperatureZone: TemperatureZone.Ambient);
+            var sourceInv = TestData.Inventory(product.Id, source.Id, null, onHand: 5);
+
+            Context.Products.Add(product);
+            Context.Locations.AddRange(source, destination);
+            Context.Inventories.Add(sourceInv);
+            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            await using var actContext = CreateContext();
+            var handler = new TransferStockCommandHandler(actContext);
+
+            var result = await handler.Handle(
+                new TransferStockCommand(product.Id, source.Id, destination.Id, null, 1),
+                TestContext.Current.CancellationToken);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Location.TemperatureMismatch");
+        }
+
+        [Fact]
+        public async Task Destination_capacity_exceeded_is_rejected()
+        {
+            var product = TestData.Product("XF-C");
+            var source = TestData.Location("XF-C-SRC");
+            // Destination already has 8 units; capacity 10; trying to move 5
+            // pushes total to 13.
+            var destination = TestData.Location("XF-C-DST", capacity: 10);
+            var sourceInv = TestData.Inventory(product.Id, source.Id, null, onHand: 5);
+            var destInv = TestData.Inventory(product.Id, destination.Id, null, onHand: 8);
+
+            Context.Products.Add(product);
+            Context.Locations.AddRange(source, destination);
+            Context.Inventories.AddRange(sourceInv, destInv);
+            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            await using var actContext = CreateContext();
+            var handler = new TransferStockCommandHandler(actContext);
+
+            var result = await handler.Handle(
+                new TransferStockCommand(product.Id, source.Id, destination.Id, null, Quantity: 5),
+                TestContext.Current.CancellationToken);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Location.CapacityExceeded");
+        }
+
+        [Fact]
+        public async Task Destination_mixed_sku_rule_is_rejected()
+        {
+            // Destination already holds a different product and disallows mixing.
+            var movingProduct = TestData.Product("XF-MOVE");
+            var residentProduct = TestData.Product("XF-RESIDENT");
+            var source = TestData.Location("XF-MIX-SRC");
+            var destination = TestData.Location("XF-MIX-DST", isMixedSkuAllowed: false);
+            var sourceInv = TestData.Inventory(movingProduct.Id, source.Id, null, onHand: 5);
+            var residentInv = TestData.Inventory(residentProduct.Id, destination.Id, null, onHand: 3);
+
+            Context.Products.AddRange(movingProduct, residentProduct);
+            Context.Locations.AddRange(source, destination);
+            Context.Inventories.AddRange(sourceInv, residentInv);
+            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+            await using var actContext = CreateContext();
+            var handler = new TransferStockCommandHandler(actContext);
+
+            var result = await handler.Handle(
+                new TransferStockCommand(movingProduct.Id, source.Id, destination.Id, null, 1),
+                TestContext.Current.CancellationToken);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Location.MixedSkuNotAllowed");
+        }
     }
 }
