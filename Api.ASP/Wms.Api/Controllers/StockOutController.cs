@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Abstractions.Messaging;
@@ -50,6 +51,7 @@ public class StockOutController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost]
     public async Task<IResult> CreateStockOut(
         [FromBody] CreateStockOutCommand request,
@@ -105,6 +107,7 @@ public class StockOutController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("{id:guid}/cancel")]
     public async Task<IResult> Cancel(
         [FromRoute] Guid id,

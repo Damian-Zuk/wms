@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Abstractions.Messaging;
 using Wms.Application.Common.Models;
@@ -46,6 +47,7 @@ public class LocationController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost]
     public async Task<IResult> CreateLocation(
         [FromBody] CreateLocationCommand request,
@@ -57,6 +59,7 @@ public class LocationController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPut("{id:guid}")]
     public async Task<IResult> UpdateLocation(
         [FromRoute] Guid id,
@@ -84,6 +87,7 @@ public class LocationController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpDelete("{id:guid}")]
     public async Task<IResult> DeleteLocation(
         [FromRoute] Guid id,

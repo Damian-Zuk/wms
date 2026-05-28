@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Abstractions.Messaging;
@@ -45,6 +46,7 @@ public class InventoryController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost("{id:guid}/adjust")]
     public async Task<IResult> AdjustInventory(
         [FromRoute] Guid id,

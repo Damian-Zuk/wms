@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Abstractions.Messaging;
@@ -42,6 +43,7 @@ public class ProductController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost]
     public async Task<IResult> CreateProduct(
         [FromBody] CreateProductCommand request,
@@ -53,6 +55,7 @@ public class ProductController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPut("{id:guid}")]
     public async Task<IResult> UpdateProduct(
         [FromRoute] Guid id,
@@ -72,6 +75,7 @@ public class ProductController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpDelete("{id:guid}")]
     public async Task<IResult> DeleteProduct(
         [FromRoute] Guid id,

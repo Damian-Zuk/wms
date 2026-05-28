@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Abstractions.Messaging;
@@ -43,6 +44,7 @@ public class LotController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPost]
     public async Task<IResult> CreateLot(
         [FromBody] CreateLotCommand request,
@@ -54,6 +56,7 @@ public class LotController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPut("{id:guid}")]
     public async Task<IResult> UpdateLot(
         [FromRoute] Guid id,
@@ -68,6 +71,7 @@ public class LotController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
     [HttpDelete("{id:guid}")]
     public async Task<IResult> DeleteLot(
         [FromRoute] Guid id,
