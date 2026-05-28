@@ -36,6 +36,24 @@ public static class TestData
             isMixedSkuAllowed: isMixedSkuAllowed,
             isMixedLotAllowed: isMixedLotAllowed);
 
+    public static Location LocationAt(
+        LocationAddress address,
+        string code = "LOC-1",
+        LocationType type = LocationType.Storage,
+        TemperatureZone temperatureZone = TemperatureZone.Ambient,
+        int? capacity = null,
+        bool isMixedSkuAllowed = true,
+        bool isMixedLotAllowed = true) =>
+        new(
+            new LocationCode(code),
+            address,
+            type,
+            description: null,
+            temperatureZone: temperatureZone,
+            capacity: capacity,
+            isMixedSkuAllowed: isMixedSkuAllowed,
+            isMixedLotAllowed: isMixedLotAllowed);
+
     public static Lot Lot(
         Guid productId,
         string number = "LOT-1",
