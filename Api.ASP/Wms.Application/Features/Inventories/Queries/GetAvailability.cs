@@ -9,6 +9,8 @@ namespace Wms.Application.Features.Inventories.Queries;
 
 public sealed record AvailabilityDto(
     Guid ProductId,
+    string ProductSku,
+    string ProductName,
     Guid? LocationId,
     Guid? LotId,
     int OnHand,
@@ -35,11 +37,13 @@ public sealed class GetAvailabilityQueryHandler(IAppDbContext context)
         GetAvailabilityQuery query,
         CancellationToken cancellationToken)
     {
-        var productExists = await context.Products
+        var product = await context.Products
             .AsNoTracking()
-            .AnyAsync(p => p.Id == query.ProductId, cancellationToken);
+            .Where(p => p.Id == query.ProductId)
+            .Select(p => new { Sku = p.Sku.Value, p.Name })
+            .FirstOrDefaultAsync(cancellationToken);
 
-        if (!productExists)
+        if (product is null)
             return ProductErrors.NotFound(query.ProductId);
 
         var inventories = context.Inventories
@@ -66,6 +70,8 @@ public sealed class GetAvailabilityQueryHandler(IAppDbContext context)
 
         return new AvailabilityDto(
             query.ProductId,
+            product.Sku,
+            product.Name,
             query.LocationId,
             query.LotId,
             onHand,

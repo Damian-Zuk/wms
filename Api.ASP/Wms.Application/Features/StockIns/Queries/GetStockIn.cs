@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Dtos;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Enums;
 using Wms.Domain.Errors;
@@ -7,14 +8,19 @@ using Wms.Shared.Common;
 
 namespace Wms.Application.Features.StockIns.Queries;
 
-public sealed record StockInItemDto(Guid Id, Guid ProductId, Guid LocationId, Guid? LotId, int Quantity);
+public sealed record StockInItemDto(
+    Guid Id,
+    ProductRef Product,
+    LocationRef Location,
+    LotRef? Lot,
+    int Quantity);
 
 public sealed record StockInDto(
     Guid Id,
     StockInStatus Status,
     DateTime CreatedAt,
     string? CreatedBy,
-    List<StockInItemDto> Items);
+    IReadOnlyList<StockInItemDto> Items);
 
 public sealed record GetStockInQuery(Guid Id) : IQuery<StockInDto>;
 
@@ -27,14 +33,48 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
             .AsNoTracking()
             .Include(s => s.Items)
             .Where(s => s.Id == query.Id)
-            .Select(s => new StockInDto(
+            .Select(s => new
+            {
                 s.Id,
                 s.Status,
                 s.CreatedAt,
                 s.CreatedBy,
-                s.Items.Select(i => new StockInItemDto(i.Id, i.ProductId, i.LocationId, i.LotId, i.Quantity.Value)).ToList()))
+                Items = s.Items.Select(i => new
+                {
+                    i.Id,
+                    i.ProductId,
+                    i.LocationId,
+                    i.LotId,
+                    Quantity = i.Quantity.Value
+                }).ToList()
+            })
             .FirstOrDefaultAsync(cancellationToken);
 
-        return stockIn is null ? StockInErrors.NotFound(query.Id) : stockIn;
+        if (stockIn is null)
+            return StockInErrors.NotFound(query.Id);
+
+        var productIds = stockIn.Items.Select(i => i.ProductId).Distinct().ToList();
+        var locationIds = stockIn.Items.Select(i => i.LocationId).Distinct().ToList();
+        var lotIds = stockIn.Items.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
+
+        var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
+        var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
+        var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
+
+        var items = stockIn.Items
+            .Select(i => new StockInItemDto(
+                i.Id,
+                products[i.ProductId],
+                locations[i.LocationId],
+                i.LotId.HasValue ? lots[i.LotId.Value] : null,
+                i.Quantity))
+            .ToList();
+
+        return new StockInDto(
+            stockIn.Id,
+            stockIn.Status,
+            stockIn.CreatedAt,
+            stockIn.CreatedBy,
+            items);
     }
 }

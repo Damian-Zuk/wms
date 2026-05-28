@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Dtos;
 using Wms.Application.Common.Interfaces;
 using Wms.Application.Common.Models;
 using Wms.Shared.Common;
@@ -43,19 +44,38 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
 
         var totalCount = await inventoriesQuery.CountAsync(cancellationToken);
 
-        var items = await inventoriesQuery
+        var page = await inventoriesQuery
             .OrderBy(i => i.ProductId)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(i => new InventoryDto(
+            .Select(i => new
+            {
                 i.Id,
                 i.ProductId,
                 i.LocationId,
                 i.LotId,
-                i.OnHand.Value,
-                i.Reserved.Value,
-                i.OnHand.Value - i.Reserved.Value))
+                OnHand = i.OnHand.Value,
+                Reserved = i.Reserved.Value
+            })
             .ToListAsync(cancellationToken);
+
+        var productIds = page.Select(i => i.ProductId).Distinct().ToList();
+        var locationIds = page.Select(i => i.LocationId).Distinct().ToList();
+        var lotIds = page.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
+
+        var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
+        var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
+        var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
+
+        var items = page.Select(i => new InventoryDto(
+                i.Id,
+                products[i.ProductId],
+                locations[i.LocationId],
+                i.LotId.HasValue ? lots[i.LotId.Value] : null,
+                i.OnHand,
+                i.Reserved,
+                i.OnHand - i.Reserved))
+            .ToList();
 
         return new PagedResult<InventoryDto>(items, query.Page, query.PageSize, totalCount);
     }

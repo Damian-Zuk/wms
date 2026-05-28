@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Dtos;
 using Wms.Application.Common.Interfaces;
 using Wms.Application.Common.Models;
 using Wms.Shared.Common;
@@ -27,24 +28,53 @@ public sealed class ListStockOutsQueryHandler(IAppDbContext context)
         ListStockOutsQuery query,
         CancellationToken cancellationToken)
     {
-        var stockOutsQuery = context.StockOuts
-            .AsNoTracking()
-            .Include(s => s.Items)
-            .AsQueryable();
+        var stockOutsQuery = context.StockOuts.AsNoTracking().AsQueryable();
 
         var totalCount = await stockOutsQuery.CountAsync(cancellationToken);
 
-        var items = await stockOutsQuery
+        var page = await stockOutsQuery
             .OrderByDescending(s => s.CreatedAt)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(s => new StockOutDto(
+            .Select(s => new
+            {
                 s.Id,
                 s.Status,
                 s.CreatedAt,
                 s.CreatedBy,
-                s.Items.Select(i => new StockOutItemDto(i.Id, i.ProductId, i.LocationId, i.LotId, i.Quantity.Value)).ToList()))
+                Items = s.Items.Select(i => new
+                {
+                    i.Id,
+                    i.ProductId,
+                    i.LocationId,
+                    i.LotId,
+                    Quantity = i.Quantity.Value
+                }).ToList()
+            })
             .ToListAsync(cancellationToken);
+
+        var allItems = page.SelectMany(s => s.Items).ToList();
+        var productIds = allItems.Select(i => i.ProductId).Distinct().ToList();
+        var locationIds = allItems.Select(i => i.LocationId).Distinct().ToList();
+        var lotIds = allItems.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
+
+        var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
+        var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
+        var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
+
+        var items = page.Select(s => new StockOutDto(
+                s.Id,
+                s.Status,
+                s.CreatedAt,
+                s.CreatedBy,
+                s.Items.Select(i => new StockOutItemDto(
+                        i.Id,
+                        products[i.ProductId],
+                        locations[i.LocationId],
+                        i.LotId.HasValue ? lots[i.LotId.Value] : null,
+                        i.Quantity))
+                    .ToList()))
+            .ToList();
 
         return new PagedResult<StockOutDto>(items, query.Page, query.PageSize, totalCount);
     }

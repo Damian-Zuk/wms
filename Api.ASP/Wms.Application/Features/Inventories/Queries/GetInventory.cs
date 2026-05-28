@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Dtos;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Errors;
 using Wms.Shared.Common;
@@ -8,9 +9,9 @@ namespace Wms.Application.Features.Inventories.Queries;
 
 public sealed record InventoryDto(
     Guid Id,
-    Guid ProductId,
-    Guid LocationId,
-    Guid? LotId,
+    ProductRef Product,
+    LocationRef Location,
+    LotRef? Lot,
     int OnHand,
     int Reserved,
     int Available);
@@ -27,16 +28,37 @@ public sealed class GetInventoryQueryHandler(IAppDbContext context)
         var inventory = await context.Inventories
             .AsNoTracking()
             .Where(i => i.Id == query.Id)
-            .Select(i => new InventoryDto(
+            .Select(i => new
+            {
                 i.Id,
                 i.ProductId,
                 i.LocationId,
                 i.LotId,
-                i.OnHand.Value,
-                i.Reserved.Value,
-                i.OnHand.Value - i.Reserved.Value))
+                OnHand = i.OnHand.Value,
+                Reserved = i.Reserved.Value
+            })
             .FirstOrDefaultAsync(cancellationToken);
 
-        return inventory is null ? InventoryErrors.NotFound(query.Id) : inventory;
+        if (inventory is null)
+            return InventoryErrors.NotFound(query.Id);
+
+        var products = await RefLookup.LoadProductRefsAsync(
+            context, [inventory.ProductId], cancellationToken);
+
+        var locations = await RefLookup.LoadLocationRefsAsync(
+            context, [inventory.LocationId], cancellationToken);
+
+        var lots = inventory.LotId.HasValue
+            ? await RefLookup.LoadLotRefsAsync(context, [inventory.LotId.Value], cancellationToken)
+            : new Dictionary<Guid, LotRef>();
+
+        return new InventoryDto(
+            inventory.Id,
+            products[inventory.ProductId],
+            locations[inventory.LocationId],
+            inventory.LotId.HasValue ? lots[inventory.LotId.Value] : null,
+            inventory.OnHand,
+            inventory.Reserved,
+            inventory.OnHand - inventory.Reserved);
     }
 }

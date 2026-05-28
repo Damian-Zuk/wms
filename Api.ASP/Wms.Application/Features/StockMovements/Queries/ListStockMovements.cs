@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Dtos;
 using Wms.Application.Common.Interfaces;
 using Wms.Application.Common.Models;
 using Wms.Domain.Enums;
@@ -33,8 +34,7 @@ public sealed class ListStockMovementsQueryHandler(IAppDbContext context)
         ListStockMovementsQuery query,
         CancellationToken cancellationToken)
     {
-        var movementsQuery = context.StockMovements
-            .AsNoTracking().AsQueryable();
+        var movementsQuery = context.StockMovements.AsNoTracking().AsQueryable();
 
         if (query.ProductId.HasValue)
             movementsQuery = movementsQuery.Where(m => m.ProductId == query.ProductId.Value);
@@ -53,11 +53,12 @@ public sealed class ListStockMovementsQueryHandler(IAppDbContext context)
 
         var totalCount = await movementsQuery.CountAsync(cancellationToken);
 
-        var items = await movementsQuery
+        var page = await movementsQuery
             .OrderByDescending(m => m.CreatedAt)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
-            .Select(m => new StockMovementDto(
+            .Select(m => new
+            {
                 m.Id,
                 m.ProductId,
                 m.LocationId,
@@ -66,8 +67,29 @@ public sealed class ListStockMovementsQueryHandler(IAppDbContext context)
                 m.Type,
                 m.Source,
                 m.SourceId,
-                m.CreatedAt))
+                m.CreatedAt
+            })
             .ToListAsync(cancellationToken);
+
+        var productIds = page.Select(m => m.ProductId).Distinct().ToList();
+        var locationIds = page.Select(m => m.LocationId).Distinct().ToList();
+        var lotIds = page.Where(m => m.LotId.HasValue).Select(m => m.LotId!.Value).Distinct().ToList();
+
+        var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
+        var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
+        var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
+
+        var items = page.Select(m => new StockMovementDto(
+                m.Id,
+                products[m.ProductId],
+                locations[m.LocationId],
+                m.LotId.HasValue ? lots[m.LotId.Value] : null,
+                m.QuantityChange,
+                m.Type,
+                m.Source,
+                m.SourceId,
+                m.CreatedAt))
+            .ToList();
 
         return new PagedResult<StockMovementDto>(items, query.Page, query.PageSize, totalCount);
     }

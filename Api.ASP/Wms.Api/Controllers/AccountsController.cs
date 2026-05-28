@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +9,7 @@ using Wms.Infrastructure.Identity;
 namespace Wms.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/accounts")]
 public class AccountsController : ControllerBase
 {
     private readonly UserManager<AppUser> _userManager;
@@ -21,7 +21,7 @@ public class AccountsController : ControllerBase
         _tokenService = tokenService;
     }
 
-    // POST /api/account/login
+    // POST /api/accounts/login
     [AllowAnonymous]
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
@@ -32,17 +32,22 @@ public class AccountsController : ControllerBase
             return Unauthorized(new { message = "Invalid email or password." });
 
         var roles = await _userManager.GetRolesAsync(user);
-        var (token, expiresAt) = _tokenService.GenerateToken(user.Id, user.UserName!, user.Email!, user.FirstName, user.LastName, roles);
+        var (token, expiresAt) = _tokenService.GenerateToken(
+            user.Id, user.UserName!, user.Email!, user.FirstName, user.LastName, roles);
 
-        return Ok(new LoginResponse(token, expiresAt));
+        var userDto = new UserDto(
+            user.Id, user.Email!, user.UserName!,
+            user.FirstName, user.LastName, roles);
+
+        return Ok(new LoginResponse(token, expiresAt, userDto));
     }
 
-    // POST /api/account/register
+    // POST /api/accounts/register
     [Authorize(Roles = "Admin")]
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
-        var allowedRoles = new[] { "Admin", "Worker" };
+        var allowedRoles = new[] { "Admin", "Manager", "Worker" };
         if (!allowedRoles.Contains(request.Role))
             return BadRequest(new { message = $"Role '{request.Role}' is not valid." });
 
@@ -62,10 +67,14 @@ public class AccountsController : ControllerBase
 
         await _userManager.AddToRoleAsync(user, request.Role);
 
-        return Created($"/api/account/{user.Id}", new { user.Id, user.Email, user.UserName });
+        var userDto = new UserDto(
+            user.Id, user.Email!, user.UserName!,
+            user.FirstName, user.LastName, new List<string> { request.Role });
+
+        return Created($"/api/accounts/{user.Id}", userDto);
     }
 
-    // GET /api/account/me
+    // GET /api/accounts/me
     [HttpGet("me")]
     public async Task<IActionResult> Me()
     {

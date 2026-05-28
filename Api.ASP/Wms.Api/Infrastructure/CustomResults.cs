@@ -64,9 +64,15 @@ public static class CustomResults
                 return null;
             }
 
+            var byField = validationError.Errors
+                .GroupBy(e => e.Code ?? string.Empty)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (object?)g.Select(e => e.Description).ToArray());
+
             return new Dictionary<string, object?>
             {
-                { "errors", validationError.Errors }
+                { "errors", byField }
             };
         }
     }
