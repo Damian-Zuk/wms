@@ -30,12 +30,32 @@ public class StockOut : Entity
         return Result.Success();
     }
 
+    /// <summary>
+    /// Worker has started walking the floor. Items remain reserved
+    /// (reservation was made by CreateStockOut), but nothing has been
+    /// physically removed yet — that happens at Pack. Pure status
+    /// transition, no inventory mutation, no events.
+    /// </summary>
     public Result StartPicking()
     {
         if (Status != StockOutStatus.Draft)
             return StockOutErrors.InvalidStatusTransition(Status, StockOutStatus.Picking);
 
         Status = StockOutStatus.Picking;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Items reached the pack station. This is the point at which the
+    /// physical removal is recorded — OnHand and Reserved both drop. The
+    /// per-item picked event drives the StockMovement(Out) audit row.
+    /// </summary>
+    public Result Pack()
+    {
+        if (Status != StockOutStatus.Picking)
+            return StockOutErrors.InvalidStatusTransition(Status, StockOutStatus.Packed);
+
+        Status = StockOutStatus.Packed;
 
         foreach (var item in _items)
         {
@@ -47,15 +67,6 @@ public class StockOut : Entity
                 item.Quantity.Value));
         }
 
-        return Result.Success();
-    }
-
-    public Result Pack()
-    {
-        if (Status != StockOutStatus.Picking)
-            return StockOutErrors.InvalidStatusTransition(Status, StockOutStatus.Packed);
-
-        Status = StockOutStatus.Packed;
         return Result.Success();
     }
 
@@ -78,10 +89,14 @@ public class StockOut : Entity
     }
 
     /// <summary>
-    /// Cancels the stock-out. Allowed from Draft (stock was reserved, not
-    /// physically removed) or from Picking/Packed (stock was physically
-    /// removed — the cancel must return it). Not allowed from Shipped or
-    /// Completed: those require a proper returns workflow which is out of scope.
+    /// Cancels the stock-out.
+    /// - Draft and Picking — reservation exists, nothing physical has been
+    ///   removed yet, so the handler just releases the reservation. No
+    ///   return-to-stock event is raised.
+    /// - Packed — physical stock was removed at Pack, so we must return it.
+    ///   A per-item event drives the StockMovement(In) audit row.
+    /// - Shipped or Completed — not allowed; those require a proper
+    ///   returns workflow which is out of scope.
     /// </summary>
     public Result Cancel()
     {
@@ -95,7 +110,7 @@ public class StockOut : Entity
 
         Status = StockOutStatus.Cancelled;
 
-        if (statusBeforeCancel is StockOutStatus.Picking or StockOutStatus.Packed)
+        if (statusBeforeCancel == StockOutStatus.Packed)
         {
             foreach (var item in _items)
             {

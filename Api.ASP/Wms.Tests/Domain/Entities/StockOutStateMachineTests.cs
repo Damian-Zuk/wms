@@ -50,7 +50,7 @@ public class StockOutStateMachineTests
     public class StartPicking
     {
         [Fact]
-        public void Draft_transitions_to_picking_and_raises_picked_event_per_item()
+        public void Draft_transitions_to_picking_without_raising_picked_events()
         {
             var stockOut = new StockOut(Guid.NewGuid());
             stockOut.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(3));
@@ -60,7 +60,7 @@ public class StockOutStateMachineTests
 
             result.IsSuccess.Should().BeTrue();
             stockOut.Status.Should().Be(StockOutStatus.Picking);
-            stockOut.DomainEvents.OfType<StockOutItemPickedDomainEvent>().Should().HaveCount(2);
+            stockOut.DomainEvents.OfType<StockOutItemPickedDomainEvent>().Should().BeEmpty();
         }
 
         [Theory]
@@ -85,15 +85,19 @@ public class StockOutStateMachineTests
     public class Pack
     {
         [Fact]
-        public void Picking_transitions_to_packed()
+        public void Picking_transitions_to_packed_and_raises_picked_event_per_item()
         {
-            var stockOut = NewStockOutWithItem();
-            DriveTo(stockOut, StockOutStatus.Picking);
+            var stockOut = new StockOut(Guid.NewGuid());
+            stockOut.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(3));
+            stockOut.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(7));
+            stockOut.StartPicking();
+            stockOut.ClearDomainEvents();
 
             var result = stockOut.Pack();
 
             result.IsSuccess.Should().BeTrue();
             stockOut.Status.Should().Be(StockOutStatus.Packed);
+            stockOut.DomainEvents.OfType<StockOutItemPickedDomainEvent>().Should().HaveCount(2);
         }
 
         [Theory]
@@ -192,15 +196,29 @@ public class StockOutStateMachineTests
             stockOut.DomainEvents.OfType<StockOutItemReturnedToStockDomainEvent>().Should().BeEmpty();
         }
 
-        [Theory]
-        [InlineData(StockOutStatus.Picking)]
-        [InlineData(StockOutStatus.Packed)]
-        public void From_picking_or_packed_raises_return_event_per_item(StockOutStatus startStatus)
+        [Fact]
+        public void From_picking_does_not_raise_return_events()
         {
             var stockOut = new StockOut(Guid.NewGuid());
             stockOut.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(2));
             stockOut.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(5));
-            DriveTo(stockOut, startStatus);
+            DriveTo(stockOut, StockOutStatus.Picking);
+            stockOut.ClearDomainEvents();
+
+            var result = stockOut.Cancel();
+
+            result.IsSuccess.Should().BeTrue();
+            stockOut.Status.Should().Be(StockOutStatus.Cancelled);
+            stockOut.DomainEvents.OfType<StockOutItemReturnedToStockDomainEvent>().Should().BeEmpty();
+        }
+
+        [Fact]
+        public void From_packed_raises_return_event_per_item()
+        {
+            var stockOut = new StockOut(Guid.NewGuid());
+            stockOut.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(2));
+            stockOut.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(5));
+            DriveTo(stockOut, StockOutStatus.Packed);
             stockOut.ClearDomainEvents();
 
             var result = stockOut.Cancel();

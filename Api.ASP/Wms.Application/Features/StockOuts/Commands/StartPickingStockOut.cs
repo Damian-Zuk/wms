@@ -1,22 +1,25 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Abstractions.Messaging;
-using Wms.Application.Common.Extensions;
 using Wms.Application.Common.Interfaces;
 using Wms.Domain.Errors;
-using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.StockOuts.Commands;
 
 public sealed record StartPickingStockOutCommand(Guid Id) : ICommand;
 
+/// <summary>
+/// Transitions a Draft stock-out into Picking. The reservation against
+/// inventory was already established by CreateStockOut, so this handler
+/// touches nothing physical — it only flips the status. Physical removal
+/// happens at Pack.
+/// </summary>
 public sealed class StartPickingStockOutCommandHandler(IAppDbContext context)
     : ICommandHandler<StartPickingStockOutCommand>
 {
     public async Task<Result> Handle(StartPickingStockOutCommand command, CancellationToken cancellationToken)
     {
         var stockOut = await context.StockOuts
-            .Include(s => s.Items)
             .FirstOrDefaultAsync(s => s.Id == command.Id, cancellationToken);
 
         if (stockOut is null)
@@ -26,24 +29,7 @@ public sealed class StartPickingStockOutCommandHandler(IAppDbContext context)
         if (transition.IsFailure)
             return transition;
 
-        foreach (var item in stockOut.Items)
-        {
-            var inventory = await context.Inventories
-                .FirstOrDefaultAsync(
-                    inv => inv.ProductId == item.ProductId
-                        && inv.LocationId == item.LocationId
-                        && inv.LotId == item.LotId,
-                    cancellationToken);
-
-            if (inventory is null)
-                return StockOutErrors.InsufficientInventory(item.ProductId, item.LocationId);
-
-            var pickResult = inventory.Pick(item.Quantity);
-            if (pickResult.IsFailure)
-                return pickResult;
-        }
-
-        var saveResult = await context.SaveChangesWithConcurrencyCheckAsync(cancellationToken);
-        return saveResult;
+        await context.SaveChangesAsync(cancellationToken);
+        return Result.Success();
     }
 }

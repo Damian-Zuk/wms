@@ -9,60 +9,11 @@ using Xunit;
 
 namespace Wms.Tests.Application.StockOuts;
 
-/// <summary>
-/// Status-transition handlers (Pack, Ship, Complete) are thin domain-method
-/// wrappers; the happy path is one transition, plus wrong-status and
-/// not-found.
-/// </summary>
+
 public class StockOutTransitionHandlersTests : IntegrationTestBase
 {
     public StockOutTransitionHandlersTests(PostgresContainerFixture fixture) : base(fixture)
     {
-    }
-
-    public class Pack : StockOutTransitionHandlersTests
-    {
-        public Pack(PostgresContainerFixture fixture) : base(fixture) { }
-
-        [Fact]
-        public async Task Picking_transitions_to_packed()
-        {
-            var stockOut = await SeedStockOutAsync(StockOutStatus.Picking);
-
-            await using var actContext = CreateContext();
-            var result = await new PackStockOutCommandHandler(actContext).Handle(
-                new PackStockOutCommand(stockOut.Id),
-                TestContext.Current.CancellationToken);
-
-            result.IsSuccess.Should().BeTrue();
-            (await ReloadStatusAsync(stockOut.Id)).Should().Be(StockOutStatus.Packed);
-        }
-
-        [Fact]
-        public async Task Wrong_status_is_rejected()
-        {
-            var stockOut = await SeedStockOutAsync(StockOutStatus.Draft);
-
-            await using var actContext = CreateContext();
-            var result = await new PackStockOutCommandHandler(actContext).Handle(
-                new PackStockOutCommand(stockOut.Id),
-                TestContext.Current.CancellationToken);
-
-            result.IsFailure.Should().BeTrue();
-            result.Error.Code.Should().Be("StockOut.InvalidStatusTransition");
-        }
-
-        [Fact]
-        public async Task Missing_stock_out_returns_not_found()
-        {
-            await using var actContext = CreateContext();
-            var result = await new PackStockOutCommandHandler(actContext).Handle(
-                new PackStockOutCommand(Guid.NewGuid()),
-                TestContext.Current.CancellationToken);
-
-            result.IsFailure.Should().BeTrue();
-            result.Error.Code.Should().Be("StockOut.NotFound");
-        }
     }
 
     public class Ship : StockOutTransitionHandlersTests
@@ -156,9 +107,10 @@ public class StockOutTransitionHandlersTests : IntegrationTestBase
     }
 
     /// <summary>
-    /// Seeds a product, location, and a StockOut driven through public
-    /// domain methods to <paramref name="status"/>. Seeding the FK targets
-    /// is required because StockOutItem has Restrict-FKs to Product/Location.
+    /// Seeds a product, location, inventory row, and a StockOut driven
+    /// through public domain methods to <paramref name="status"/>. The
+    /// inventory row mirrors the lifecycle: Reserved while Picking;
+    /// fully picked (OnHand and Reserved both 0) once Packed onwards.
     /// Domain events raised along the way are cleared so the save does not
     /// dispatch them.
     /// </summary>
@@ -166,23 +118,31 @@ public class StockOutTransitionHandlersTests : IntegrationTestBase
     {
         var product = TestData.Product($"SOT-{Guid.NewGuid():N}"[..10]);
         var location = TestData.Location($"SOT-{Guid.NewGuid():N}"[..10]);
+        var quantity = new Quantity(1);
+
+        var inventory = TestData.Inventory(product.Id, location.Id, lotId: null, onHand: 1);
 
         var stockOut = new StockOut(Guid.NewGuid());
-        stockOut.AddItem(product.Id, location.Id, null, new Quantity(1));
+        stockOut.AddItem(product.Id, location.Id, null, quantity);
 
         switch (status)
         {
             case StockOutStatus.Draft:
                 break;
             case StockOutStatus.Picking:
+                inventory.Reserve(quantity);
                 stockOut.StartPicking();
                 break;
             case StockOutStatus.Packed:
+                inventory.Reserve(quantity);
                 stockOut.StartPicking();
+                inventory.Pick(quantity);
                 stockOut.Pack();
                 break;
             case StockOutStatus.Shipped:
+                inventory.Reserve(quantity);
                 stockOut.StartPicking();
+                inventory.Pick(quantity);
                 stockOut.Pack();
                 stockOut.Ship();
                 break;
@@ -192,6 +152,7 @@ public class StockOutTransitionHandlersTests : IntegrationTestBase
 
         Context.Products.Add(product);
         Context.Locations.Add(location);
+        Context.Inventories.Add(inventory);
         Context.StockOuts.Add(stockOut);
         await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return stockOut;

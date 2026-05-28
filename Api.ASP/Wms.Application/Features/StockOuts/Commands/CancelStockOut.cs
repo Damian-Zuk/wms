@@ -36,6 +36,11 @@ public sealed class CancelStockOutCommandHandler(IAppDbContext context)
             .Where(i => locationIds.Contains(i.LocationId) && productIds.Contains(i.ProductId))
             .ToListAsync(cancellationToken);
 
+        // Draft and Picking — reservation exists, no physical removal yet.
+        // Release the reservation (or noop if the row vanished).
+        // Packed — physical stock was removed at Pack; put it back.
+        var releaseOnly = statusBeforeCancel is StockOutStatus.Draft or StockOutStatus.Picking;
+
         foreach (var item in stockOut.Items)
         {
             var inventory = inventories.FirstOrDefault(i =>
@@ -43,7 +48,7 @@ public sealed class CancelStockOutCommandHandler(IAppDbContext context)
                 && i.LocationId == item.LocationId
                 && i.LotId == item.LotId);
 
-            if (statusBeforeCancel == StockOutStatus.Draft)
+            if (releaseOnly)
             {
                 if (inventory is null)
                     continue;
