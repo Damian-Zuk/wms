@@ -6,6 +6,7 @@ using Serilog;
 using Wms.Api.Infrastructure;
 using Wms.Application;
 using Wms.Infrastructure;
+using Wms.Infrastructure.Data;
 using Wms.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -53,6 +54,22 @@ builder.Services.AddProblemDetails(options =>
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
+
+if (args.Contains("seed", StringComparer.OrdinalIgnoreCase))
+{
+    using var maintenanceScope = app.Services.CreateScope();
+    var dbContext = maintenanceScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await WarehouseSeeder.SeedAsync(dbContext);
+    return;
+}
+
+if (args.Contains("truncate", StringComparer.OrdinalIgnoreCase))
+{
+    using var maintenanceScope = app.Services.CreateScope();
+    var dbContext = maintenanceScope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await WarehouseCleaner.ClearAsync(dbContext);
+    return;
+}
 
 if (app.Environment.IsDevelopment())
 {
