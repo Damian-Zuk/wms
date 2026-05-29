@@ -2,8 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Wms.Application.Accounts.Dtos;
-using Wms.Application.Common.Interfaces;
+using Wms.Application.Common.Auth;
+using Wms.Application.Common.Auth.Dtos;
 using Wms.Infrastructure.Identity;
 
 namespace Wms.Api.Controllers;

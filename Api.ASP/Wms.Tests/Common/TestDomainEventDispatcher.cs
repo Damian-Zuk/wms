@@ -1,4 +1,4 @@
-using Wms.Application.Abstractions.DomainEvents;
+using Wms.Application.Common.Events;
 using Wms.Domain.Primitives;
 
 namespace Wms.Tests.Common;

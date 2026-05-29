@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
-using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Features.StockIns.Commands;
 using Wms.Application.Features.StockIns.Queries;

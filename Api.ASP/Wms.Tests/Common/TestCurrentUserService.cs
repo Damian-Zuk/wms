@@ -1,4 +1,4 @@
-using Wms.Application.Common.Interfaces;
+using Wms.Application.Common.Auth;
 
 namespace Wms.Tests.Common;
 

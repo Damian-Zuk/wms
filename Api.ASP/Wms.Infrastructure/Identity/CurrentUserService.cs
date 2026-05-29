@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Security.Claims;
-using Wms.Application.Common.Interfaces;
+using Wms.Application.Common.Auth;
 
 namespace Wms.Infrastructure.Identity;
 

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
-using Wms.Application.Abstractions.Messaging;
+using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Features.StockMovements.Queries;
 using Wms.Domain.Enums;

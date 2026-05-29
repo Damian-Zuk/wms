@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Abstractions.DomainEvents;
-using Wms.Application.Common.Interfaces;
+using Wms.Application.Common.Data;
+using Wms.Application.Common.Events;
 using Wms.Domain.Entities;
 using Wms.Domain.Primitives;
 using Wms.Infrastructure.Identity;

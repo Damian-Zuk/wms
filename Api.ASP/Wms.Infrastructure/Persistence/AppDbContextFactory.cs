@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
-using Wms.Application.Abstractions.DomainEvents;
+using Wms.Application.Common.Events;
 using Wms.Domain.Primitives;
 using Wms.Infrastructure.Data;
 

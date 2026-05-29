@@ -1,7 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Abstractions.Messaging;
-using Wms.Application.Common.Interfaces;
+using Wms.Application.Common.Data;
+using Wms.Application.Common.Messaging;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.Inventories.Queries;

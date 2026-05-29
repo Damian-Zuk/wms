@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Common.Interfaces;
-using Wms.Application.Features.StockMovements.EventHandlers;
+using Wms.Application.Common.Data;
+using Wms.Application.Features.StockMovements.Events;
 using Wms.Application.Features.StockOuts.Commands;
 using Wms.Domain.Entities;
 using Wms.Domain.Enums;

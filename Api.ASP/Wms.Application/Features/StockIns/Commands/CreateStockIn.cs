@@ -1,7 +1,7 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Abstractions.Messaging;
-using Wms.Application.Common.Interfaces;
+using Wms.Application.Common.Data;
+using Wms.Application.Common.Messaging;
 using Wms.Domain.Entities;
 using Wms.Domain.Errors;
 using Wms.Domain.ValueObjects;

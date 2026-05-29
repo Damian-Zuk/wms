@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
-using Wms.Application.Common.Interfaces;
+using Wms.Application.Common.Auth;
 using Wms.Domain.Primitives;
 
 namespace Wms.Infrastructure.Persistence.Interceptors;

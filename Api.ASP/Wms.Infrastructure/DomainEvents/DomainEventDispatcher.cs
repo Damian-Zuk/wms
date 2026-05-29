@@ -1,7 +1,7 @@
 ﻿using Wms.Domain.Primitives;
-using Wms.Application.Abstractions.DomainEvents;
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections.Concurrent;
+using Wms.Application.Common.Events;
 
 namespace Wms.Infrastructure.DomainEvents;
 

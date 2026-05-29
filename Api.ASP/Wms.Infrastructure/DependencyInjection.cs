@@ -5,12 +5,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
-using Wms.Application.Common.Interfaces;
 using Wms.Infrastructure.Data;
 using Wms.Infrastructure.Identity;
 using Wms.Infrastructure.Persistence.Interceptors;
-using Wms.Application.Abstractions.DomainEvents;
 using Wms.Infrastructure.DomainEvents;
+using Wms.Application.Common.Events;
+using Wms.Application.Common.Auth;
+using Wms.Application.Common.Data;
 
 namespace Wms.Infrastructure;
 

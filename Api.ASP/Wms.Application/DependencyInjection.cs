@@ -1,11 +1,11 @@
 ﻿using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
-using Wms.Application.Abstractions.Behaviors;
-using Wms.Application.Abstractions.Messaging;
-using Wms.Application.Abstractions.DomainEvents;
 using Wms.Application.Allocations;
 using Wms.Application.Putaway;
 using Wms.Application.Putaway.Strategies;
+using Wms.Application.Common.Events;
+using Wms.Application.Common.Behaviors;
+using Wms.Application.Common.Messaging;
 
 namespace Wms.Application;
 

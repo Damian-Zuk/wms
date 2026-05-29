@@ -3,7 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using Wms.Application.Common.Interfaces;
+using Wms.Application.Common.Auth;
 
 namespace Wms.Infrastructure.Identity;
 

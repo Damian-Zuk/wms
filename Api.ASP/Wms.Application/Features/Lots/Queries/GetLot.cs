@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Abstractions.Messaging;
-using Wms.Application.Common.Interfaces;
+using Wms.Application.Common.Data;
+using Wms.Application.Common.Messaging;
 using Wms.Application.Extensions;
 using Wms.Domain.Errors;
 using Wms.Shared.Common;

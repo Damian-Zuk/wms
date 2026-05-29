@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Wms.Application.Common.Interfaces;
+using Wms.Application.Common.Data;
 using Wms.Application.Features.Locations.Queries;
 using Wms.Application.Putaway;
 using Wms.Application.Putaway.Strategies;

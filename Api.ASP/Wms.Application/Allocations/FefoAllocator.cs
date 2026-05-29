@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Common.Interfaces;
+using Wms.Application.Common.Data;
 using Wms.Domain.Errors;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
