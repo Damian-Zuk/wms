@@ -10,6 +10,7 @@ const items: NavItem[] = [
   { label: 'Product Catalog', icon: 'pi pi-box', to: '/products' },
   { label: 'Locations', icon: 'pi pi-map-marker', to: '/locations' },
   { label: 'Lots', icon: 'pi pi-tags', to: '/lots' },
+  { label: 'Inventory', icon: 'pi pi-database', to: '/inventory' },
 ]
 </script>
 

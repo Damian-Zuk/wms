@@ -22,6 +22,31 @@ export function useLocations(filters: Ref<LocationFilters>) {
   })
 }
 
+/**
+ * Loads locations for use as select options / id→location lookups.
+ * Shared key so all callers (pickers, reference columns) dedupe to one fetch.
+ */
+export function useLocationOptions() {
+  const query = useQuery({
+    queryKey: qk.locations.options(),
+    queryFn: () => locationsApi.list({ page: 1, pageSize: 200 }),
+    staleTime: 10 * 60_000,
+  })
+
+  const options = computed(() =>
+    (query.data.value?.items ?? []).map((l) => ({
+      label: `${l.code} — ${l.display}`,
+      value: l.id,
+    })),
+  )
+
+  const byId = computed(
+    () => new Map((query.data.value?.items ?? []).map((l) => [l.id, l])),
+  )
+
+  return { ...query, options, byId }
+}
+
 export function useLocation(id: Ref<string>) {
   return useQuery({
     queryKey: computed(() => qk.locations.detail(id.value)),

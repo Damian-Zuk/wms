@@ -1,6 +1,7 @@
 import type { ProductFilters } from '@/types/products'
 import type { LocationFilters } from '@/types/locations'
 import type { LotFilters } from '@/types/lots'
+import type { AvailabilityParams, InventoryFilters } from '@/types/inventory'
 
 export const qk = {
   products: {
@@ -19,5 +20,13 @@ export const qk = {
     options: () => ['locations', 'options'] as const,
     list: (filters: LocationFilters) => ['locations', 'list', filters] as const,
     detail: (id: string) => ['locations', 'detail', id] as const,
+  },
+  inventories: {
+    all: ['inventories'] as const,
+    list: (filters: InventoryFilters) => ['inventories', 'list', filters] as const,
+    detail: (id: string) => ['inventories', 'detail', id] as const,
+    availability: (params: AvailabilityParams) =>
+      ['inventories', 'availability', params] as const,
+    expiring: (withinDays: number) => ['inventories', 'expiring', withinDays] as const,
   },
 }
