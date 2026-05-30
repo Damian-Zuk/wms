@@ -37,6 +37,28 @@ const router = createRouter({
       component: () => import('@/features/products/ProductEditView.vue'),
       meta: { requiresMutate: true },
     },
+    {
+      path: '/locations',
+      name: 'locations',
+      component: () => import('@/features/locations/LocationsView.vue'),
+    },
+    {
+      path: '/locations/new',
+      name: 'location-create',
+      component: () => import('@/features/locations/LocationCreateView.vue'),
+      meta: { requiresMutate: true },
+    },
+    {
+      path: '/locations/:id',
+      name: 'location-detail',
+      component: () => import('@/features/locations/LocationDetailView.vue'),
+    },
+    {
+      path: '/locations/:id/edit',
+      name: 'location-edit',
+      component: () => import('@/features/locations/LocationEditView.vue'),
+      meta: { requiresMutate: true },
+    },
   ],
 })
 

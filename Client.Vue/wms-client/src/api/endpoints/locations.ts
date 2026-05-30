@@ -1,6 +1,11 @@
 import { http } from '../http'
 import type { PagedResult } from '@/types/common'
-import type { LocationDto, LocationFilters } from '@/types/locations'
+import type {
+  CreateLocationCommand,
+  LocationDto,
+  LocationFilters,
+  UpdateLocationRequest,
+} from '@/types/locations'
 
 export const locationsApi = {
   list: (filters: LocationFilters) =>
@@ -15,4 +20,14 @@ export const locationsApi = {
         },
       })
       .then((r) => r.data),
+
+  get: (id: string) => http.get<LocationDto>(`/locations/${id}`).then((r) => r.data),
+
+  create: (body: CreateLocationCommand) =>
+    http.post<string>('/locations', body).then((r) => r.data),
+
+  update: (id: string, body: UpdateLocationRequest) =>
+    http.put<void>(`/locations/${id}`, body).then(() => undefined),
+
+  remove: (id: string) => http.delete<void>(`/locations/${id}`).then(() => undefined),
 }

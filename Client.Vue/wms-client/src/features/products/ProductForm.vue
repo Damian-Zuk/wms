@@ -8,6 +8,7 @@ import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import LocationMultiSelect from '@/components/pickers/LocationMultiSelect.vue'
+import { mapServerErrors } from '@/lib/form-errors'
 import type { ProductFormValues } from '@/types/products'
 import type { TemperatureZone } from '@/types/enums'
 
@@ -57,13 +58,9 @@ const [preferredLocationIds] = defineField('preferredLocationIds')
 watch(
   () => props.serverErrors,
   (serverErrors) => {
-    if (!serverErrors) return
-    const mapped: Record<string, string> = {}
-    for (const [key, messages] of Object.entries(serverErrors)) {
-      const field = key.charAt(0).toLowerCase() + key.slice(1)
-      mapped[field] = messages.join(', ')
-    }
-    setErrors(mapped as Partial<Record<keyof ProductFormValues, string>>)
+    setErrors(
+      mapServerErrors(serverErrors) as Partial<Record<keyof ProductFormValues, string>>,
+    )
   },
 )
 

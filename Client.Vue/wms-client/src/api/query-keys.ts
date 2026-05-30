@@ -1,4 +1,5 @@
 import type { ProductFilters } from '@/types/products'
+import type { LocationFilters } from '@/types/locations'
 
 export const qk = {
   products: {
@@ -9,5 +10,7 @@ export const qk = {
   locations: {
     all: ['locations'] as const,
     options: () => ['locations', 'options'] as const,
+    list: (filters: LocationFilters) => ['locations', 'list', filters] as const,
+    detail: (id: string) => ['locations', 'detail', id] as const,
   },
 }
