@@ -1,4 +1,4 @@
-import type { LocationType, TemperatureZone } from '@/types/enums'
+import type { LocationType, StockInStatus, TemperatureZone } from '@/types/enums'
 
 export type TagSeverity =
   | 'success'
@@ -18,4 +18,12 @@ export const locationTypeSeverity: Record<LocationType, TagSeverity> = {
   Storage: 'info',
   Quarantine: 'warn',
   Returns: 'secondary',
+}
+
+export const stockInStatusSeverity: Record<StockInStatus, TagSeverity> = {
+  Draft: 'secondary',
+  Receiving: 'info',
+  Received: 'warn',
+  Completed: 'success',
+  Cancelled: 'danger',
 }

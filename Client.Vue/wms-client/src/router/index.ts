@@ -101,6 +101,22 @@ const router = createRouter({
       name: 'inventory-detail',
       component: () => import('@/features/inventory/InventoryDetailView.vue'),
     },
+    {
+      path: '/stock-ins',
+      name: 'stock-ins',
+      component: () => import('@/features/stock-ins/StockInsView.vue'),
+    },
+    {
+      path: '/stock-ins/new',
+      name: 'stock-in-create',
+      component: () => import('@/features/stock-ins/StockInCreateView.vue'),
+      meta: { requiresMutate: true },
+    },
+    {
+      path: '/stock-ins/:id',
+      name: 'stock-in-detail',
+      component: () => import('@/features/stock-ins/StockInDetailView.vue'),
+    },
   ],
 })
 

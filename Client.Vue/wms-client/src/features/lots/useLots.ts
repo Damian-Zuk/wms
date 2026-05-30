@@ -26,6 +26,25 @@ export function useLot(id: Ref<string>) {
   })
 }
 
+/**
+ * Loads lots for a given product as select options. Disabled (and empty)
+ * until a product is chosen; keyed by productId so each scope caches separately.
+ */
+export function useLotOptions(productId: Ref<string | undefined>) {
+  const query = useQuery({
+    queryKey: computed(() => qk.lots.options(productId.value)),
+    queryFn: () => lotsApi.list({ productId: productId.value, page: 1, pageSize: 200 }),
+    enabled: computed(() => !!productId.value),
+    staleTime: 5 * 60_000,
+  })
+
+  const options = computed(() =>
+    (query.data.value?.items ?? []).map((l) => ({ label: l.number, value: l.id })),
+  )
+
+  return { ...query, options }
+}
+
 export function useCreateLot() {
   const qc = useQueryClient()
   return useMutation({

@@ -18,3 +18,10 @@ export function fromDateOnly(value: string | null): Date | null {
 export function formatDate(value: string | null): string {
   return value ?? '—'
 }
+
+/** Formats an ISO DateTime to a readable local date+time, or an em dash when null. */
+export function formatDateTime(value: string | null): string {
+  if (!value) return '—'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString()
+}
