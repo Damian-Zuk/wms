@@ -59,6 +59,28 @@ const router = createRouter({
       component: () => import('@/features/locations/LocationEditView.vue'),
       meta: { requiresMutate: true },
     },
+    {
+      path: '/lots',
+      name: 'lots',
+      component: () => import('@/features/lots/LotsView.vue'),
+    },
+    {
+      path: '/lots/new',
+      name: 'lot-create',
+      component: () => import('@/features/lots/LotCreateView.vue'),
+      meta: { requiresMutate: true },
+    },
+    {
+      path: '/lots/:id',
+      name: 'lot-detail',
+      component: () => import('@/features/lots/LotDetailView.vue'),
+    },
+    {
+      path: '/lots/:id/edit',
+      name: 'lot-edit',
+      component: () => import('@/features/lots/LotEditView.vue'),
+      meta: { requiresMutate: true },
+    },
   ],
 })
 

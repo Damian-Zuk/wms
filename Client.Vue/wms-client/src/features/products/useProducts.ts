@@ -30,6 +30,31 @@ export function useProduct(id: Ref<string>) {
   })
 }
 
+/**
+ * Loads products for use as select options / id→product lookups
+ * (pickers, reference columns). Shared key so all callers dedupe to one fetch.
+ */
+export function useProductOptions() {
+  const query = useQuery({
+    queryKey: qk.products.options(),
+    queryFn: () => productsApi.list({ page: 1, pageSize: 200 }),
+    staleTime: 10 * 60_000,
+  })
+
+  const options = computed(() =>
+    (query.data.value?.items ?? []).map((p) => ({
+      label: `${p.sku} — ${p.name}`,
+      value: p.id,
+    })),
+  )
+
+  const byId = computed(
+    () => new Map((query.data.value?.items ?? []).map((p) => [p.id, p])),
+  )
+
+  return { ...query, options, byId }
+}
+
 export function useCreateProduct() {
   const qc = useQueryClient()
   return useMutation({
