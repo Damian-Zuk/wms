@@ -24,12 +24,16 @@ withDefaults(
 const emit = defineEmits<{
   'update:page': [page: number]
   'update:pageSize': [pageSize: number]
+  'row-click': [row: T]
 }>()
 
-// PrimeVue's @page emits { first, rows, page (0-based), pageCount }.
 function onPage(event: { page: number; rows: number; first: number }) {
   emit('update:pageSize', event.rows)
   emit('update:page', event.page + 1)
+}
+
+function onRowClick(event: { data: T }) {
+  emit('row-click', event.data)
 }
 </script>
 
@@ -46,7 +50,9 @@ function onPage(event: { page: number; rows: number; first: number }) {
     :rows-per-page-options="rowsPerPageOptions"
     paginator-template="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
     current-page-report-template="{first}–{last} of {totalRecords}"
+    :row-hover="true"
     @page="onPage"
+    @row-click="onRowClick"
   >
     <slot />
 

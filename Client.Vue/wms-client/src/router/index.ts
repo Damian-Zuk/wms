@@ -20,6 +20,23 @@ const router = createRouter({
       name: 'products',
       component: () => import('@/features/products/ProductsView.vue'),
     },
+    {
+      path: '/products/new',
+      name: 'product-create',
+      component: () => import('@/features/products/ProductCreateView.vue'),
+      meta: { requiresMutate: true },
+    },
+    {
+      path: '/products/:id',
+      name: 'product-detail',
+      component: () => import('@/features/products/ProductDetailView.vue'),
+    },
+    {
+      path: '/products/:id/edit',
+      name: 'product-edit',
+      component: () => import('@/features/products/ProductEditView.vue'),
+      meta: { requiresMutate: true },
+    },
   ],
 })
 
@@ -32,6 +49,11 @@ router.beforeEach((to) => {
 
   if (to.name === 'login' && auth.isAuthenticated) {
     return { name: 'dashboard' }
+  }
+
+  // Routes that perform mutations require Admin/Manager.
+  if (to.meta.requiresMutate && !auth.canMutate) {
+    return { name: 'products' }
   }
 
   return true

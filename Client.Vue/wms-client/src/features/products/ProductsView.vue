@@ -1,19 +1,29 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
 import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
+import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
 import { useProducts } from './useProducts'
+import { useAuthStore } from '@/stores/auth'
 import type { ProductDto, ProductFilters } from '@/types/products'
 import type { TemperatureZone } from '@/types/enums'
+
+const router = useRouter()
+const auth = useAuthStore()
 
 const filters = ref<ProductFilters>({ search: '', page: 1, pageSize: 20 })
 const search = ref('')
 
 const { data, isFetching } = useProducts(filters)
+
+function openProduct(product: ProductDto) {
+  router.push({ name: 'product-detail', params: { id: product.id } })
+}
 
 function applySearch() {
   filters.value = { ...filters.value, search: search.value.trim(), page: 1 }
@@ -37,18 +47,26 @@ const zoneSeverity: Record<TemperatureZone, TagSeverity> = {
 </script>
 
 <template>
-  <section class="p-6 flex flex-col gap-4">
+  <section class="p-6 flex flex-col gap-4" style="max-width: 1400px">
     <div class="flex items-center justify-between gap-4">
       <h1 class="text-2xl font-semibold text-surface-900">Product Catalog</h1>
 
-      <IconField>
-        <InputIcon class="pi pi-search" />
-        <InputText
-          v-model="search"
-          placeholder="Search SKU or name"
-          @keyup.enter="applySearch"
+      <div class="flex items-center gap-2">
+        <IconField>
+          <InputIcon class="pi pi-search" />
+          <InputText
+            v-model="search"
+            placeholder="Search SKU or name"
+            @keyup.enter="applySearch"
+          />
+        </IconField>
+        <Button
+          v-if="auth.canMutate"
+          label="New Product"
+          icon="pi pi-plus"
+          @click="router.push({ name: 'product-create' })"
         />
-      </IconField>
+      </div>
     </div>
 
     <DataTableWrapper
@@ -57,8 +75,10 @@ const zoneSeverity: Record<TemperatureZone, TagSeverity> = {
       :page="filters.page"
       :page-size="filters.pageSize"
       :loading="isFetching"
+      class="cursor-pointer"
       @update:page="setPage"
       @update:page-size="setPageSize"
+      @row-click="openProduct"
     >
       <Column field="sku" header="SKU" style="width: 14rem" />
       <Column field="name" header="Name" />

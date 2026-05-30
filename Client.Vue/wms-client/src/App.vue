@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import Toast from 'primevue/toast'
+import ConfirmDialog from 'primevue/confirmdialog'
 import AppNavbar from '@/components/AppNavbar.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -16,4 +18,7 @@ const auth = useAuthStore()
       </main>
     </div>
   </div>
+
+  <Toast position="top-center" />
+  <ConfirmDialog />
 </template>
