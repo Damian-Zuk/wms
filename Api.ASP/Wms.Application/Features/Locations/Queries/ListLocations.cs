@@ -77,7 +77,7 @@ public sealed class ListLocationsQueryHandler(IAppDbContext context)
                 l.Address.ToString(),
                 l.Type,
                 l.TemperatureZone,
-                l.Capacity,
+                l.Capacity.MaxUnits,
                 l.IsMixedSkuAllowed,
                 l.IsMixedLotAllowed,
                 l.IsActive,

@@ -32,4 +32,8 @@
     <Folder Include="Properties\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Wms.Tests" />
+  </ItemGroup>
+
 </Project>

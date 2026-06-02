@@ -8,19 +8,27 @@ using Wms.Shared.Common;
 
 namespace Wms.Application.Features.StockIns.Queries;
 
-public sealed record StockInItemDto(
+public sealed record StockInPlacementDto(
+    Guid Id,
+    LocationRef Location,
+    int Quantity,
+    PutawayStrategyType Strategy);
+
+public sealed record StockInLineDto(
     Guid Id,
     ProductRef Product,
-    LocationRef Location,
     LotRef? Lot,
-    int Quantity);
+    int Quantity,
+    IReadOnlyList<StockInPlacementDto> Placements);
 
 public sealed record StockInDto(
     Guid Id,
     StockInStatus Status,
     DateTime CreatedAt,
     string? CreatedBy,
-    IReadOnlyList<StockInItemDto> Items);
+    string? ModifiedBy,
+    DateTime? ModifiedAt,
+    IReadOnlyList<StockInLineDto> Lines);
 
 public sealed record GetStockInQuery(Guid Id) : IQuery<StockInDto>;
 
@@ -31,7 +39,6 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
     {
         var stockIn = await context.StockIns
             .AsNoTracking()
-            .Include(s => s.Items)
             .Where(s => s.Id == query.Id)
             .Select(s => new
             {
@@ -39,13 +46,21 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
                 s.Status,
                 s.CreatedAt,
                 s.CreatedBy,
-                Items = s.Items.Select(i => new
+                s.ModifiedBy,
+                s.ModifiedAt,
+                Lines = s.Lines.Select(l => new
                 {
-                    i.Id,
-                    i.ProductId,
-                    i.LocationId,
-                    i.LotId,
-                    Quantity = i.Quantity.Value
+                    l.Id,
+                    l.ProductId,
+                    l.LotId,
+                    Quantity = l.Quantity.Value,
+                    Items = l.Items.Select(i => new
+                    {
+                        i.Id,
+                        i.LocationId,
+                        Quantity = i.Quantity.Value,
+                        i.Strategy
+                    }).ToList()
                 }).ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -53,21 +68,23 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
         if (stockIn is null)
             return StockInErrors.NotFound(query.Id);
 
-        var productIds = stockIn.Items.Select(i => i.ProductId).Distinct().ToList();
-        var locationIds = stockIn.Items.Select(i => i.LocationId).Distinct().ToList();
-        var lotIds = stockIn.Items.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
+        var productIds = stockIn.Lines.Select(l => l.ProductId).Distinct().ToList();
+        var lotIds = stockIn.Lines.Where(l => l.LotId.HasValue).Select(l => l.LotId!.Value).Distinct().ToList();
+        var locationIds = stockIn.Lines.SelectMany(l => l.Items).Select(i => i.LocationId).Distinct().ToList();
 
         var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
         var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
         var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
 
-        var items = stockIn.Items
-            .Select(i => new StockInItemDto(
-                i.Id,
-                products[i.ProductId],
-                locations[i.LocationId],
-                i.LotId.HasValue ? lots[i.LotId.Value] : null,
-                i.Quantity))
+        var lines = stockIn.Lines
+            .Select(l => new StockInLineDto(
+                l.Id,
+                products[l.ProductId],
+                l.LotId.HasValue ? lots[l.LotId.Value] : null,
+                l.Quantity,
+                l.Items
+                    .Select(i => new StockInPlacementDto(i.Id, locations[i.LocationId], i.Quantity, i.Strategy))
+                    .ToList()))
             .ToList();
 
         return new StockInDto(
@@ -75,6 +92,8 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
             stockIn.Status,
             stockIn.CreatedAt,
             stockIn.CreatedBy,
-            items);
+            stockIn.ModifiedBy,
+            stockIn.ModifiedAt,
+            lines);
     }
 }

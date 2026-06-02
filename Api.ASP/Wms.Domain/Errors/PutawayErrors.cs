@@ -17,4 +17,10 @@ public static class PutawayErrors
         $"No suitable putaway location found for product '{productId}'" +
         (lotId.HasValue ? $" (lot '{lotId.Value}')" : string.Empty) +
         $" and quantity {quantity}.");
+
+    public static Error CannotPlaceFullQuantity(Guid productId, Guid? lotId, int requested, int unplaced) => Error.Conflict(
+        "Putaway.CannotPlaceFullQuantity",
+        $"Cannot place the full quantity for product '{productId}'" +
+        (lotId.HasValue ? $" (lot '{lotId.Value}')" : string.Empty) +
+        $": requested {requested}, {unplaced} could not be placed (insufficient capacity).");
 }

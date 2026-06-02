@@ -75,6 +75,27 @@ public static class TestData
     }
 
     /// <summary>
+    /// A StockIn with a single line placed entirely into one location. Keeps the
+    /// arrange-block short for tests that only care about a one-line, one-placement
+    /// receipt.
+    /// </summary>
+    public static StockIn StockIn(
+        Guid productId,
+        Guid locationId,
+        int quantity,
+        Guid? lotId = null,
+        PutawayStrategyType strategy = PutawayStrategyType.NearestEmpty)
+    {
+        var stockIn = new StockIn(Guid.NewGuid());
+        stockIn.AddLineWithPlacements(
+            productId,
+            lotId,
+            new Quantity(quantity),
+            [(locationId, quantity, strategy)]);
+        return stockIn;
+    }
+
+    /// <summary>
     /// Each location needs a unique address (DB has a unique index on the
     /// five address segments). Use a counter so tests can ignore that
     /// detail entirely.

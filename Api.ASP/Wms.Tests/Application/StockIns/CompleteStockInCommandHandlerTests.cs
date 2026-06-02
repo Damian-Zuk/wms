@@ -79,7 +79,11 @@ public class CompleteStockInCommandHandlerTests : IntegrationTestBase
         var location = TestData.Location($"CSI-LOC-{Guid.NewGuid():N}"[..10]);
 
         var stockIn = new StockIn(Guid.NewGuid());
-        stockIn.AddItem(product.Id, location.Id, null, new Quantity(1));
+        stockIn.AddLineWithPlacements(
+            product.Id,
+            null,
+            new Quantity(1),
+            [(location.Id, 1, PutawayStrategyType.NearestEmpty)]);
 
         switch (status)
         {

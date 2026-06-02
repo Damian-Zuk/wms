@@ -20,7 +20,9 @@ public abstract class IntegrationTestBase : IAsyncLifetime
     private static readonly string[] TablesToTruncate =
     [
         "StockMovements",
+        "CapacityReservations",
         "StockInItems",
+        "StockInLines",
         "StockOutItems",
         "StockIns",
         "StockOuts",

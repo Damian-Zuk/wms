@@ -9,24 +9,49 @@ namespace Wms.Tests.Domain.Entities;
 
 public class StockInStateMachineTests
 {
-    private static StockIn NewStockInWithItem(int quantity = 5)
+    private static StockIn NewStockInWithLine(int quantity = 5)
     {
         var s = new StockIn(Guid.NewGuid());
-        s.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(quantity));
+        s.AddLineWithPlacements(
+            Guid.NewGuid(),
+            null,
+            new Quantity(quantity),
+            [(Guid.NewGuid(), quantity, PutawayStrategyType.NearestEmpty)]);
         return s;
     }
 
-    public class AddItem
+    public class AddLineWithPlacements
     {
         [Fact]
         public void Allowed_in_draft()
         {
             var stockIn = new StockIn(Guid.NewGuid());
 
-            var result = stockIn.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(1));
+            var result = stockIn.AddLineWithPlacements(
+                Guid.NewGuid(),
+                null,
+                new Quantity(10),
+                [(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty), (Guid.NewGuid(), 4, PutawayStrategyType.ConsolidateSameSku)]);
 
             result.IsSuccess.Should().BeTrue();
-            stockIn.Items.Should().HaveCount(1);
+            stockIn.Lines.Should().HaveCount(1);
+            stockIn.Lines.Single().Items.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public void Rejected_when_placements_do_not_match_line_total()
+        {
+            var stockIn = new StockIn(Guid.NewGuid());
+
+            var result = stockIn.AddLineWithPlacements(
+                Guid.NewGuid(),
+                null,
+                new Quantity(10),
+                [(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty)]);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("StockIn.PlacementsDoNotMatchLineTotal");
+            stockIn.Lines.Should().BeEmpty();
         }
 
         [Theory]
@@ -36,10 +61,87 @@ public class StockInStateMachineTests
         [InlineData(StockInStatus.Cancelled)]
         public void Rejected_outside_draft(StockInStatus startStatus)
         {
-            var stockIn = NewStockInWithItem();
+            var stockIn = NewStockInWithLine();
             DriveTo(stockIn, startStatus);
 
-            var result = stockIn.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(1));
+            var result = stockIn.AddLineWithPlacements(
+                Guid.NewGuid(),
+                null,
+                new Quantity(1),
+                [(Guid.NewGuid(), 1, PutawayStrategyType.NearestEmpty)]);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("StockIn.CannotModifyItems");
+        }
+    }
+
+    public class ModifyLinePlacements
+    {
+        [Fact]
+        public void Replaces_placements_marks_manual_and_records_modifier()
+        {
+            var stockIn = NewStockInWithLine(quantity: 10);
+            var lineId = stockIn.Lines.Single().Id;
+            var when = DateTime.UtcNow;
+
+            var result = stockIn.ModifyLinePlacements(
+                lineId,
+                [(Guid.NewGuid(), 7), (Guid.NewGuid(), 3)],
+                "alice",
+                when);
+
+            result.IsSuccess.Should().BeTrue();
+            var line = stockIn.Lines.Single();
+            line.Items.Should().HaveCount(2);
+            line.Items.Should().OnlyContain(i => i.Strategy == PutawayStrategyType.Manual);
+            line.PlacedTotal.Should().Be(10);
+            stockIn.ModifiedBy.Should().Be("alice");
+            stockIn.ModifiedAt.Should().Be(when);
+        }
+
+        [Fact]
+        public void Rejected_when_total_changes()
+        {
+            var stockIn = NewStockInWithLine(quantity: 10);
+            var lineId = stockIn.Lines.Single().Id;
+
+            var result = stockIn.ModifyLinePlacements(
+                lineId,
+                [(Guid.NewGuid(), 9)],
+                "alice",
+                DateTime.UtcNow);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("StockIn.PlacementsDoNotMatchLineTotal");
+        }
+
+        [Fact]
+        public void Rejected_for_unknown_line()
+        {
+            var stockIn = NewStockInWithLine(quantity: 10);
+
+            var result = stockIn.ModifyLinePlacements(
+                Guid.NewGuid(),
+                [(Guid.NewGuid(), 10)],
+                "alice",
+                DateTime.UtcNow);
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("StockIn.LineNotFound");
+        }
+
+        [Fact]
+        public void Rejected_outside_draft()
+        {
+            var stockIn = NewStockInWithLine(quantity: 10);
+            var lineId = stockIn.Lines.Single().Id;
+            stockIn.StartReceiving();
+
+            var result = stockIn.ModifyLinePlacements(
+                lineId,
+                [(Guid.NewGuid(), 10)],
+                "alice",
+                DateTime.UtcNow);
 
             result.IsFailure.Should().BeTrue();
             result.Error.Code.Should().Be("StockIn.CannotModifyItems");
@@ -51,7 +153,7 @@ public class StockInStateMachineTests
         [Fact]
         public void Draft_transitions_to_receiving()
         {
-            var stockIn = NewStockInWithItem();
+            var stockIn = NewStockInWithLine();
 
             var result = stockIn.StartReceiving();
 
@@ -66,7 +168,7 @@ public class StockInStateMachineTests
         [InlineData(StockInStatus.Cancelled)]
         public void Rejected_outside_draft(StockInStatus startStatus)
         {
-            var stockIn = NewStockInWithItem();
+            var stockIn = NewStockInWithLine();
             DriveTo(stockIn, startStatus);
 
             var result = stockIn.StartReceiving();
@@ -79,11 +181,14 @@ public class StockInStateMachineTests
     public class Receive
     {
         [Fact]
-        public void Receiving_transitions_to_received_and_raises_one_event_per_item()
+        public void Receiving_transitions_to_received_and_raises_one_event_per_placement()
         {
             var stockIn = new StockIn(Guid.NewGuid());
-            stockIn.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(2));
-            stockIn.AddItem(Guid.NewGuid(), Guid.NewGuid(), null, new Quantity(7));
+            stockIn.AddLineWithPlacements(
+                Guid.NewGuid(),
+                null,
+                new Quantity(9),
+                [(Guid.NewGuid(), 2, PutawayStrategyType.NearestEmpty), (Guid.NewGuid(), 7, PutawayStrategyType.NearestEmpty)]);
             stockIn.StartReceiving();
             stockIn.ClearDomainEvents();
 
@@ -103,7 +208,7 @@ public class StockInStateMachineTests
         [InlineData(StockInStatus.Cancelled)]
         public void Rejected_outside_receiving(StockInStatus startStatus)
         {
-            var stockIn = NewStockInWithItem();
+            var stockIn = NewStockInWithLine();
             DriveTo(stockIn, startStatus);
             stockIn.ClearDomainEvents();
 
@@ -120,7 +225,7 @@ public class StockInStateMachineTests
         [Fact]
         public void Received_transitions_to_completed()
         {
-            var stockIn = NewStockInWithItem();
+            var stockIn = NewStockInWithLine();
             DriveTo(stockIn, StockInStatus.Received);
 
             var result = stockIn.Complete();
@@ -136,7 +241,7 @@ public class StockInStateMachineTests
         [InlineData(StockInStatus.Cancelled)]
         public void Rejected_outside_received(StockInStatus startStatus)
         {
-            var stockIn = NewStockInWithItem();
+            var stockIn = NewStockInWithLine();
             DriveTo(stockIn, startStatus);
 
             var result = stockIn.Complete();
@@ -153,7 +258,7 @@ public class StockInStateMachineTests
         [InlineData(StockInStatus.Receiving)]
         public void Allowed_from_draft_and_receiving(StockInStatus startStatus)
         {
-            var stockIn = NewStockInWithItem();
+            var stockIn = NewStockInWithLine();
             DriveTo(stockIn, startStatus);
 
             var result = stockIn.Cancel();
@@ -168,7 +273,7 @@ public class StockInStateMachineTests
         [InlineData(StockInStatus.Cancelled)]
         public void Rejected_after_received(StockInStatus startStatus)
         {
-            var stockIn = NewStockInWithItem();
+            var stockIn = NewStockInWithLine();
             DriveTo(stockIn, startStatus);
 
             var result = stockIn.Cancel();

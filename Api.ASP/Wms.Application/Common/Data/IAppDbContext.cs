@@ -11,7 +11,9 @@ public interface IAppDbContext
     DbSet<Inventory> Inventories { get; }
     DbSet<Lot> Lots { get; }
     DbSet<StockIn> StockIns { get; }
+    DbSet<StockInLine> StockInLines { get; }
     DbSet<StockInItem> StockInItems { get; }
+    DbSet<CapacityReservation> CapacityReservations { get; }
     DbSet<StockOut> StockOuts { get; }
     DbSet<StockOutItem> StockOutItems { get; }
     DbSet<StockMovement> StockMovements { get; }

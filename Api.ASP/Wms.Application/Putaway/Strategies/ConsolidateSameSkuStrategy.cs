@@ -75,9 +75,9 @@ internal sealed class ConsolidateSameSkuStrategy(IAppDbContext context) : IPutaw
         // For unlimited, "remaining" is treated as infinite; among them
         // we fall straight to the address tie-breaker.
         var chosen = survivors
-            .OrderBy(s => s.Location.Capacity.HasValue ? 0 : 1)
-            .ThenBy(s => s.Location.Capacity.HasValue
-                ? s.Location.Capacity.Value - s.CurrentTotal
+            .OrderBy(s => s.Location.Capacity.MaxUnits.HasValue ? 0 : 1)
+            .ThenBy(s => s.Location.Capacity.MaxUnits.HasValue
+                ? s.Location.Capacity.MaxUnits.Value - s.CurrentTotal
                 : int.MaxValue)
             .ThenBy(s => s.Location.Address.Zone)
             .ThenBy(s => s.Location.Address.Aisle)

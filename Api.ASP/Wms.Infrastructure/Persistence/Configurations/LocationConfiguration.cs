@@ -66,7 +66,13 @@ public class LocationConfiguration : EntityConfiguration<Location>
             .HasConversion<int>()
             .IsRequired();
 
-        builder.Property(l => l.Capacity);
+        builder.OwnsOne(l => l.Capacity, capacityBuilder =>
+        {
+            capacityBuilder.Property(c => c.MaxUnits)
+                .HasColumnName("CapacityUnits");
+        });
+
+        builder.Navigation(l => l.Capacity).IsRequired();
 
         builder.Property(l => l.IsMixedSkuAllowed)
             .HasDefaultValue(true)

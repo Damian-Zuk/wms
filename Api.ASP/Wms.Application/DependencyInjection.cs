@@ -45,6 +45,12 @@ public static class DependencyInjection
         services.AddScoped<IPutawayStrategy, NearestEmptyStrategy>();
         services.AddScoped<IPutawayService, PutawayService>();
 
+        // Multi-location putaway planner (registration order = strategy precedence).
+        services.AddScoped<IPutawayAllocationStrategy, FixedLocationAllocationStrategy>();
+        services.AddScoped<IPutawayAllocationStrategy, ConsolidateSameSkuAllocationStrategy>();
+        services.AddScoped<IPutawayAllocationStrategy, NearestEmptyAllocationStrategy>();
+        services.AddScoped<IPutawayPlanner, PutawayPlanner>();
+
         services.AddScoped<IFefoAllocator, FefoAllocator>();
 
         return services;

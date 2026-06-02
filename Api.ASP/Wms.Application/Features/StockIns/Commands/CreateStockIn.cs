@@ -2,78 +2,95 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
+using Wms.Application.Putaway;
 using Wms.Domain.Entities;
+using Wms.Domain.Enums;
 using Wms.Domain.Errors;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Features.StockIns.Commands;
 
-public sealed record StockInItemRequest(Guid ProductId, Guid LocationId, Guid? LotId, int Quantity);
+/// <summary>One requested receipt line. The system plans the locations — the caller does not choose them.</summary>
+public sealed record StockInLineRequest(Guid ProductId, Guid? LotId, int Quantity);
 
-public sealed record CreateStockInCommand(List<StockInItemRequest> Items) : ICommand<Guid>;
+public sealed record CreateStockInCommand(List<StockInLineRequest> Lines) : ICommand<Guid>;
 
 public sealed class CreateStockInValidator : AbstractValidator<CreateStockInCommand>
 {
     public CreateStockInValidator()
     {
-        RuleFor(x => x.Items).NotEmpty().WithMessage("At least one item is required");
-        RuleForEach(x => x.Items).ChildRules(item =>
+        RuleFor(x => x.Lines).NotEmpty().WithMessage("At least one line is required");
+        RuleForEach(x => x.Lines).ChildRules(line =>
         {
-            item.RuleFor(x => x.ProductId).NotEmpty().WithMessage("Product ID is required");
-            item.RuleFor(x => x.LocationId).NotEmpty().WithMessage("Location ID is required");
-            item.RuleFor(x => x.Quantity).GreaterThan(0).WithMessage("Quantity must be greater than 0");
+            line.RuleFor(x => x.ProductId).NotEmpty().WithMessage("Product ID is required");
+            line.RuleFor(x => x.Quantity).GreaterThan(0).WithMessage("Quantity must be greater than 0");
         });
     }
 }
 
-public sealed class CreateStockInCommandHandler(IAppDbContext context)
+public sealed class CreateStockInCommandHandler(IAppDbContext context, IPutawayPlanner planner)
     : ICommandHandler<CreateStockInCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateStockInCommand request, CancellationToken cancellationToken)
     {
-        var productIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
-        var locationIds = request.Items.Select(i => i.LocationId).Distinct().ToList();
-        var lotIds = request.Items.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
+        var productIds = request.Lines.Select(l => l.ProductId).Distinct().ToList();
+        var lotIds = request.Lines.Where(l => l.LotId.HasValue).Select(l => l.LotId!.Value).Distinct().ToList();
 
-        var existingProductIds = await context.Products
-            .AsNoTracking()
+        // Products are needed (with preferred locations) for the FixedLocation strategy.
+        var products = await context.Products
+            .Include(p => p.PreferredLocations)
             .Where(p => productIds.Contains(p.Id))
-            .Select(p => p.Id)
-            .ToListAsync(cancellationToken);
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
 
-        var missingProduct = productIds.Except(existingProductIds).FirstOrDefault();
+        var missingProduct = productIds.FirstOrDefault(id => !products.ContainsKey(id));
         if (missingProduct != default)
             return StockInErrors.ProductNotFound(missingProduct);
 
-        var existingLocationIds = await context.Locations
+        var lots = lotIds.Count > 0
+            ? await context.Lots.Where(l => lotIds.Contains(l.Id)).ToDictionaryAsync(l => l.Id, cancellationToken)
+            : [];
+
+        var missingLot = lotIds.FirstOrDefault(id => !lots.ContainsKey(id));
+        if (missingLot != default)
+            return StockInErrors.LotNotFound(missingLot);
+
+        // A single snapshot the planner reasons over. Suggestions are advisory: capacity
+        // is only reserved at StartReceiving, but we factor in other stock-ins' active
+        // reservations so the plan is as feasible as possible.
+        var locations = await context.Locations.AsNoTracking().ToListAsync(cancellationToken);
+        var inventories = await context.Inventories.AsNoTracking().ToListAsync(cancellationToken);
+        var activeReservations = await context.CapacityReservations
             .AsNoTracking()
-            .Where(l => locationIds.Contains(l.Id))
-            .Select(l => l.Id)
             .ToListAsync(cancellationToken);
 
-        var missingLocation = locationIds.Except(existingLocationIds).FirstOrDefault();
-        if (missingLocation != default)
-            return StockInErrors.LocationNotFound(missingLocation);
+        var planContext = new PutawayPlanContext(locations, inventories, activeReservations);
 
-        if (lotIds.Count > 0)
+        // Plan every line first; if any line can't be placed in full, fail before saving anything.
+        var plannedLines = new List<(StockInLineRequest Line, IReadOnlyList<PlacementAllocation> Allocations)>();
+        foreach (var line in request.Lines)
         {
-            var existingLotIds = await context.Lots
-                .AsNoTracking()
-                .Where(l => lotIds.Contains(l.Id))
-                .Select(l => l.Id)
-                .ToListAsync(cancellationToken);
+            var product = products[line.ProductId];
+            Lot? lot = line.LotId.HasValue ? lots[line.LotId.Value] : null;
 
-            var missingLot = lotIds.Except(existingLotIds).FirstOrDefault();
-            if (missingLot != default)
-                return StockInErrors.LotNotFound(missingLot);
+            var plan = planner.Plan(product, lot, new Quantity(line.Quantity), planContext);
+            if (plan.IsFailure)
+                return Result.Failure<Guid>(plan.Error);
+
+            plannedLines.Add((line, plan.Value));
         }
 
         var stockIn = new StockIn(Guid.NewGuid());
-
-        foreach (var item in request.Items)
+        foreach (var (line, allocations) in plannedLines)
         {
-            stockIn.AddItem(item.ProductId, item.LocationId, item.LotId, new Quantity(item.Quantity));
+            var result = stockIn.AddLineWithPlacements(
+                line.ProductId,
+                line.LotId,
+                new Quantity(line.Quantity),
+                allocations.Select(a => (a.LocationId, a.Quantity, a.Strategy)));
+
+            if (result.IsFailure)
+                return Result.Failure<Guid>(result.Error);
         }
 
         await context.StockIns.AddAsync(stockIn, cancellationToken);

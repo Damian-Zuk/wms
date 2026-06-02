@@ -28,4 +28,25 @@ public static class StockInErrors
     public static Error CannotModifyItems(StockInStatus current) => Error.Conflict(
         "StockIn.CannotModifyItems",
         $"Items can only be modified while in '{StockInStatus.Draft}' status (current: '{current}').");
+
+    public static Error LineNotFound(Guid lineId) => Error.Problem(
+        "StockIn.LineNotFound",
+        $"StockIn line with ID '{lineId}' not found.");
+
+    public static Error PlacementsRequired() => Error.Problem(
+        "StockIn.PlacementsRequired",
+        "At least one placement is required.");
+
+    public static Error PlacementQuantityMustBePositive() => Error.Problem(
+        "StockIn.PlacementQuantityMustBePositive",
+        "Each placement quantity must be greater than 0.");
+
+    public static Error PlacementsDoNotMatchLineTotal(Guid productId, int expected, int actual) => Error.Conflict(
+        "StockIn.PlacementsDoNotMatchLineTotal",
+        $"Placements for product '{productId}' total {actual} but the line requires exactly {expected}.");
+
+    public static Error CapacityNoLongerAvailable(Guid locationId, int limit, int requestedTotal) => Error.Conflict(
+        "StockIn.CapacityNoLongerAvailable",
+        $"Location '{locationId}' no longer has capacity for this stock-in " +
+        $"(limit: {limit}, required total: {requestedTotal}).");
 }

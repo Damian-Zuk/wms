@@ -16,13 +16,16 @@ public class StockInConfiguration : EntityConfiguration<StockIn>
             .HasConversion<int>()
             .IsRequired();
 
-        builder.HasMany(s => s.Items)
+        builder.Property(s => s.ModifiedBy)
+            .HasMaxLength(256);
+
+        builder.HasMany(s => s.Lines)
             .WithOne()
             .HasForeignKey("StockInId")
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Navigation(s => s.Items)
+        builder.Navigation(s => s.Lines)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.Property<uint>("xmin").IsRowVersion();

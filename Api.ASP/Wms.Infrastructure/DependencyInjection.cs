@@ -12,6 +12,8 @@ using Wms.Infrastructure.DomainEvents;
 using Wms.Application.Common.Events;
 using Wms.Application.Common.Auth;
 using Wms.Application.Common.Data;
+using Wms.Application.Putaway;
+using Wms.Infrastructure.Putaway;
 
 namespace Wms.Infrastructure;
 
@@ -76,6 +78,9 @@ public static class DependencyInjection
 
         // Domain Event Dispatcher
         services.AddTransient<IDomainEventDispatcher, DomainEventDispatcher>();
+
+        // Capacity reservations (needs DB transaction + row locking)
+        services.AddScoped<ICapacityReservationService, CapacityReservationService>();
 
         return services;
     }

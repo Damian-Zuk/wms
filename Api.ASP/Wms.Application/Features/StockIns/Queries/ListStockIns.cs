@@ -42,21 +42,29 @@ public sealed class ListStockInsQueryHandler(IAppDbContext context)
                 s.Status,
                 s.CreatedAt,
                 s.CreatedBy,
-                Items = s.Items.Select(i => new
+                s.ModifiedBy,
+                s.ModifiedAt,
+                Lines = s.Lines.Select(l => new
                 {
-                    i.Id,
-                    i.ProductId,
-                    i.LocationId,
-                    i.LotId,
-                    Quantity = i.Quantity.Value
+                    l.Id,
+                    l.ProductId,
+                    l.LotId,
+                    Quantity = l.Quantity.Value,
+                    Items = l.Items.Select(i => new
+                    {
+                        i.Id,
+                        i.LocationId,
+                        Quantity = i.Quantity.Value,
+                        i.Strategy
+                    }).ToList()
                 }).ToList()
             })
             .ToListAsync(cancellationToken);
 
-        var allItems = page.SelectMany(s => s.Items).ToList();
-        var productIds = allItems.Select(i => i.ProductId).Distinct().ToList();
-        var locationIds = allItems.Select(i => i.LocationId).Distinct().ToList();
-        var lotIds = allItems.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
+        var allLines = page.SelectMany(s => s.Lines).ToList();
+        var productIds = allLines.Select(l => l.ProductId).Distinct().ToList();
+        var lotIds = allLines.Where(l => l.LotId.HasValue).Select(l => l.LotId!.Value).Distinct().ToList();
+        var locationIds = allLines.SelectMany(l => l.Items).Select(i => i.LocationId).Distinct().ToList();
 
         var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
         var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
@@ -67,12 +75,16 @@ public sealed class ListStockInsQueryHandler(IAppDbContext context)
                 s.Status,
                 s.CreatedAt,
                 s.CreatedBy,
-                s.Items.Select(i => new StockInItemDto(
-                        i.Id,
-                        products[i.ProductId],
-                        locations[i.LocationId],
-                        i.LotId.HasValue ? lots[i.LotId.Value] : null,
-                        i.Quantity))
+                s.ModifiedBy,
+                s.ModifiedAt,
+                s.Lines.Select(l => new StockInLineDto(
+                        l.Id,
+                        products[l.ProductId],
+                        l.LotId.HasValue ? lots[l.LotId.Value] : null,
+                        l.Quantity,
+                        l.Items
+                            .Select(i => new StockInPlacementDto(i.Id, locations[i.LocationId], i.Quantity, i.Strategy))
+                            .ToList()))
                     .ToList()))
             .ToList();
 

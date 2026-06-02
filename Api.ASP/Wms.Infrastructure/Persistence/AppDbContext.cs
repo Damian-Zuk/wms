@@ -19,7 +19,9 @@ public class AppDbContext(
     public DbSet<Inventory> Inventories => Set<Inventory>();
     public DbSet<Lot> Lots => Set<Lot>();
     public DbSet<StockIn> StockIns => Set<StockIn>();
+    public DbSet<StockInLine> StockInLines => Set<StockInLine>();
     public DbSet<StockInItem> StockInItems => Set<StockInItem>();
+    public DbSet<CapacityReservation> CapacityReservations => Set<CapacityReservation>();
     public DbSet<StockOut> StockOuts => Set<StockOut>();
     public DbSet<StockOutItem> StockOutItems => Set<StockOutItem>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();

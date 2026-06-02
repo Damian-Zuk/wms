@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wms.Domain.Entities;
 
@@ -12,7 +12,7 @@ public class StockInItemConfiguration : EntityConfiguration<StockInItem>
 
         builder.ToTable("StockInItems");
 
-        builder.Property<Guid>("StockInId")
+        builder.Property<Guid>("StockInLineId")
             .IsRequired();
 
         builder.ComplexProperty(i => i.Quantity, qtyBuilder =>
@@ -22,22 +22,16 @@ public class StockInItemConfiguration : EntityConfiguration<StockInItem>
                 .IsRequired();
         });
 
-        builder.Property(i => i.LotId)
-            .IsRequired(false);
-
-        builder.HasOne<Product>()
-            .WithMany()
-            .HasForeignKey(i => i.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(i => i.Strategy)
+            .HasConversion<int>()
+            .IsRequired();
 
         builder.HasOne<Location>()
             .WithMany()
             .HasForeignKey(i => i.LocationId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<Lot>()
-            .WithMany()
-            .HasForeignKey(i => i.LotId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex("StockInLineId");
+        builder.HasIndex(i => i.LocationId);
     }
 }

@@ -9,10 +9,14 @@ namespace Wms.Domain.Entities;
 
 public class StockIn : Entity
 {
-    private readonly List<StockInItem> _items = [];
-    public IReadOnlyCollection<StockInItem> Items => _items;
+    private readonly List<StockInLine> _lines = [];
+    public IReadOnlyCollection<StockInLine> Lines => _lines;
 
     public StockInStatus Status { get; private set; } = StockInStatus.Draft;
+
+    /// <summary>Who last modified the putaway placements (null until a user edits them).</summary>
+    public string? ModifiedBy { get; private set; }
+    public DateTime? ModifiedAt { get; private set; }
 
     private StockIn() { }
 
@@ -21,12 +25,51 @@ public class StockIn : Entity
     {
     }
 
-    public Result AddItem(Guid productId, Guid locationId, Guid? lotId, Quantity quantity)
+    /// <summary>
+    /// Adds a requested line together with its planned placements. The placements
+    /// must already sum to <paramref name="quantity"/> (enforced by the line).
+    /// </summary>
+    public Result AddLineWithPlacements(
+        Guid productId,
+        Guid? lotId,
+        Quantity quantity,
+        IEnumerable<(Guid LocationId, int Quantity, PutawayStrategyType Strategy)> placements)
     {
         if (Status != StockInStatus.Draft)
             return StockInErrors.CannotModifyItems(Status);
 
-        _items.Add(new StockInItem(productId, locationId, lotId, quantity));
+        var line = new StockInLine(productId, lotId, quantity);
+        var result = line.SetPlacements(placements);
+        if (result.IsFailure)
+            return result;
+
+        _lines.Add(line);
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Replaces a line's placements with a user-supplied set and records who did it.
+    /// The new placements must still sum to the line's requested quantity.
+    /// </summary>
+    public Result ModifyLinePlacements(
+        Guid lineId,
+        IEnumerable<(Guid LocationId, int Quantity)> placements,
+        string? modifiedBy,
+        DateTime modifiedAt)
+    {
+        if (Status != StockInStatus.Draft)
+            return StockInErrors.CannotModifyItems(Status);
+
+        var line = _lines.FirstOrDefault(l => l.Id == lineId);
+        if (line is null)
+            return StockInErrors.LineNotFound(lineId);
+
+        var result = line.ReplacePlacementsManual(placements);
+        if (result.IsFailure)
+            return result;
+
+        ModifiedBy = modifiedBy;
+        ModifiedAt = modifiedAt;
         return Result.Success();
     }
 
@@ -46,14 +89,17 @@ public class StockIn : Entity
 
         Status = StockInStatus.Received;
 
-        foreach (var item in _items)
+        foreach (var line in _lines)
         {
-            Raise(new StockInItemReceivedDomainEvent(
-                Id,
-                item.ProductId,
-                item.LocationId,
-                item.LotId,
-                item.Quantity.Value));
+            foreach (var item in line.Items)
+            {
+                Raise(new StockInItemReceivedDomainEvent(
+                    Id,
+                    line.ProductId,
+                    item.LocationId,
+                    line.LotId,
+                    item.Quantity.Value));
+            }
         }
 
         return Result.Success();
