@@ -57,7 +57,7 @@ export function useModifyLinePlacements(stockInId: string) {
   })
 }
 
-export type StockInAction = 'startReceiving' | 'receive' | 'complete' | 'cancel'
+export type StockInAction = 'startPutaway' | 'complete' | 'cancel'
 
 export function useStockInTransition() {
   const qc = useQueryClient()
@@ -66,7 +66,21 @@ export function useStockInTransition() {
       stockInsApi[vars.action](vars.id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.stockIns.all })
-      // `receive` books stock; invalidating inventory keeps those views truthful.
+      // Completing/cancelling can settle stock; keep inventory views truthful.
+      void qc.invalidateQueries({ queryKey: qk.inventories.all })
+    },
+  })
+}
+
+export function usePutawayItem(stockInId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { itemId: string; quantity: number }) =>
+      stockInsApi.putawayItem(stockInId, vars.itemId, { quantity: vars.quantity }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.stockIns.detail(stockInId) })
+      void qc.invalidateQueries({ queryKey: qk.stockIns.all })
+      // Each putaway books stock; refresh inventory views.
       void qc.invalidateQueries({ queryKey: qk.inventories.all })
     },
   })

@@ -22,6 +22,14 @@ public class StockInItemConfiguration : EntityConfiguration<StockInItem>
                 .IsRequired();
         });
 
+        builder.ComplexProperty(i => i.PlacedQuantity, qtyBuilder =>
+        {
+            qtyBuilder.Property(q => q.Value)
+                .HasColumnName("PlacedQuantity")
+                .HasDefaultValue(0)
+                .IsRequired();
+        });
+
         builder.Property(i => i.Strategy)
             .HasConversion<int>()
             .IsRequired();

@@ -8,14 +8,14 @@ using Xunit;
 
 namespace Wms.Tests.Application.StockIns;
 
-public class StartReceivingStockInCommandHandlerTests : IntegrationTestBase
+public class StartPutawayStockInCommandHandlerTests : IntegrationTestBase
 {
-    public StartReceivingStockInCommandHandlerTests(PostgresContainerFixture fixture) : base(fixture)
+    public StartPutawayStockInCommandHandlerTests(PostgresContainerFixture fixture) : base(fixture)
     {
     }
 
     [Fact]
-    public async Task Reserves_capacity_and_transitions_to_receiving()
+    public async Task Reserves_capacity_and_transitions_to_putaway()
     {
         var ct = TestContext.Current.CancellationToken;
 
@@ -31,13 +31,13 @@ public class StartReceivingStockInCommandHandlerTests : IntegrationTestBase
         await using var actContext = CreateContext();
         var service = new CapacityReservationService(actContext);
 
-        var result = await service.ReserveForStartReceivingAsync(stockIn.Id, ct);
+        var result = await service.ReserveForStartPutawayAsync(stockIn.Id, ct);
 
         result.IsSuccess.Should().BeTrue();
 
         await using var verify = CreateContext();
         var reloaded = await verify.StockIns.AsNoTracking().SingleAsync(s => s.Id == stockIn.Id, ct);
-        reloaded.Status.Should().Be(StockInStatus.Receiving);
+        reloaded.Status.Should().Be(StockInStatus.Putaway);
 
         var reservations = await verify.CapacityReservations
             .AsNoTracking()
@@ -69,7 +69,7 @@ public class StartReceivingStockInCommandHandlerTests : IntegrationTestBase
         await using var actContext = CreateContext();
         var service = new CapacityReservationService(actContext);
 
-        var result = await service.ReserveForStartReceivingAsync(stockIn.Id, ct);
+        var result = await service.ReserveForStartPutawayAsync(stockIn.Id, ct);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("StockIn.CapacityNoLongerAvailable");
@@ -104,18 +104,18 @@ public class StartReceivingStockInCommandHandlerTests : IntegrationTestBase
         var serviceB = new CapacityReservationService(contextB);
 
         var results = await Task.WhenAll(
-            serviceA.ReserveForStartReceivingAsync(first.Id, ct),
-            serviceB.ReserveForStartReceivingAsync(second.Id, ct));
+            serviceA.ReserveForStartPutawayAsync(first.Id, ct),
+            serviceB.ReserveForStartPutawayAsync(second.Id, ct));
 
         results.Count(r => r.IsSuccess).Should().Be(1);
         results.Count(r => r.IsFailure).Should().Be(1);
         results.Single(r => r.IsFailure).Error.Code.Should().Be("StockIn.CapacityNoLongerAvailable");
 
         await using var verify = CreateContext();
-        var receivingCount = await verify.StockIns
+        var putawayCount = await verify.StockIns
             .AsNoTracking()
-            .CountAsync(s => s.Status == StockInStatus.Receiving, ct);
-        receivingCount.Should().Be(1);
+            .CountAsync(s => s.Status == StockInStatus.Putaway, ct);
+        putawayCount.Should().Be(1);
 
         var reservationCount = await verify.CapacityReservations
             .AsNoTracking()

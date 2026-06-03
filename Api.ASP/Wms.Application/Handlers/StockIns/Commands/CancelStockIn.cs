@@ -24,7 +24,9 @@ public sealed class CancelStockInCommandHandler(IAppDbContext context)
         if (result.IsFailure)
             return result;
 
-        // Free any capacity reserved at StartReceiving (a Draft cancel has none).
+        // Release the remaining capacity holds. Anything already put away is on hand
+        // and stays there; only the not-yet-placed holds are freed. A Draft cancel has
+        // no holds at all.
         var reservations = await context.CapacityReservations
             .Where(r => r.StockInId == stockIn.Id)
             .ToListAsync(cancellationToken);

@@ -12,6 +12,7 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import WorkflowStepper from '@/components/common/WorkflowStepper.vue'
 import ModifyPlacementsDialog from './ModifyPlacementsDialog.vue'
+import PutawayItemDialog, { type PutawayItem } from './PutawayItemDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/lib/date'
 import {
@@ -36,20 +37,38 @@ const transition = useStockInTransition()
 
 const steps = [
   { value: 'Draft', label: 'Draft' },
-  { value: 'Receiving', label: 'Receiving' },
-  { value: 'Received', label: 'Received' },
+  { value: 'Putaway', label: 'Putaway' },
   { value: 'Completed', label: 'Completed' },
 ]
 
 const isCancelled = computed(() => stockIn.value?.status === 'Cancelled')
+// When cancelled we render the view of the phase it was cancelled from.
+const cancelledFrom = computed(() => stockIn.value?.cancelledFrom ?? null)
 const canCancel = computed(
   () =>
     auth.canMutate &&
-    (stockIn.value?.status === 'Draft' || stockIn.value?.status === 'Receiving'),
+    (stockIn.value?.status === 'Draft' || stockIn.value?.status === 'Putaway'),
 )
 // Placements can only be re-planned while the document is a Draft.
 const canEditPlacements = computed(
   () => auth.canMutate && stockIn.value?.status === 'Draft',
+)
+
+// Show the location-ordered putaway path while putting away, and also for a
+// stock-in cancelled during Putaway (read-only) so the prior phase is preserved.
+const showPutawayLayout = computed(
+  () =>
+    stockIn.value?.status === 'Putaway' ||
+    (stockIn.value?.status === 'Cancelled' && cancelledFrom.value === 'Putaway'),
+)
+// No putaway actions once the document is cancelled.
+const readonlyPutaway = computed(() => stockIn.value?.status === 'Cancelled')
+
+// Every placement of every line fully put away — the gate for completing.
+const allPlaced = computed(
+  () =>
+    !!stockIn.value &&
+    stockIn.value.lines.every((l) => l.placements.every((p) => p.placedQuantity >= p.quantity)),
 )
 
 /** One thing to put away at a stop on the path. */
@@ -58,6 +77,7 @@ interface PutawayPathItem {
   product: ProductRef
   lot: LotRef | null
   quantity: number
+  placedQuantity: number
   strategy: PutawayStrategyType
 }
 
@@ -72,11 +92,11 @@ function ordinalCompare(a: string, b: string): number {
   return a < b ? -1 : a > b ? 1 : 0
 }
 
-// While Receiving, present placements as a location-ordered putaway path so the worker
+// While putting away, present placements as a location-ordered path so the worker
 // walks address-ascending and sees everything to drop at each stop. Empty otherwise.
 const putawayPath = computed<PutawayPathStop[]>(() => {
   const data = stockIn.value
-  if (!data || data.status !== 'Receiving') return []
+  if (!data || !showPutawayLayout.value) return []
 
   const byLocation = new Map<string, PutawayPathStop>()
   for (const line of data.lines) {
@@ -91,6 +111,7 @@ const putawayPath = computed<PutawayPathStop[]>(() => {
         product: line.product,
         lot: line.lot,
         quantity: p.quantity,
+        placedQuantity: p.placedQuantity,
         strategy: p.strategy,
       })
     }
@@ -111,12 +132,36 @@ const putawayPath = computed<PutawayPathStop[]>(() => {
   return stops
 })
 
+/** Icon + colour describing how far a placement has been put away. */
+function placementProgress(item: PutawayPathItem) {
+  if (item.placedQuantity >= item.quantity)
+    return { icon: 'pi pi-check-circle', class: 'text-green-500' }
+  if (item.placedQuantity > 0)
+    return { icon: 'pi pi-exclamation-circle', class: 'text-yellow-500' }
+  return { icon: 'pi pi-circle', class: 'text-surface-300' }
+}
+
 const editVisible = ref(false)
 const editLine = ref<StockInLineDto | null>(null)
 
 function openEdit(line: StockInLineDto) {
   editLine.value = line
   editVisible.value = true
+}
+
+const putawayVisible = ref(false)
+const putawayTarget = ref<PutawayItem | null>(null)
+
+function openPutaway(item: PutawayPathItem, location: LocationRef) {
+  putawayTarget.value = {
+    id: item.id,
+    product: item.product,
+    lot: item.lot,
+    location,
+    quantity: item.quantity,
+    placedQuantity: item.placedQuantity,
+  }
+  putawayVisible.value = true
 }
 
 interface ActionOptions {
@@ -151,19 +196,11 @@ function runAction(action: StockInAction, opts: ActionOptions) {
   })
 }
 
-function startReceiving() {
-  runAction('startReceiving', {
-    header: 'Start receiving',
-    message: 'Move this stock-in into Receiving?',
-    success: 'Receiving started',
-  })
-}
-
-function receive() {
-  runAction('receive', {
-    header: 'Receive stock',
-    message: 'This books the items into inventory and cannot be undone. Continue?',
-    success: 'Stock received',
+function startPutaway() {
+  runAction('startPutaway', {
+    header: 'Start putaway',
+    message: 'Move this stock-in into Putaway?',
+    success: 'Putaway started',
   })
 }
 
@@ -199,22 +236,16 @@ function cancel() {
         <template v-if="stockIn">
           <Button
             v-if="stockIn.status === 'Draft'"
-            label="Start receiving"
+            label="Start putaway"
             icon="pi pi-play"
             :loading="transition.isPending.value"
-            @click="startReceiving"
+            @click="startPutaway"
           />
           <Button
-            v-else-if="stockIn.status === 'Receiving'"
-            label="Receive"
-            icon="pi pi-check"
-            :loading="transition.isPending.value"
-            @click="receive"
-          />
-          <Button
-            v-else-if="stockIn.status === 'Received'"
+            v-else-if="stockIn.status === 'Putaway'"
             label="Complete"
             icon="pi pi-flag"
+            :disabled="!allPlaced"
             :loading="transition.isPending.value"
             @click="complete"
           />
@@ -244,19 +275,25 @@ function cancel() {
         <div class="flex items-center gap-3">
           <span class="text-sm text-surface-500">Status</span>
           <StatusBadge :value="stockIn.status" :severity="stockInStatusSeverity[stockIn.status]" />
+          <span v-if="isCancelled && cancelledFrom" class="text-sm text-surface-500">
+            (cancelled during {{ cancelledFrom }})
+          </span>
           <span v-if="stockIn.createdBy" class="text-sm text-surface-500 ml-auto">
             Created by {{ stockIn.createdBy }}
           </span>
         </div>
         <WorkflowStepper :steps="steps" :current="stockIn.status" :cancelled="isCancelled" />
+        <p v-if="stockIn.status === 'Putaway' && !allPlaced" class="text-xs text-surface-400">
+          Put away every item to enable completing this stock-in.
+        </p>
         <p v-if="stockIn.modifiedBy" class="text-xs text-surface-400">
           Placements last edited by {{ stockIn.modifiedBy }}
           <span v-if="stockIn.modifiedAt"> on {{ formatDateTime(stockIn.modifiedAt) }}</span>
         </p>
       </div>
 
-      <!-- Receiving: location-ordered putaway path for the worker's walk. -->
-      <div v-if="stockIn.status === 'Receiving'" class="flex flex-col gap-4">
+      <!-- Putaway: location-ordered path for the worker's walk, with per-row progress. -->
+      <div v-if="showPutawayLayout" class="flex flex-col gap-4">
         <div
           v-for="(stop, index) in putawayPath"
           :key="stop.location.id"
@@ -291,7 +328,7 @@ function cancel() {
                 <span class="text-surface-700"> — {{ item.product.name }}</span>
               </template>
             </Column>
-            <Column header="Lot" style="width: 12rem">
+            <Column header="Lot" style="width: 10rem">
               <template #body="{ data: item }: { data: PutawayPathItem }">
                 <RouterLink
                   v-if="item.lot"
@@ -303,13 +340,40 @@ function cancel() {
                 <span v-else class="text-surface-400">—</span>
               </template>
             </Column>
-            <Column field="quantity" header="Quantity" style="width: 9rem" />
-            <Column header="Strategy" style="width: 12rem">
+            <Column header="Putaway" style="width: 13rem">
+              <template #body="{ data: item }: { data: PutawayPathItem }">
+                <div class="flex items-center gap-2">
+                  <i :class="[placementProgress(item).icon, placementProgress(item).class]" />
+                  <span>{{ item.placedQuantity }} / {{ item.quantity }}</span>
+                  <span v-if="item.placedQuantity < item.quantity" class="text-xs text-surface-400">
+                    · {{ item.quantity - item.placedQuantity }} left
+                  </span>
+                </div>
+              </template>
+            </Column>
+            <Column header="Strategy" style="width: 10rem">
               <template #body="{ data: item }: { data: PutawayPathItem }">
                 <StatusBadge
                   :value="putawayStrategyLabel[item.strategy]"
                   :severity="putawayStrategySeverity[item.strategy]"
                 />
+              </template>
+            </Column>
+            <Column header="" style="width: 9rem">
+              <template #body="{ data: item }: { data: PutawayPathItem }">
+                <Button
+                  v-if="!readonlyPutaway && item.placedQuantity < item.quantity"
+                  label="Put away"
+                  icon="pi pi-arrow-down"
+                  size="small"
+                  @click="openPutaway(item, stop.location)"
+                />
+                <span
+                  v-else-if="item.placedQuantity >= item.quantity"
+                  class="text-green-600 text-sm inline-flex items-center gap-1"
+                >
+                  <i class="pi pi-check" /> Placed
+                </span>
               </template>
             </Column>
           </DataTable>
@@ -385,6 +449,12 @@ function cancel() {
       v-model:visible="editVisible"
       :stock-in-id="id"
       :line="editLine"
+    />
+
+    <PutawayItemDialog
+      v-model:visible="putawayVisible"
+      :stock-in-id="id"
+      :item="putawayTarget"
     />
   </section>
 </template>

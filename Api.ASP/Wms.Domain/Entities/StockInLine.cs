@@ -36,6 +36,9 @@ public class StockInLine : Entity
 
     public int PlacedTotal => _items.Sum(i => i.Quantity.Value);
 
+    /// <summary>True once every placement of this line has been fully put away.</summary>
+    public bool IsFullyPlaced => _items.All(i => i.IsFullyPlaced);
+
     /// <summary>
     /// Sets the placements produced by the putaway planner (each carrying the strategy
     /// that picked it). Enforces the sum-equals-requested invariant.

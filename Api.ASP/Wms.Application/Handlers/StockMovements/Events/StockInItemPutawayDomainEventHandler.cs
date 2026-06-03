@@ -6,10 +6,10 @@ using Wms.Domain.Events;
 
 namespace Wms.Application.Handlers.StockMovements.Events;
 
-internal sealed class StockInItemReceivedDomainEventHandler(IAppDbContext context)
-    : IDomainEventHandler<StockInItemReceivedDomainEvent>
+internal sealed class StockInItemPutawayDomainEventHandler(IAppDbContext context)
+    : IDomainEventHandler<StockInItemPutawayDomainEvent>
 {
-    public async Task Handle(StockInItemReceivedDomainEvent domainEvent, CancellationToken cancellationToken)
+    public async Task Handle(StockInItemPutawayDomainEvent domainEvent, CancellationToken cancellationToken)
     {
         var movement = new StockMovement(
             domainEvent.ProductId,

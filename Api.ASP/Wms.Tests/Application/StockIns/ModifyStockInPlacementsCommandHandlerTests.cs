@@ -122,7 +122,7 @@ public class ModifyStockInPlacementsCommandHandlerTests : IntegrationTestBase
         var product = TestData.Product("MD-4");
         var locA = TestData.Location("MD-4-A", capacity: 100);
         var stockIn = TestData.StockIn(product.Id, locA.Id, 30);
-        stockIn.StartReceiving();
+        stockIn.StartPutaway();
 
         Context.Products.Add(product);
         Context.Locations.Add(locA);

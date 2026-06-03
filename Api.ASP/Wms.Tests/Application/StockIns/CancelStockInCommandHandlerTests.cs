@@ -16,14 +16,14 @@ public class CancelStockInCommandHandlerTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Cancel_from_receiving_deletes_active_reservations()
+    public async Task Cancel_from_putaway_releases_remaining_reservations_and_records_phase()
     {
         var ct = TestContext.Current.CancellationToken;
 
         var product = TestData.Product("CN-1");
         var location = TestData.Location("CN-1-LOC", capacity: 100);
         var stockIn = TestData.StockIn(product.Id, location.Id, 10);
-        stockIn.StartReceiving();
+        stockIn.StartPutaway();
 
         Context.Products.Add(product);
         Context.Locations.Add(location);
@@ -46,6 +46,7 @@ public class CancelStockInCommandHandlerTests : IntegrationTestBase
         await using var verify = CreateContext();
         var reloadedStockIn = await verify.StockIns.AsNoTracking().SingleAsync(s => s.Id == stockIn.Id, ct);
         reloadedStockIn.Status.Should().Be(StockInStatus.Cancelled);
+        reloadedStockIn.CancelledFrom.Should().Be(StockInStatus.Putaway);
 
         (await verify.CapacityReservations.AnyAsync(r => r.StockInId == stockIn.Id, ct))
             .Should().BeFalse();
@@ -75,18 +76,21 @@ public class CancelStockInCommandHandlerTests : IntegrationTestBase
         await using var verify = CreateContext();
         var reloaded = await verify.StockIns.AsNoTracking().SingleAsync(s => s.Id == stockIn.Id, ct);
         reloaded.Status.Should().Be(StockInStatus.Cancelled);
+        reloaded.CancelledFrom.Should().Be(StockInStatus.Draft);
     }
 
     [Fact]
-    public async Task Cancel_after_received_is_rejected()
+    public async Task Cancel_after_completed_is_rejected()
     {
         var ct = TestContext.Current.CancellationToken;
 
         var product = TestData.Product("CN-3");
         var location = TestData.Location("CN-3-LOC", capacity: 100);
         var stockIn = TestData.StockIn(product.Id, location.Id, 10);
-        stockIn.StartReceiving();
-        stockIn.Receive();
+        stockIn.StartPutaway();
+        var item = stockIn.Lines.Single().Items.Single();
+        stockIn.PutawayItem(item.Id, item.Quantity);
+        stockIn.Complete();
         stockIn.ClearDomainEvents();
 
         Context.Products.Add(product);

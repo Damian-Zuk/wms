@@ -15,6 +15,9 @@ public class StockIn : Entity
 
     public StockInStatus Status { get; private set; } = StockInStatus.Draft;
 
+    /// <summary>The phase the stock-in was in when cancelled (null unless cancelled).</summary>
+    public StockInStatus? CancelledFrom { get; private set; }
+
     /// <summary>Who last modified the putaway placements (null until a user edits them).</summary>
     public string? ModifiedBy { get; private set; }
     public DateTime? ModifiedAt { get; private set; }
@@ -74,42 +77,52 @@ public class StockIn : Entity
         return Result.Success();
     }
 
-    public Result StartReceiving()
+    public Result StartPutaway()
     {
         if (Status != StockInStatus.Draft)
-            return StockInErrors.InvalidStatusTransition(Status, StockInStatus.Receiving);
+            return StockInErrors.InvalidStatusTransition(Status, StockInStatus.Putaway);
 
-        Status = StockInStatus.Receiving;
+        Status = StockInStatus.Putaway;
         return Result.Success();
     }
 
-    public Result Receive()
+    /// <summary>
+    /// Records the manual putaway of <paramref name="qty"/> units of a single placement.
+    /// Each call books those units (a received event is raised so a stock movement is
+    /// written) and may be repeated until the placement is fully placed.
+    /// </summary>
+    public Result PutawayItem(Guid itemId, Quantity qty)
     {
-        if (Status != StockInStatus.Receiving)
-            return StockInErrors.InvalidStatusTransition(Status, StockInStatus.Received);
+        if (Status != StockInStatus.Putaway)
+            return StockInErrors.CannotPutaway(Status);
 
-        Status = StockInStatus.Received;
+        var line = _lines.FirstOrDefault(l => l.Items.Any(i => i.Id == itemId));
+        if (line is null)
+            return StockInErrors.ItemNotFound(itemId);
 
-        foreach (var line in _lines)
-        {
-            foreach (var item in line.Items)
-            {
-                Raise(new StockInItemReceivedDomainEvent(
-                    Id,
-                    line.ProductId,
-                    item.LocationId,
-                    line.LotId,
-                    item.Quantity.Value));
-            }
-        }
+        var item = line.Items.First(i => i.Id == itemId);
+
+        var result = item.Putaway(qty);
+        if (result.IsFailure)
+            return result;
+
+        Raise(new StockInItemPutawayDomainEvent(
+            Id,
+            line.ProductId,
+            item.LocationId,
+            line.LotId,
+            qty.Value));
 
         return Result.Success();
     }
 
     public Result Complete()
     {
-        if (Status != StockInStatus.Received)
+        if (Status != StockInStatus.Putaway)
             return StockInErrors.InvalidStatusTransition(Status, StockInStatus.Completed);
+
+        if (!_lines.All(l => l.IsFullyPlaced))
+            return StockInErrors.NotAllItemsPlaced();
 
         Status = StockInStatus.Completed;
         return Result.Success();
@@ -117,9 +130,10 @@ public class StockIn : Entity
 
     public Result Cancel()
     {
-        if (Status is not (StockInStatus.Draft or StockInStatus.Receiving))
+        if (Status is not (StockInStatus.Draft or StockInStatus.Putaway))
             return StockInErrors.InvalidStatusTransition(Status, StockInStatus.Cancelled);
 
+        CancelledFrom = Status;
         Status = StockInStatus.Cancelled;
         return Result.Success();
     }

@@ -30,12 +30,15 @@ export const stockInsApi = {
       .put<void>(`/stock-ins/${stockInId}/lines/${lineId}/placements`, body)
       .then(() => undefined),
 
-  // Workflow transitions — bodyless POSTs returning 204.
-  startReceiving: (id: string) =>
-    http.post<void>(`/stock-ins/${id}/start-receiving`).then(() => undefined),
+  // Put away a single placement (whole or partial); books stock immediately.
+  putawayItem: (stockInId: string, itemId: string, body: { quantity: number }) =>
+    http
+      .post<void>(`/stock-ins/${stockInId}/items/${itemId}/putaway`, body)
+      .then(() => undefined),
 
-  receive: (id: string) =>
-    http.post<void>(`/stock-ins/${id}/receive`).then(() => undefined),
+  // Workflow transitions — bodyless POSTs returning 204.
+  startPutaway: (id: string) =>
+    http.post<void>(`/stock-ins/${id}/start-putaway`).then(() => undefined),
 
   complete: (id: string) =>
     http.post<void>(`/stock-ins/${id}/complete`).then(() => undefined),

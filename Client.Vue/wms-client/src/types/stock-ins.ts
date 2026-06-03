@@ -6,6 +6,7 @@ export interface StockInPlacementDto {
   id: string
   location: LocationRef
   quantity: number
+  placedQuantity: number
   strategy: PutawayStrategyType
 }
 
@@ -21,6 +22,7 @@ export interface StockInLineDto {
 export interface StockInDto {
   id: string
   status: StockInStatus
+  cancelledFrom: StockInStatus | null
   createdAt: string
   createdBy: string | null
   modifiedBy: string | null

@@ -1,5 +1,7 @@
+using Wms.Domain.Errors;
 using Wms.Domain.Primitives;
 using Wms.Domain.ValueObjects;
+using Wms.Shared.Common;
 
 namespace Wms.Domain.Entities;
 
@@ -38,5 +40,21 @@ public class CapacityReservation : Entity
         ProductId = productId;
         LotId = lotId;
         Quantity = quantity;
+    }
+
+    /// <summary>
+    /// Releases <paramref name="qty"/> units of the held capacity as those units
+    /// become on-hand inventory. The caller deletes the row once it reaches zero.
+    /// </summary>
+    public Result Reduce(Quantity qty)
+    {
+        if (qty.Value <= 0)
+            return StockInErrors.PlacementQuantityMustBePositive();
+
+        if (qty.Value > Quantity.Value)
+            return StockInErrors.PutawayQuantityExceedsRemaining(StockInItemId, Quantity.Value, qty.Value);
+
+        Quantity = new Quantity(Quantity.Value - qty.Value);
+        return Result.Success();
     }
 }

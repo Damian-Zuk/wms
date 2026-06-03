@@ -131,7 +131,7 @@ public class CreateStockInCommandHandlerTests : IntegrationTestBase
 
         // A started stock-in already holding a full reservation on reservedLoc.
         var other = TestData.StockIn(product.Id, reservedLoc.Id, 100);
-        other.StartReceiving();
+        other.StartPutaway();
 
         Context.Products.Add(product);
         Context.Locations.Add(reservedLoc);

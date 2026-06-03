@@ -68,24 +68,28 @@ public class StockInController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
-    [HttpPost("{id:guid}/start-receiving")]
-    public async Task<IResult> StartReceiving(
+    [HttpPost("{id:guid}/start-putaway")]
+    public async Task<IResult> StartPutaway(
         [FromRoute] Guid id,
-        [FromServices] ICommandHandler<StartReceivingStockInCommand> handler,
+        [FromServices] ICommandHandler<StartPutawayStockInCommand> handler,
         CancellationToken cancellationToken)
     {
-        var result = await handler.Handle(new StartReceivingStockInCommand(id), cancellationToken);
+        var result = await handler.Handle(new StartPutawayStockInCommand(id), cancellationToken);
 
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
-    [HttpPost("{id:guid}/receive")]
-    public async Task<IResult> Receive(
+    [HttpPost("{id:guid}/items/{itemId:guid}/putaway")]
+    public async Task<IResult> PutawayItem(
         [FromRoute] Guid id,
-        [FromServices] ICommandHandler<ReceiveStockInCommand> handler,
+        [FromRoute] Guid itemId,
+        [FromBody] PutawayStockInItemRequest request,
+        [FromServices] ICommandHandler<PutawayStockInItemCommand> handler,
         CancellationToken cancellationToken)
     {
-        var result = await handler.Handle(new ReceiveStockInCommand(id), cancellationToken);
+        var result = await handler.Handle(
+            new PutawayStockInItemCommand(id, itemId, request.Quantity),
+            cancellationToken);
 
         return result.Match(Results.NoContent, CustomResults.Problem);
     }

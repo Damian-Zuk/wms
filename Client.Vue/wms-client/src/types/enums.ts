@@ -2,7 +2,7 @@ export type TemperatureZone = 'Ambient' | 'Chilled' | 'Frozen'
 
 export type LocationType = 'Storage' | 'Quarantine' | 'Returns'
 
-export type StockInStatus = 'Draft' | 'Receiving' | 'Received' | 'Completed' | 'Cancelled'
+export type StockInStatus = 'Draft' | 'Putaway' | 'Completed' | 'Cancelled'
 
 export type StockOutStatus =
   | 'Draft'

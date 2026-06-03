@@ -12,6 +12,7 @@ public sealed record StockInPlacementDto(
     Guid Id,
     LocationRef Location,
     int Quantity,
+    int PlacedQuantity,
     PutawayStrategyType Strategy);
 
 public sealed record StockInLineDto(
@@ -24,6 +25,7 @@ public sealed record StockInLineDto(
 public sealed record StockInDto(
     Guid Id,
     StockInStatus Status,
+    StockInStatus? CancelledFrom,
     DateTime CreatedAt,
     string? CreatedBy,
     string? ModifiedBy,
@@ -44,6 +46,7 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
             {
                 s.Id,
                 s.Status,
+                s.CancelledFrom,
                 s.CreatedAt,
                 s.CreatedBy,
                 s.ModifiedBy,
@@ -59,6 +62,7 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
                         i.Id,
                         i.LocationId,
                         Quantity = i.Quantity.Value,
+                        PlacedQuantity = i.PlacedQuantity.Value,
                         i.Strategy
                     }).ToList()
                 }).ToList()
@@ -83,13 +87,15 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
                 l.LotId.HasValue ? lots[l.LotId.Value] : null,
                 l.Quantity,
                 l.Items
-                    .Select(i => new StockInPlacementDto(i.Id, locations[i.LocationId], i.Quantity, i.Strategy))
+                    .Select(i => new StockInPlacementDto(
+                        i.Id, locations[i.LocationId], i.Quantity, i.PlacedQuantity, i.Strategy))
                     .ToList()))
             .ToList();
 
         return new StockInDto(
             stockIn.Id,
             stockIn.Status,
+            stockIn.CancelledFrom,
             stockIn.CreatedAt,
             stockIn.CreatedBy,
             stockIn.ModifiedBy,

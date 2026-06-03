@@ -16,9 +16,9 @@ public class CompleteStockInCommandHandlerTests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Received_transitions_to_completed()
+    public async Task Putaway_with_all_items_placed_transitions_to_completed()
     {
-        var (stockIn, _, _) = await SeedStockInAsync(StockInStatus.Received);
+        var (stockIn, _, _) = await SeedStockInAsync(StockInStatus.Putaway, fullyPlaced: true);
 
         await using var actContext = CreateContext();
         var handler = new CompleteStockInCommandHandler(actContext);
@@ -37,9 +37,26 @@ public class CompleteStockInCommandHandlerTests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Rejected_when_not_all_items_placed()
+    {
+        // In Putaway but nothing has been put away yet.
+        var (stockIn, _, _) = await SeedStockInAsync(StockInStatus.Putaway, fullyPlaced: false);
+
+        await using var actContext = CreateContext();
+        var handler = new CompleteStockInCommandHandler(actContext);
+
+        var result = await handler.Handle(
+            new CompleteStockInCommand(stockIn.Id),
+            TestContext.Current.CancellationToken);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("StockIn.NotAllItemsPlaced");
+    }
+
+    [Fact]
     public async Task Wrong_status_is_rejected()
     {
-        // Draft — Complete requires Received.
+        // Draft — Complete requires Putaway.
         var (stockIn, _, _) = await SeedStockInAsync(StockInStatus.Draft);
 
         await using var actContext = CreateContext();
@@ -70,10 +87,11 @@ public class CompleteStockInCommandHandlerTests : IntegrationTestBase
     /// <summary>
     /// Seeds a product, location, and a StockIn (driven through public
     /// domain methods to <paramref name="status"/>) so the StockInItem
-    /// foreign keys resolve when SaveChanges hits the database.
+    /// foreign keys resolve when SaveChanges hits the database. When
+    /// <paramref name="fullyPlaced"/> is set, every placement is put away.
     /// </summary>
     private async Task<(StockIn StockIn, Product Product, Location Location)>
-        SeedStockInAsync(StockInStatus status)
+        SeedStockInAsync(StockInStatus status, bool fullyPlaced = false)
     {
         var product = TestData.Product($"CSI-{Guid.NewGuid():N}"[..10]);
         var location = TestData.Location($"CSI-LOC-{Guid.NewGuid():N}"[..10]);
@@ -89,16 +107,14 @@ public class CompleteStockInCommandHandlerTests : IntegrationTestBase
         {
             case StockInStatus.Draft:
                 break;
-            case StockInStatus.Receiving:
-                stockIn.StartReceiving();
-                break;
-            case StockInStatus.Received:
-                stockIn.StartReceiving();
-                stockIn.Receive();
+            case StockInStatus.Putaway:
+                stockIn.StartPutaway();
+                if (fullyPlaced)
+                    PutawayAll(stockIn);
                 break;
             case StockInStatus.Completed:
-                stockIn.StartReceiving();
-                stockIn.Receive();
+                stockIn.StartPutaway();
+                PutawayAll(stockIn);
                 stockIn.Complete();
                 break;
             case StockInStatus.Cancelled:
@@ -113,5 +129,12 @@ public class CompleteStockInCommandHandlerTests : IntegrationTestBase
         Context.StockIns.Add(stockIn);
         await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
         return (stockIn, product, location);
+    }
+
+    private static void PutawayAll(StockIn stockIn)
+    {
+        foreach (var line in stockIn.Lines)
+            foreach (var item in line.Items)
+                stockIn.PutawayItem(item.Id, item.Quantity);
     }
 }

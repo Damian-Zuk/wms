@@ -27,8 +27,7 @@ export const locationTypeSeverity: Record<LocationType, TagSeverity> = {
 
 export const stockInStatusSeverity: Record<StockInStatus, TagSeverity> = {
   Draft: 'secondary',
-  Receiving: 'info',
-  Received: 'warn',
+  Putaway: 'info',
   Completed: 'success',
   Cancelled: 'danger',
 }

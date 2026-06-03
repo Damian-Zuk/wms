@@ -56,7 +56,7 @@ public sealed class CreateStockInCommandHandler(IAppDbContext context, IPutawayP
             return StockInErrors.LotNotFound(missingLot);
 
         // A single snapshot the planner reasons over. Suggestions are advisory: capacity
-        // is only reserved at StartReceiving, but we factor in other stock-ins' active
+        // is only reserved at StartPutaway, but we factor in other stock-ins' active
         // reservations so the plan is as feasible as possible.
         var locations = await context.Locations.AsNoTracking().ToListAsync(cancellationToken);
         var inventories = await context.Inventories.AsNoTracking().ToListAsync(cancellationToken);

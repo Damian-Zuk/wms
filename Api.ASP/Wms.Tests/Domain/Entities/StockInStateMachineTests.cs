@@ -55,8 +55,7 @@ public class StockInStateMachineTests
         }
 
         [Theory]
-        [InlineData(StockInStatus.Receiving)]
-        [InlineData(StockInStatus.Received)]
+        [InlineData(StockInStatus.Putaway)]
         [InlineData(StockInStatus.Completed)]
         [InlineData(StockInStatus.Cancelled)]
         public void Rejected_outside_draft(StockInStatus startStatus)
@@ -135,7 +134,7 @@ public class StockInStateMachineTests
         {
             var stockIn = NewStockInWithLine(quantity: 10);
             var lineId = stockIn.Lines.Single().Id;
-            stockIn.StartReceiving();
+            stockIn.StartPutaway();
 
             var result = stockIn.ModifyLinePlacements(
                 lineId,
@@ -148,22 +147,21 @@ public class StockInStateMachineTests
         }
     }
 
-    public class StartReceiving
+    public class StartPutaway
     {
         [Fact]
-        public void Draft_transitions_to_receiving()
+        public void Draft_transitions_to_putaway()
         {
             var stockIn = NewStockInWithLine();
 
-            var result = stockIn.StartReceiving();
+            var result = stockIn.StartPutaway();
 
             result.IsSuccess.Should().BeTrue();
-            stockIn.Status.Should().Be(StockInStatus.Receiving);
+            stockIn.Status.Should().Be(StockInStatus.Putaway);
         }
 
         [Theory]
-        [InlineData(StockInStatus.Receiving)]
-        [InlineData(StockInStatus.Received)]
+        [InlineData(StockInStatus.Putaway)]
         [InlineData(StockInStatus.Completed)]
         [InlineData(StockInStatus.Cancelled)]
         public void Rejected_outside_draft(StockInStatus startStatus)
@@ -171,51 +169,91 @@ public class StockInStateMachineTests
             var stockIn = NewStockInWithLine();
             DriveTo(stockIn, startStatus);
 
-            var result = stockIn.StartReceiving();
+            var result = stockIn.StartPutaway();
 
             result.IsFailure.Should().BeTrue();
             result.Error.Code.Should().Be("StockIn.InvalidStatusTransition");
         }
     }
 
-    public class Receive
+    public class PutawayItem
     {
         [Fact]
-        public void Receiving_transitions_to_received_and_raises_one_event_per_placement()
+        public void Partial_putaway_tracks_progress_keeps_status_and_raises_event()
         {
-            var stockIn = new StockIn(Guid.NewGuid());
-            stockIn.AddLineWithPlacements(
-                Guid.NewGuid(),
-                null,
-                new Quantity(9),
-                [new(Guid.NewGuid(), 2, PutawayStrategyType.NearestEmpty), new(Guid.NewGuid(), 7, PutawayStrategyType.NearestEmpty)]);
-            stockIn.StartReceiving();
+            var stockIn = NewStockInWithLine(quantity: 10);
+            stockIn.StartPutaway();
             stockIn.ClearDomainEvents();
+            var item = stockIn.Lines.Single().Items.Single();
 
-            var result = stockIn.Receive();
+            var result = stockIn.PutawayItem(item.Id, new Quantity(4));
 
             result.IsSuccess.Should().BeTrue();
-            stockIn.Status.Should().Be(StockInStatus.Received);
+            item.PlacedQuantity.Value.Should().Be(4);
+            item.Remaining.Should().Be(6);
+            item.IsFullyPlaced.Should().BeFalse();
+            stockIn.Status.Should().Be(StockInStatus.Putaway);
             stockIn.DomainEvents
-                .OfType<StockInItemReceivedDomainEvent>()
-                .Should().HaveCount(2);
+                .OfType<StockInItemPutawayDomainEvent>()
+                .Should().ContainSingle()
+                .Which.Quantity.Should().Be(4);
+        }
+
+        [Fact]
+        public void Can_be_done_in_parts_until_fully_placed()
+        {
+            var stockIn = NewStockInWithLine(quantity: 10);
+            stockIn.StartPutaway();
+            var item = stockIn.Lines.Single().Items.Single();
+
+            stockIn.PutawayItem(item.Id, new Quantity(4)).IsSuccess.Should().BeTrue();
+            stockIn.PutawayItem(item.Id, new Quantity(6)).IsSuccess.Should().BeTrue();
+
+            item.PlacedQuantity.Value.Should().Be(10);
+            item.IsFullyPlaced.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Rejected_when_quantity_exceeds_remaining()
+        {
+            var stockIn = NewStockInWithLine(quantity: 10);
+            stockIn.StartPutaway();
+            var item = stockIn.Lines.Single().Items.Single();
+            stockIn.PutawayItem(item.Id, new Quantity(7));
+
+            var result = stockIn.PutawayItem(item.Id, new Quantity(4));
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("StockIn.PutawayQuantityExceedsRemaining");
+        }
+
+        [Fact]
+        public void Rejected_for_unknown_item()
+        {
+            var stockIn = NewStockInWithLine();
+            stockIn.StartPutaway();
+
+            var result = stockIn.PutawayItem(Guid.NewGuid(), new Quantity(1));
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("StockIn.ItemNotFound");
         }
 
         [Theory]
         [InlineData(StockInStatus.Draft)]
-        [InlineData(StockInStatus.Received)]
         [InlineData(StockInStatus.Completed)]
         [InlineData(StockInStatus.Cancelled)]
-        public void Rejected_outside_receiving(StockInStatus startStatus)
+        public void Rejected_outside_putaway(StockInStatus startStatus)
         {
             var stockIn = NewStockInWithLine();
             DriveTo(stockIn, startStatus);
+            var itemId = stockIn.Lines.Single().Items.Single().Id;
             stockIn.ClearDomainEvents();
 
-            var result = stockIn.Receive();
+            var result = stockIn.PutawayItem(itemId, new Quantity(1));
 
             result.IsFailure.Should().BeTrue();
-            result.Error.Code.Should().Be("StockIn.InvalidStatusTransition");
+            result.Error.Code.Should().Be("StockIn.CannotPutaway");
             stockIn.DomainEvents.Should().BeEmpty();
         }
     }
@@ -223,10 +261,12 @@ public class StockInStateMachineTests
     public class Complete
     {
         [Fact]
-        public void Received_transitions_to_completed()
+        public void Putaway_with_all_items_placed_transitions_to_completed()
         {
-            var stockIn = NewStockInWithLine();
-            DriveTo(stockIn, StockInStatus.Received);
+            var stockIn = NewStockInWithLine(quantity: 5);
+            stockIn.StartPutaway();
+            var item = stockIn.Lines.Single().Items.Single();
+            stockIn.PutawayItem(item.Id, new Quantity(5));
 
             var result = stockIn.Complete();
 
@@ -234,12 +274,25 @@ public class StockInStateMachineTests
             stockIn.Status.Should().Be(StockInStatus.Completed);
         }
 
+        [Fact]
+        public void Rejected_when_not_all_items_placed()
+        {
+            var stockIn = NewStockInWithLine(quantity: 5);
+            stockIn.StartPutaway();
+            var item = stockIn.Lines.Single().Items.Single();
+            stockIn.PutawayItem(item.Id, new Quantity(3));
+
+            var result = stockIn.Complete();
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("StockIn.NotAllItemsPlaced");
+        }
+
         [Theory]
         [InlineData(StockInStatus.Draft)]
-        [InlineData(StockInStatus.Receiving)]
         [InlineData(StockInStatus.Completed)]
         [InlineData(StockInStatus.Cancelled)]
-        public void Rejected_outside_received(StockInStatus startStatus)
+        public void Rejected_outside_putaway(StockInStatus startStatus)
         {
             var stockIn = NewStockInWithLine();
             DriveTo(stockIn, startStatus);
@@ -255,8 +308,8 @@ public class StockInStateMachineTests
     {
         [Theory]
         [InlineData(StockInStatus.Draft)]
-        [InlineData(StockInStatus.Receiving)]
-        public void Allowed_from_draft_and_receiving(StockInStatus startStatus)
+        [InlineData(StockInStatus.Putaway)]
+        public void Allowed_from_draft_and_putaway_and_records_phase(StockInStatus startStatus)
         {
             var stockIn = NewStockInWithLine();
             DriveTo(stockIn, startStatus);
@@ -265,13 +318,13 @@ public class StockInStateMachineTests
 
             result.IsSuccess.Should().BeTrue();
             stockIn.Status.Should().Be(StockInStatus.Cancelled);
+            stockIn.CancelledFrom.Should().Be(startStatus);
         }
 
         [Theory]
-        [InlineData(StockInStatus.Received)]
         [InlineData(StockInStatus.Completed)]
         [InlineData(StockInStatus.Cancelled)]
-        public void Rejected_after_received(StockInStatus startStatus)
+        public void Rejected_after_putaway(StockInStatus startStatus)
         {
             var stockIn = NewStockInWithLine();
             DriveTo(stockIn, startStatus);
@@ -294,21 +347,24 @@ public class StockInStateMachineTests
         {
             case StockInStatus.Draft:
                 return;
-            case StockInStatus.Receiving:
-                stockIn.StartReceiving();
-                return;
-            case StockInStatus.Received:
-                stockIn.StartReceiving();
-                stockIn.Receive();
+            case StockInStatus.Putaway:
+                stockIn.StartPutaway();
                 return;
             case StockInStatus.Completed:
-                stockIn.StartReceiving();
-                stockIn.Receive();
+                stockIn.StartPutaway();
+                PutawayAll(stockIn);
                 stockIn.Complete();
                 return;
             case StockInStatus.Cancelled:
                 stockIn.Cancel();
                 return;
         }
+    }
+
+    private static void PutawayAll(StockIn stockIn)
+    {
+        foreach (var line in stockIn.Lines)
+            foreach (var item in line.Items)
+                stockIn.PutawayItem(item.Id, item.Quantity);
     }
 }

@@ -40,6 +40,7 @@ public sealed class ListStockInsQueryHandler(IAppDbContext context)
             {
                 s.Id,
                 s.Status,
+                s.CancelledFrom,
                 s.CreatedAt,
                 s.CreatedBy,
                 s.ModifiedBy,
@@ -55,6 +56,7 @@ public sealed class ListStockInsQueryHandler(IAppDbContext context)
                         i.Id,
                         i.LocationId,
                         Quantity = i.Quantity.Value,
+                        PlacedQuantity = i.PlacedQuantity.Value,
                         i.Strategy
                     }).ToList()
                 }).ToList()
@@ -73,6 +75,7 @@ public sealed class ListStockInsQueryHandler(IAppDbContext context)
         var items = page.Select(s => new StockInDto(
                 s.Id,
                 s.Status,
+                s.CancelledFrom,
                 s.CreatedAt,
                 s.CreatedBy,
                 s.ModifiedBy,
@@ -83,7 +86,8 @@ public sealed class ListStockInsQueryHandler(IAppDbContext context)
                         l.LotId.HasValue ? lots[l.LotId.Value] : null,
                         l.Quantity,
                         l.Items
-                            .Select(i => new StockInPlacementDto(i.Id, locations[i.LocationId], i.Quantity, i.Strategy))
+                            .Select(i => new StockInPlacementDto(
+                                i.Id, locations[i.LocationId], i.Quantity, i.PlacedQuantity, i.Strategy))
                             .ToList()))
                     .ToList()))
             .ToList();

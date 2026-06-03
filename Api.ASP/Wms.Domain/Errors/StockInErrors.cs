@@ -33,6 +33,22 @@ public static class StockInErrors
         "StockIn.LineNotFound",
         $"StockIn line with ID '{lineId}' not found.");
 
+    public static Error ItemNotFound(Guid itemId) => Error.Problem(
+        "StockIn.ItemNotFound",
+        $"StockIn placement with ID '{itemId}' not found.");
+
+    public static Error CannotPutaway(StockInStatus current) => Error.Conflict(
+        "StockIn.CannotPutaway",
+        $"Items can only be put away while in '{StockInStatus.Putaway}' status (current: '{current}').");
+
+    public static Error PutawayQuantityExceedsRemaining(Guid itemId, int remaining, int requested) => Error.Conflict(
+        "StockIn.PutawayQuantityExceedsRemaining",
+        $"Cannot put away {requested} units for placement '{itemId}'; only {remaining} remain.");
+
+    public static Error NotAllItemsPlaced() => Error.Conflict(
+        "StockIn.NotAllItemsPlaced",
+        "All items must be put away before the stock-in can be completed.");
+
     public static Error PlacementsRequired() => Error.Problem(
         "StockIn.PlacementsRequired",
         "At least one placement is required.");

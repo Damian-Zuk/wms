@@ -13,12 +13,12 @@ namespace Wms.Infrastructure.Putaway;
 /// <summary>
 /// Verifies and reserves capacity for a draft stock-in inside a single transaction.
 /// The involved location rows are locked with <c>SELECT … FOR UPDATE</c> so two
-/// stock-ins racing to receive into the same location are serialised: the first
+/// stock-ins racing to put away into the same location are serialised: the first
 /// wins, the second sees the reserved space and fails (the stock-in stays Draft).
 /// </summary>
 internal sealed class CapacityReservationService(AppDbContext db) : ICapacityReservationService
 {
-    public async Task<Result> ReserveForStartReceivingAsync(Guid stockInId, CancellationToken ct)
+    public async Task<Result> ReserveForStartPutawayAsync(Guid stockInId, CancellationToken ct)
     {
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
 
@@ -33,7 +33,7 @@ internal sealed class CapacityReservationService(AppDbContext db) : ICapacityRes
         if (stockIn.Status != StockInStatus.Draft)
             return await RollbackAsync(
                 transaction,
-                StockInErrors.InvalidStatusTransition(stockIn.Status, StockInStatus.Receiving),
+                StockInErrors.InvalidStatusTransition(stockIn.Status, StockInStatus.Putaway),
                 ct);
 
         var placements = stockIn.Lines.SelectMany(l => l.Items).ToList();
@@ -136,7 +136,7 @@ internal sealed class CapacityReservationService(AppDbContext db) : ICapacityRes
             }
         }
 
-        var startResult = stockIn.StartReceiving();
+        var startResult = stockIn.StartPutaway();
         if (startResult.IsFailure)
             return await RollbackAsync(transaction, startResult.Error, ct);
 
