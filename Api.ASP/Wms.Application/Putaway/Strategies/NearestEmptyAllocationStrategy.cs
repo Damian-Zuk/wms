@@ -1,5 +1,6 @@
 using Wms.Domain.Entities;
 using Wms.Domain.Enums;
+using Wms.Domain.Services;
 
 namespace Wms.Application.Putaway.Strategies;
 
@@ -20,7 +21,8 @@ internal sealed class NearestEmptyAllocationStrategy : IPutawayAllocationStrateg
                 l.IsActive &&
                 !l.IsBlocked &&
                 l.TemperatureZone == product.RequiredTemperatureZone &&
-                context.ContentsAt(l.Id).Sum(i => i.OnHand.Value) < l.Capacity.MaxUnits)
+                // null = unlimited (headroom); otherwise > 0 means room remains.
+                l.UnitsThatFit(context.ContentsAt(l.Id), CapacityOccupancy.Empty()) is null or > 0)
             .OrderBy(l => l.Address.Zone)
             .ThenBy(l => l.Address.Aisle)
             .ThenBy(l => l.Address.Rack)
