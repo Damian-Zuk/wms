@@ -38,6 +38,7 @@ export const putawayStrategyLabel: Record<PutawayStrategyType, string> = {
   ConsolidateSameSku: 'Consolidate SKU',
   ConsolidateSameLot: 'Consolidate lot',
   NearestEmpty: 'Nearest empty',
+  NearestAvailable: 'Nearest available',
   Proximity: 'Proximity',
   Manual: 'Manual',
 }
@@ -47,6 +48,7 @@ export const putawayStrategySeverity: Record<PutawayStrategyType, TagSeverity> =
   ConsolidateSameSku: 'warn',
   ConsolidateSameLot: 'secondary',
   NearestEmpty: 'secondary',
+  NearestAvailable: 'warn',
   Proximity: 'info',
   Manual: 'contrast',
 }

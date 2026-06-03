@@ -17,6 +17,7 @@ export type PutawayStrategyType =
   | 'ConsolidateSameSku'
   | 'ConsolidateSameLot'
   | 'NearestEmpty'
+  | 'NearestAvailable'
   | 'Proximity'
   | 'Manual'
 

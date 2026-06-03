@@ -21,6 +21,8 @@ import {
 } from '@/lib/enum-display'
 import { useStockIn, useStockInTransition, type StockInAction } from './useStockIns'
 import type { StockInLineDto, StockInPlacementDto } from '@/types/stock-ins'
+import type { LocationRef, LotRef, ProductRef } from '@/types/refs'
+import type { PutawayStrategyType } from '@/types/enums'
 
 const route = useRoute()
 const router = useRouter()
@@ -49,6 +51,65 @@ const canCancel = computed(
 const canEditPlacements = computed(
   () => auth.canMutate && stockIn.value?.status === 'Draft',
 )
+
+/** One thing to put away at a stop on the path. */
+interface PutawayPathItem {
+  id: string
+  product: ProductRef
+  lot: LotRef | null
+  quantity: number
+  strategy: PutawayStrategyType
+}
+
+/** A stop on the putaway walk: one location and everything that goes there. */
+interface PutawayPathStop {
+  location: LocationRef
+  items: PutawayPathItem[]
+}
+
+// Ordinal string compare — matches the backend's string.CompareOrdinal on addresses.
+function ordinalCompare(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0
+}
+
+// While Receiving, present placements as a location-ordered putaway path so the worker
+// walks address-ascending and sees everything to drop at each stop. Empty otherwise.
+const putawayPath = computed<PutawayPathStop[]>(() => {
+  const data = stockIn.value
+  if (!data || data.status !== 'Receiving') return []
+
+  const byLocation = new Map<string, PutawayPathStop>()
+  for (const line of data.lines) {
+    for (const p of line.placements) {
+      let stop = byLocation.get(p.location.id)
+      if (!stop) {
+        stop = { location: p.location, items: [] }
+        byLocation.set(p.location.id, stop)
+      }
+      stop.items.push({
+        id: p.id,
+        product: line.product,
+        lot: line.lot,
+        quantity: p.quantity,
+        strategy: p.strategy,
+      })
+    }
+  }
+
+  const stops = [...byLocation.values()]
+  // Walk order: location address ascending (ordinal, matching the backend).
+  stops.sort((a, b) => ordinalCompare(a.location.address, b.location.address))
+  // Within a stop, group by product SKU, then lot, then strategy for a stable read.
+  for (const stop of stops) {
+    stop.items.sort(
+      (a, b) =>
+        ordinalCompare(a.product.sku, b.product.sku) ||
+        ordinalCompare(a.lot?.number ?? '', b.lot?.number ?? '') ||
+        ordinalCompare(a.strategy, b.strategy),
+    )
+  }
+  return stops
+})
 
 const editVisible = ref(false)
 const editLine = ref<StockInLineDto | null>(null)
@@ -194,7 +255,69 @@ function cancel() {
         </p>
       </div>
 
-      <div class="flex flex-col gap-4">
+      <!-- Receiving: location-ordered putaway path for the worker's walk. -->
+      <div v-if="stockIn.status === 'Receiving'" class="flex flex-col gap-4">
+        <div
+          v-for="(stop, index) in putawayPath"
+          :key="stop.location.id"
+          class="rounded-xl border border-surface-200 bg-white p-5 flex flex-col gap-3"
+        >
+          <div class="flex items-center gap-3">
+            <span
+              class="flex items-center justify-center w-7 h-7 rounded-full bg-primary-50 text-primary-600 text-sm font-medium"
+            >
+              {{ index + 1 }}
+            </span>
+            <div>
+              <RouterLink
+                :to="{ name: 'location-detail', params: { id: stop.location.id } }"
+                class="text-primary-600 hover:underline font-medium"
+              >
+                {{ stop.location.code }}
+              </RouterLink>
+              <span class="text-xs text-surface-500"> · {{ stop.location.address }}</span>
+            </div>
+          </div>
+
+          <DataTable :value="stop.items" data-key="id">
+            <Column header="Product">
+              <template #body="{ data: item }: { data: PutawayPathItem }">
+                <RouterLink
+                  :to="{ name: 'product-detail', params: { id: item.product.id } }"
+                  class="text-primary-600 hover:underline"
+                >
+                  {{ item.product.sku }}
+                </RouterLink>
+                <span class="text-surface-700"> — {{ item.product.name }}</span>
+              </template>
+            </Column>
+            <Column header="Lot" style="width: 12rem">
+              <template #body="{ data: item }: { data: PutawayPathItem }">
+                <RouterLink
+                  v-if="item.lot"
+                  :to="{ name: 'lot-detail', params: { id: item.lot.id } }"
+                  class="text-primary-600 hover:underline"
+                >
+                  {{ item.lot.number }}
+                </RouterLink>
+                <span v-else class="text-surface-400">—</span>
+              </template>
+            </Column>
+            <Column field="quantity" header="Quantity" style="width: 9rem" />
+            <Column header="Strategy" style="width: 12rem">
+              <template #body="{ data: item }: { data: PutawayPathItem }">
+                <StatusBadge
+                  :value="putawayStrategyLabel[item.strategy]"
+                  :severity="putawayStrategySeverity[item.strategy]"
+                />
+              </template>
+            </Column>
+          </DataTable>
+        </div>
+      </div>
+
+      <!-- Other statuses: per-line placements (editable while Draft). -->
+      <div v-else class="flex flex-col gap-4">
         <div
           v-for="line in stockIn.lines"
           :key="line.id"
