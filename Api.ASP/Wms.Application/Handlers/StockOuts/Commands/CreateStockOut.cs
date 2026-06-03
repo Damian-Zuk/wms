@@ -1,6 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Allocations;
+using Wms.Application.Picking;
 using Wms.Domain.Entities;
 using Wms.Domain.Errors;
 using Wms.Domain.ValueObjects;

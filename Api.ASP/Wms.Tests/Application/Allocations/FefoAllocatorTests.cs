@@ -1,5 +1,5 @@
 using FluentAssertions;
-using Wms.Application.Allocations;
+using Wms.Application.Picking;
 using Wms.Domain.Entities;
 using Wms.Domain.ValueObjects;
 using Wms.Tests.Common;

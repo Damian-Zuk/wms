@@ -1,6 +1,6 @@
-﻿using FluentValidation;
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
-using Wms.Application.Allocations;
+using Wms.Application.Picking;
 using Wms.Application.Putaway;
 using Wms.Application.Putaway.Strategies;
 using Wms.Application.Common.Events;

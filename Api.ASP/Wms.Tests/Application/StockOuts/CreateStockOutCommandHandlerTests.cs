@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Allocations;
+using Wms.Application.Picking;
 using Wms.Application.Handlers.StockOuts.Commands;
 using Wms.Domain.Enums;
 using Wms.Tests.Common;

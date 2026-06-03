@@ -4,7 +4,7 @@ using Wms.Domain.Errors;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
 
-namespace Wms.Application.Allocations;
+namespace Wms.Application.Picking;
 
 internal sealed class FefoAllocator(IAppDbContext context) : IFefoAllocator
 {

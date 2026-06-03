@@ -1,7 +1,7 @@
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
 
-namespace Wms.Application.Allocations;
+namespace Wms.Application.Picking;
 
 public sealed record LotAllocation(Guid LotId, Quantity Quantity);
 
