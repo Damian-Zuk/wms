@@ -11,5 +11,6 @@ public enum PutawayStrategyType
     ConsolidateSameSku = 3,
     Proximity = 4,
     NearestEmpty = 5,
-    Manual = 6
+    NearestAvailable = 6,
+    Manual = 7
 }

@@ -53,6 +53,18 @@ public sealed class PutawayPlanContext
     public IReadOnlyCollection<Inventory> ContentsAt(Guid locationId) =>
         _contentsByLocation.TryGetValue(locationId, out var list) ? list : [];
 
+    /// <summary>
+    /// Units already taken up at a location: on-hand inventory plus any capacity
+    /// occupied by other stock-ins' active reservations or sibling placements
+    /// committed earlier in this draft. Read-only — unlike <see cref="OccupancyFor"/>
+    /// it never materialises an occupancy entry, so strategies can stay side-effect free.
+    /// </summary>
+    public int OccupiedUnits(Guid locationId) =>
+        ContentsAt(locationId).Sum(i => i.OnHand.Value)
+        + (_occupancyByLocation.TryGetValue(locationId, out var occupancy)
+            ? occupancy.Get(CapacityDimension.Units)
+            : 0);
+
     public CapacityOccupancy OccupancyFor(Guid locationId)
     {
         if (!_occupancyByLocation.TryGetValue(locationId, out var occupancy))

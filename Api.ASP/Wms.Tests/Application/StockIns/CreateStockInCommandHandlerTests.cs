@@ -21,7 +21,8 @@ public class CreateStockInCommandHandlerTests : IntegrationTestBase
     [
         new PreferredLocationAllocationStrategy(),
         new ConsolidateSameSkuAllocationStrategy(),
-        new NearestEmptyAllocationStrategy()
+        new NearestEmptyAllocationStrategy(),
+        new NearestAvailableAllocationStrategy()
     ]);
 
     [Fact]

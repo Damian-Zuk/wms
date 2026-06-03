@@ -20,7 +20,8 @@ public class PutawayPlannerTests
     [
         new PreferredLocationAllocationStrategy(),
         new ConsolidateSameSkuAllocationStrategy(),
-        new NearestEmptyAllocationStrategy()
+        new NearestEmptyAllocationStrategy(),
+        new NearestAvailableAllocationStrategy()
     ]);
 
     private static Location StorageAt(string bin, string code, int? capacity) =>
@@ -55,6 +56,38 @@ public class PutawayPlannerTests
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("Putaway.CannotPlaceFullQuantity");
+    }
+
+    [Fact]
+    public void Fills_empty_finite_then_partially_filled_finite_then_unlimited()
+    {
+        var product = TestData.Product("WANTED");
+        var other = TestData.Product("OTHER");
+
+        // Empty finite (NearestEmpty), a finite holding another SKU with 10 headroom
+        // and an unlimited bin (both NearestAvailable, finite before unlimited).
+        var empty = StorageAt("B1", "EMPTY", capacity: 100);
+        var partial = StorageAt("B2", "PARTIAL", capacity: 100);
+        var unlimited = StorageAt("B3", "UNLIMITED", capacity: null);
+        var foreignStock = TestData.Inventory(other.Id, partial.Id, onHand: 90);
+        var context = new PutawayPlanContext([empty, partial, unlimited], [foreignStock], []);
+
+        var result = NewPlanner().Plan(product, null, new Quantity(150), context);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Sum(a => a.Quantity).Should().Be(150);
+
+        var toEmpty = result.Value.Single(a => a.LocationId == empty.Id);
+        toEmpty.Quantity.Should().Be(100);
+        toEmpty.Strategy.Should().Be(PutawayStrategyType.NearestEmpty);
+
+        var toPartial = result.Value.Single(a => a.LocationId == partial.Id);
+        toPartial.Quantity.Should().Be(10);
+        toPartial.Strategy.Should().Be(PutawayStrategyType.NearestAvailable);
+
+        var toUnlimited = result.Value.Single(a => a.LocationId == unlimited.Id);
+        toUnlimited.Quantity.Should().Be(40);
+        toUnlimited.Strategy.Should().Be(PutawayStrategyType.NearestAvailable);
     }
 
     [Fact]

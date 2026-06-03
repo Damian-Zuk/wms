@@ -1,14 +1,15 @@
 using Wms.Domain.Entities;
 using Wms.Domain.Enums;
-using Wms.Domain.Services;
 
 namespace Wms.Application.Putaway.Strategies;
 
 /// <summary>
-/// Ranks empty Storage locations whose temperature zone matches the product, by
-/// ascending address (Zone → Aisle → Rack → Shelf → Bin). Empty means no on-hand
-/// inventory rows in the snapshot; the planner still accounts for any active
-/// reservations on the location via the shared occupancy.
+/// Ranks completely empty, finite-capacity Storage locations whose temperature zone
+/// matches the product, by ascending address (Zone → Aisle → Rack → Shelf → Bin).
+/// Empty means zero occupancy: no on-hand inventory AND no capacity reserved by other
+/// stock-ins or committed by sibling placements earlier in the draft. Unlimited
+/// locations are deliberately excluded here — <see cref="NearestAvailableAllocationStrategy"/>
+/// picks those up next, after every finite location with room.
 /// </summary>
 internal sealed class NearestEmptyAllocationStrategy : IPutawayAllocationStrategy
 {
@@ -21,8 +22,8 @@ internal sealed class NearestEmptyAllocationStrategy : IPutawayAllocationStrateg
                 l.IsActive &&
                 !l.IsBlocked &&
                 l.TemperatureZone == product.RequiredTemperatureZone &&
-                // null = unlimited (headroom); otherwise > 0 means room remains.
-                l.UnitsThatFit(context.ContentsAt(l.Id), CapacityOccupancy.Empty()) is null or > 0)
+                l.Capacity.MaxUnits.HasValue &&
+                context.OccupiedUnits(l.Id) == 0)
             .OrderBy(l => l.Address.Zone)
             .ThenBy(l => l.Address.Aisle)
             .ThenBy(l => l.Address.Rack)
