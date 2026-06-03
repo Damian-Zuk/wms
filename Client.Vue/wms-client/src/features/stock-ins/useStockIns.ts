@@ -7,7 +7,11 @@ import {
 } from '@tanstack/vue-query'
 import { stockInsApi } from '@/api/endpoints/stock-ins'
 import { qk } from '@/api/query-keys'
-import type { CreateStockInCommand, StockInFilters } from '@/types/stock-ins'
+import type {
+  CreateStockInCommand,
+  ModifyPlacement,
+  StockInFilters,
+} from '@/types/stock-ins'
 
 // Workflow statuses change over time, so never serve stale documents.
 
@@ -34,6 +38,20 @@ export function useCreateStockIn() {
   return useMutation({
     mutationFn: (body: CreateStockInCommand) => stockInsApi.create(body),
     onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.stockIns.all })
+    },
+  })
+}
+
+export function useModifyLinePlacements(stockInId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { lineId: string; placements: ModifyPlacement[] }) =>
+      stockInsApi.modifyLinePlacements(stockInId, vars.lineId, {
+        placements: vars.placements,
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.stockIns.detail(stockInId) })
       void qc.invalidateQueries({ queryKey: qk.stockIns.all })
     },
   })

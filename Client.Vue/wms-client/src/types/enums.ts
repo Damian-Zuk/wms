@@ -12,6 +12,12 @@ export type StockOutStatus =
   | 'Completed'
   | 'Cancelled'
 
+export type PutawayStrategyType =
+  | 'FixedLocation'
+  | 'ConsolidateSameSku'
+  | 'NearestEmpty'
+  | 'Manual'
+
 export type StockMovementType = 'In' | 'Out'
 
 export type StockMovementSource =

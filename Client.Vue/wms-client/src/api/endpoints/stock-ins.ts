@@ -2,6 +2,7 @@ import { http } from '../http'
 import type { PagedResult } from '@/types/common'
 import type {
   CreateStockInCommand,
+  ModifyLinePlacementsRequest,
   StockInDto,
   StockInFilters,
 } from '@/types/stock-ins'
@@ -18,6 +19,16 @@ export const stockInsApi = {
 
   create: (body: CreateStockInCommand) =>
     http.post<string>('/stock-ins', body).then((r) => r.data),
+
+  // Re-plan a single line's placements (Draft only, Admin/Manager).
+  modifyLinePlacements: (
+    stockInId: string,
+    lineId: string,
+    body: ModifyLinePlacementsRequest,
+  ) =>
+    http
+      .put<void>(`/stock-ins/${stockInId}/lines/${lineId}/placements`, body)
+      .then(() => undefined),
 
   // Workflow transitions — bodyless POSTs returning 204.
   startReceiving: (id: string) =>

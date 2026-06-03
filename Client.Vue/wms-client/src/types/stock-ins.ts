@@ -1,12 +1,21 @@
 import type { LocationRef, LotRef, ProductRef } from './refs'
-import type { StockInStatus } from './enums'
+import type { PutawayStrategyType, StockInStatus } from './enums'
 
-export interface StockInItemDto {
+/** A planned/edited placement: where part of a line's quantity goes. */
+export interface StockInPlacementDto {
+  id: string
+  location: LocationRef
+  quantity: number
+  strategy: PutawayStrategyType
+}
+
+/** A requested receipt line; its quantity is split across one or more placements. */
+export interface StockInLineDto {
   id: string
   product: ProductRef
-  location: LocationRef
   lot: LotRef | null
   quantity: number
+  placements: StockInPlacementDto[]
 }
 
 export interface StockInDto {
@@ -14,7 +23,9 @@ export interface StockInDto {
   status: StockInStatus
   createdAt: string
   createdBy: string | null
-  items: StockInItemDto[]
+  modifiedBy: string | null
+  modifiedAt: string | null
+  lines: StockInLineDto[]
 }
 
 export interface StockInFilters {
@@ -22,14 +33,25 @@ export interface StockInFilters {
   pageSize: number
 }
 
-export interface CreateStockInItem {
+/** One create line — the caller does NOT pick locations; the planner does. */
+export interface CreateStockInLine {
   productId: string
-  locationId: string
   lotId: string | null
   quantity: number
 }
 
 /** POST /api/stock-ins body. */
 export interface CreateStockInCommand {
-  items: CreateStockInItem[]
+  lines: CreateStockInLine[]
+}
+
+/** One placement when manually re-planning a line. */
+export interface ModifyPlacement {
+  locationId: string
+  quantity: number
+}
+
+/** PUT /api/stock-ins/{id}/lines/{lineId}/placements body. */
+export interface ModifyLinePlacementsRequest {
+  placements: ModifyPlacement[]
 }

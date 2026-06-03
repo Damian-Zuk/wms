@@ -16,6 +16,8 @@ export interface LocationDto {
   type: LocationType
   temperatureZone: TemperatureZone
   capacity: number | null
+  /** Total physical units currently on hand across all inventory in this location. */
+  occupancy: number
   isMixedSkuAllowed: boolean
   isMixedLotAllowed: boolean
   isActive: boolean

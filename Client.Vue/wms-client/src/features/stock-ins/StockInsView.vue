@@ -63,9 +63,9 @@ function openStockIn(stockIn: StockInDto) {
           {{ row.createdBy ?? '—' }}
         </template>
       </Column>
-      <Column header="Items" style="width: 8rem">
+      <Column header="Lines" style="width: 8rem">
         <template #body="{ data: row }: { data: StockInDto }">
-          {{ row.items.length }}
+          {{ row.lines.length }}
         </template>
       </Column>
       <Column header="Status" style="width: 11rem">

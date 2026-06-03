@@ -22,6 +22,13 @@ const id = computed(() => route.params.id as string)
 const { data: location, isLoading, isError, error } = useLocation(id)
 const del = useDeleteLocation()
 
+/** Occupancy utilisation as a 0–100 percentage, or null when capacity is unlimited. */
+const occupancyPercent = computed(() => {
+  const loc = location.value
+  if (!loc || loc.capacity == null || loc.capacity === 0) return null
+  return Math.round((loc.occupancy / loc.capacity) * 100)
+})
+
 function onEdit() {
   router.push({ name: 'location-edit', params: { id: id.value } })
 }
@@ -109,6 +116,17 @@ function onDelete() {
 
       <dt class="text-surface-500">Capacity</dt>
       <dd class="text-surface-900">{{ location.capacity ?? 'Unlimited' }}</dd>
+
+      <dt class="text-surface-500">Occupancy</dt>
+      <dd class="text-surface-900">
+        <span v-if="location.capacity != null">
+          {{ location.occupancy }} / {{ location.capacity }} units
+          <span v-if="occupancyPercent != null" class="text-surface-500"
+            >({{ occupancyPercent }}%)</span
+          >
+        </span>
+        <span v-else>{{ location.occupancy }} units</span>
+      </dd>
 
       <dt class="text-surface-500">Mixed SKUs</dt>
       <dd class="text-surface-900">{{ location.isMixedSkuAllowed ? 'Allowed' : 'Not allowed' }}</dd>
