@@ -91,7 +91,7 @@ public static class TestData
             productId,
             lotId,
             new Quantity(quantity),
-            [(locationId, quantity, strategy)]);
+            [new(locationId, quantity, strategy)]);
         return stockIn;
     }
 

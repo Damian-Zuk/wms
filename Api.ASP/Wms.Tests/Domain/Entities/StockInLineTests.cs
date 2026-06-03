@@ -17,7 +17,7 @@ public class StockInLineTests
         var line = NewLine(10);
 
         var result = line.SetPlacements(
-            [(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty), (Guid.NewGuid(), 4, PutawayStrategyType.ConsolidateSameSku)]);
+            [new(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty), new(Guid.NewGuid(), 4, PutawayStrategyType.ConsolidateSameSku)]);
 
         result.IsSuccess.Should().BeTrue();
         line.Items.Should().HaveCount(2);
@@ -31,7 +31,7 @@ public class StockInLineTests
     {
         var line = NewLine(10);
 
-        var result = line.SetPlacements([(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty)]);
+        var result = line.SetPlacements([new(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty)]);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("StockIn.PlacementsDoNotMatchLineTotal");
@@ -55,7 +55,7 @@ public class StockInLineTests
         var line = NewLine(10);
 
         var result = line.SetPlacements(
-            [(Guid.NewGuid(), 10, PutawayStrategyType.NearestEmpty), (Guid.NewGuid(), 0, PutawayStrategyType.NearestEmpty)]);
+            [new(Guid.NewGuid(), 10, PutawayStrategyType.NearestEmpty), new(Guid.NewGuid(), 0, PutawayStrategyType.NearestEmpty)]);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("StockIn.PlacementQuantityMustBePositive");
@@ -65,7 +65,7 @@ public class StockInLineTests
     public void ReplacePlacementsManual_marks_all_manual_and_enforces_total()
     {
         var line = NewLine(10);
-        line.SetPlacements([(Guid.NewGuid(), 10, PutawayStrategyType.NearestEmpty)]);
+        line.SetPlacements([new(Guid.NewGuid(), 10, PutawayStrategyType.NearestEmpty)]);
 
         var result = line.ReplacePlacementsManual([(Guid.NewGuid(), 4), (Guid.NewGuid(), 6)]);
 
@@ -79,7 +79,7 @@ public class StockInLineTests
     public void ReplacePlacementsManual_rejects_sum_mismatch()
     {
         var line = NewLine(10);
-        line.SetPlacements([(Guid.NewGuid(), 10, PutawayStrategyType.NearestEmpty)]);
+        line.SetPlacements([new(Guid.NewGuid(), 10, PutawayStrategyType.NearestEmpty)]);
 
         var result = line.ReplacePlacementsManual([(Guid.NewGuid(), 4)]);
 

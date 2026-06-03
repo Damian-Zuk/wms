@@ -83,7 +83,7 @@ public class CompleteStockInCommandHandlerTests : IntegrationTestBase
             product.Id,
             null,
             new Quantity(1),
-            [(location.Id, 1, PutawayStrategyType.NearestEmpty)]);
+            [new(location.Id, 1, PutawayStrategyType.NearestEmpty)]);
 
         switch (status)
         {

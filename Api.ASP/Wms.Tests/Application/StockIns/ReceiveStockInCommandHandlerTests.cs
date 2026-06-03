@@ -130,7 +130,7 @@ public class ReceiveStockInCommandHandlerTests : IntegrationTestBase
             product.Id,
             null,
             new Quantity(30),
-            [(locationA.Id, 18, PutawayStrategyType.NearestEmpty), (locationB.Id, 12, PutawayStrategyType.NearestEmpty)]);
+            [new(locationA.Id, 18, PutawayStrategyType.NearestEmpty), new(locationB.Id, 12, PutawayStrategyType.NearestEmpty)]);
         stockIn.StartReceiving();
 
         Context.Products.Add(product);

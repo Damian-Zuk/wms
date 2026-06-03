@@ -16,7 +16,7 @@ public class StockInStateMachineTests
             Guid.NewGuid(),
             null,
             new Quantity(quantity),
-            [(Guid.NewGuid(), quantity, PutawayStrategyType.NearestEmpty)]);
+            [new(Guid.NewGuid(), quantity, PutawayStrategyType.NearestEmpty)]);
         return s;
     }
 
@@ -31,7 +31,7 @@ public class StockInStateMachineTests
                 Guid.NewGuid(),
                 null,
                 new Quantity(10),
-                [(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty), (Guid.NewGuid(), 4, PutawayStrategyType.ConsolidateSameSku)]);
+                [new(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty), new(Guid.NewGuid(), 4, PutawayStrategyType.ConsolidateSameSku)]);
 
             result.IsSuccess.Should().BeTrue();
             stockIn.Lines.Should().HaveCount(1);
@@ -47,7 +47,7 @@ public class StockInStateMachineTests
                 Guid.NewGuid(),
                 null,
                 new Quantity(10),
-                [(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty)]);
+                [new(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty)]);
 
             result.IsFailure.Should().BeTrue();
             result.Error.Code.Should().Be("StockIn.PlacementsDoNotMatchLineTotal");
@@ -68,7 +68,7 @@ public class StockInStateMachineTests
                 Guid.NewGuid(),
                 null,
                 new Quantity(1),
-                [(Guid.NewGuid(), 1, PutawayStrategyType.NearestEmpty)]);
+                [new(Guid.NewGuid(), 1, PutawayStrategyType.NearestEmpty)]);
 
             result.IsFailure.Should().BeTrue();
             result.Error.Code.Should().Be("StockIn.CannotModifyItems");
@@ -188,7 +188,7 @@ public class StockInStateMachineTests
                 Guid.NewGuid(),
                 null,
                 new Quantity(9),
-                [(Guid.NewGuid(), 2, PutawayStrategyType.NearestEmpty), (Guid.NewGuid(), 7, PutawayStrategyType.NearestEmpty)]);
+                [new(Guid.NewGuid(), 2, PutawayStrategyType.NearestEmpty), new(Guid.NewGuid(), 7, PutawayStrategyType.NearestEmpty)]);
             stockIn.StartReceiving();
             stockIn.ClearDomainEvents();
 
