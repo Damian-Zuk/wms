@@ -34,15 +34,17 @@ export const stockInStatusSeverity: Record<StockInStatus, TagSeverity> = {
 }
 
 export const putawayStrategyLabel: Record<PutawayStrategyType, string> = {
-  FixedLocation: 'Fixed location',
+  PreferredLocation: 'Preferred location',
   ConsolidateSameSku: 'Consolidate SKU',
+  ConsolidateSameLot: 'Consolidate lot',
   NearestEmpty: 'Nearest empty',
   Manual: 'Manual',
 }
 
 export const putawayStrategySeverity: Record<PutawayStrategyType, TagSeverity> = {
-  FixedLocation: 'info',
+  PreferredLocation: 'info',
   ConsolidateSameSku: 'warn',
+  ConsolidateSameLot: 'secondary',
   NearestEmpty: 'secondary',
   Manual: 'contrast',
 }

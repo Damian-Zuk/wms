@@ -37,7 +37,7 @@ public sealed class CreateStockInCommandHandler(IAppDbContext context, IPutawayP
         var productIds = request.Lines.Select(l => l.ProductId).Distinct().ToList();
         var lotIds = request.Lines.Where(l => l.LotId.HasValue).Select(l => l.LotId!.Value).Distinct().ToList();
 
-        // Products are needed (with preferred locations) for the FixedLocation strategy.
+        // Products are needed (with preferred locations) for the PreferredLocation strategy.
         var products = await context.Products
             .Include(p => p.PreferredLocations)
             .Where(p => productIds.Contains(p.Id))

@@ -6,8 +6,9 @@ namespace Wms.Domain.Enums;
 /// </summary>
 public enum PutawayStrategyType
 {
-    FixedLocation = 1,
-    ConsolidateSameSku = 2,
-    NearestEmpty = 3,
-    Manual = 4
+    PreferredLocation = 1,
+    ConsolidateSameLot = 2,
+    ConsolidateSameSku = 3,
+    NearestEmpty = 4,
+    Manual = 5
 }

@@ -13,8 +13,9 @@ export type StockOutStatus =
   | 'Cancelled'
 
 export type PutawayStrategyType =
-  | 'FixedLocation'
+  | 'PreferredLocation'
   | 'ConsolidateSameSku'
+  | 'ConsolidateSameLot'
   | 'NearestEmpty'
   | 'Manual'
 

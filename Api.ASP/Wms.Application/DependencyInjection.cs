@@ -41,7 +41,8 @@ public static class DependencyInjection
         services.AddValidatorsFromAssembly(assembly);
 
         // Multi-location putaway planner (registration order = strategy precedence).
-        services.AddScoped<IPutawayAllocationStrategy, FixedLocationAllocationStrategy>();
+        services.AddScoped<IPutawayAllocationStrategy, PreferredLocationAllocationStrategy>();
+        services.AddScoped<IPutawayAllocationStrategy, ConsolidateSameLotAllocationStrategy>();
         services.AddScoped<IPutawayAllocationStrategy, ConsolidateSameSkuAllocationStrategy>();
         services.AddScoped<IPutawayAllocationStrategy, NearestEmptyAllocationStrategy>();
         services.AddScoped<IPutawayPlanner, PutawayPlanner>();

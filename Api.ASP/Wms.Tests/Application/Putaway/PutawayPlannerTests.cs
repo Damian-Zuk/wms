@@ -18,7 +18,7 @@ public class PutawayPlannerTests
 {
     private static PutawayPlanner NewPlanner() => new(
     [
-        new FixedLocationAllocationStrategy(),
+        new PreferredLocationAllocationStrategy(),
         new ConsolidateSameSkuAllocationStrategy(),
         new NearestEmptyAllocationStrategy()
     ]);
@@ -133,7 +133,7 @@ public class PutawayPlannerTests
         var otherProduct = TestData.Product("OTHER");
 
         // Make the mixed-sku-disabled location the product's PREFERRED location so
-        // FixedLocation proposes it first; the planner's CanAccept gate must reject
+        // PreferredLocation proposes it first; the planner's CanAccept gate must reject
         // it (a foreign product is present) and fall through to the empty one.
         var preferred = StorageAt("B1", "NO-MIX", capacity: 100);
         SetMixedSkuDisallowed(preferred);

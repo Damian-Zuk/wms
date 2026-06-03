@@ -19,7 +19,7 @@ public class CreateStockInCommandHandlerTests : IntegrationTestBase
 
     private static IPutawayPlanner Planner() => new PutawayPlanner(
     [
-        new FixedLocationAllocationStrategy(),
+        new PreferredLocationAllocationStrategy(),
         new ConsolidateSameSkuAllocationStrategy(),
         new NearestEmptyAllocationStrategy()
     ]);
