@@ -17,6 +17,7 @@ export type PutawayStrategyType =
   | 'ConsolidateSameSku'
   | 'ConsolidateSameLot'
   | 'NearestEmpty'
+  | 'Proximity'
   | 'Manual'
 
 export type StockMovementType = 'In' | 'Out'

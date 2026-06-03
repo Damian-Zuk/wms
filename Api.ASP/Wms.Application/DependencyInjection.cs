@@ -44,6 +44,7 @@ public static class DependencyInjection
         services.AddScoped<IPutawayAllocationStrategy, PreferredLocationAllocationStrategy>();
         services.AddScoped<IPutawayAllocationStrategy, ConsolidateSameLotAllocationStrategy>();
         services.AddScoped<IPutawayAllocationStrategy, ConsolidateSameSkuAllocationStrategy>();
+        services.AddScoped<IPutawayAllocationStrategy, ProximityAllocationStrategy>();
         services.AddScoped<IPutawayAllocationStrategy, NearestEmptyAllocationStrategy>();
         services.AddScoped<IPutawayPlanner, PutawayPlanner>();
 

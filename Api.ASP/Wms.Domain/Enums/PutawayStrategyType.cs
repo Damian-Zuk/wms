@@ -9,6 +9,7 @@ public enum PutawayStrategyType
     PreferredLocation = 1,
     ConsolidateSameLot = 2,
     ConsolidateSameSku = 3,
-    NearestEmpty = 4,
-    Manual = 5
+    Proximity = 4,
+    NearestEmpty = 5,
+    Manual = 6
 }
