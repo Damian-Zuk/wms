@@ -3,6 +3,7 @@ using Wms.Domain.Errors;
 using Wms.Domain.Events;
 using Wms.Domain.Primitives;
 using Wms.Domain.ValueObjects;
+using Wms.Domain.Models;
 using Wms.Shared.Common;
 
 namespace Wms.Domain.Entities;
@@ -33,7 +34,7 @@ public class StockIn : Entity
         Guid productId,
         Guid? lotId,
         Quantity quantity,
-        IEnumerable<(Guid LocationId, int Quantity, PutawayStrategyType Strategy)> placements)
+        IReadOnlyList<PlacementAllocation> placements)
     {
         if (Status != StockInStatus.Draft)
             return StockInErrors.CannotModifyItems(Status);

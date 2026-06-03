@@ -1,6 +1,7 @@
 using Wms.Domain.Entities;
 using Wms.Domain.Enums;
 using Wms.Domain.Errors;
+using Wms.Domain.Models;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
 

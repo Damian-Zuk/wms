@@ -41,6 +41,10 @@ public static class WarehouseSeeder
     private const int LocationCount = 50;
     private const int LotsPerProduct = 5;
     private const int LocationsPerLot = 2;
+    private const int LocationCapacity = 500;
+    private const double MaxFillRatio = 0.70;
+    private const int PreferredLocationsPerProduct = 2;
+    private const int MaxProductsPerPreferredLocation = 4;
 
     public static async Task SeedAsync(AppDbContext context, CancellationToken cancellationToken = default)
     {
@@ -60,6 +64,8 @@ public static class WarehouseSeeder
 
         var inventories = BuildInventories(products, locations, lots, random);
         await context.Inventories.AddRangeAsync(inventories, cancellationToken);
+
+        AssignPreferredLocations(products, locations, random);
 
         await context.SaveChangesAsync(cancellationToken);
     }
@@ -87,12 +93,12 @@ public static class WarehouseSeeder
             };
 
             locations.Add(new Location(
-                new LocationCode(address.ToString()),
+                new LocationCode($"LOC-{i + 1:D4}"),
                 address,
                 type,
                 description: $"Zone {zoneCode} aisle {aisle} rack {rack}",
                 temperatureZone: temperature,
-                capacity: 250));
+                capacity: LocationCapacity));
         }
 
         return locations;
@@ -143,6 +149,8 @@ public static class WarehouseSeeder
             .ToDictionary(g => g.Key, g => (IReadOnlyList<Location>)g.ToList());
 
         var inventories = new List<Inventory>(lots.Count * LocationsPerLot);
+        var fillBudget = (int)(LocationCapacity * MaxFillRatio);
+        var remainingCapacity = locations.ToDictionary(l => l.Id, _ => fillBudget);
 
         foreach (var lot in lots)
         {
@@ -151,15 +159,55 @@ public static class WarehouseSeeder
 
             foreach (var location in PickDistinct(zoneLocations, LocationsPerLot, random))
             {
-                var inventory = new Inventory(product.Id, location.Id, lot.Id);
+                var available = remainingCapacity[location.Id];
+                if (available <= 0)
+                    continue;
 
-                var onHand = random.Next(10, 241);
+                var onHand = Math.Min(random.Next(10, 241), available);
+
+                var inventory = new Inventory(product.Id, location.Id, lot.Id);
                 inventory.Increase(new Quantity(onHand));
                 inventories.Add(inventory);
+
+                remainingCapacity[location.Id] = available - onHand;
             }
         }
 
         return inventories;
+    }
+
+    private static void AssignPreferredLocations(
+        IReadOnlyList<Product> products,
+        IReadOnlyList<Location> locations,
+        Random random)
+    {
+        var locationsByZone = locations
+            .GroupBy(l => l.TemperatureZone)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        // Tracks how many products have claimed each location as preferred.
+        var preferredCountByLocation = locations.ToDictionary(l => l.Id, _ => 0);
+
+        foreach (var product in products)
+        {
+            var candidates = locationsByZone[product.RequiredTemperatureZone]
+                .Where(l => preferredCountByLocation[l.Id] < MaxProductsPerPreferredLocation)
+                .ToList();
+
+            // Shuffle so each product gets a varied assignment.
+            for (var i = candidates.Count - 1; i > 0; i--)
+            {
+                var j = random.Next(i + 1);
+                (candidates[i], candidates[j]) = (candidates[j], candidates[i]);
+            }
+
+            var picked = candidates.Take(PreferredLocationsPerProduct).ToList();
+
+            product.SetPreferredLocations(picked.Select(l => l.Id));
+
+            foreach (var location in picked)
+                preferredCountByLocation[location.Id]++;
+        }
     }
 
     private static IEnumerable<Location> PickDistinct(

@@ -20,7 +20,7 @@ internal sealed class NearestEmptyAllocationStrategy : IPutawayAllocationStrateg
                 l.IsActive &&
                 !l.IsBlocked &&
                 l.TemperatureZone == product.RequiredTemperatureZone &&
-                context.ContentsAt(l.Id).Count == 0)
+                context.ContentsAt(l.Id).Sum(i => i.OnHand.Value) < l.Capacity.MaxUnits)
             .OrderBy(l => l.Address.Zone)
             .ThenBy(l => l.Address.Aisle)
             .ThenBy(l => l.Address.Rack)

@@ -78,6 +78,9 @@ public sealed class ListLocationsQueryHandler(IAppDbContext context)
                 l.Type,
                 l.TemperatureZone,
                 l.Capacity.MaxUnits,
+                context.Inventories
+                    .Where(i => i.LocationId == l.Id)
+                    .Sum(i => i.OnHand.Value),
                 l.IsMixedSkuAllowed,
                 l.IsMixedLotAllowed,
                 l.IsActive,

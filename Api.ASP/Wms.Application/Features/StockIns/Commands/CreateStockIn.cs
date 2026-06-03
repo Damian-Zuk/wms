@@ -4,7 +4,7 @@ using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
 using Wms.Application.Putaway;
 using Wms.Domain.Entities;
-using Wms.Domain.Enums;
+using Wms.Domain.Models;
 using Wms.Domain.Errors;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
@@ -87,7 +87,7 @@ public sealed class CreateStockInCommandHandler(IAppDbContext context, IPutawayP
                 line.ProductId,
                 line.LotId,
                 new Quantity(line.Quantity),
-                allocations.Select(a => (a.LocationId, a.Quantity, a.Strategy)));
+                allocations);
 
             if (result.IsFailure)
                 return Result.Failure<Guid>(result.Error);

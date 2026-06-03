@@ -22,6 +22,7 @@ public sealed record LocationDto(
     LocationType Type,
     TemperatureZone TemperatureZone,
     int? Capacity,
+    int Occupancy,
     bool IsMixedSkuAllowed,
     bool IsMixedLotAllowed,
     bool IsActive,
@@ -52,6 +53,9 @@ public sealed class GetLocationQueryHandler(IAppDbContext context)
                 l.Type,
                 l.TemperatureZone,
                 l.Capacity.MaxUnits,
+                context.Inventories
+                    .Where(i => i.LocationId == l.Id)
+                    .Sum(i => i.OnHand.Value),
                 l.IsMixedSkuAllowed,
                 l.IsMixedLotAllowed,
                 l.IsActive,

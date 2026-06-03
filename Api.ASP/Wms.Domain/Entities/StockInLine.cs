@@ -1,5 +1,6 @@
 using Wms.Domain.Enums;
 using Wms.Domain.Errors;
+using Wms.Domain.Models;
 using Wms.Domain.Primitives;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
@@ -39,16 +40,14 @@ public class StockInLine : Entity
     /// Sets the placements produced by the putaway planner (each carrying the strategy
     /// that picked it). Enforces the sum-equals-requested invariant.
     /// </summary>
-    public Result SetPlacements(IEnumerable<(Guid LocationId, int Quantity, PutawayStrategyType Strategy)> placements)
+    public Result SetPlacements(IReadOnlyList<PlacementAllocation> placements)
     {
-        var list = placements.ToList();
-
-        var validation = ValidatePlacements(list.Select(p => (p.LocationId, p.Quantity)));
+        var validation = ValidatePlacements(placements);
         if (validation.IsFailure)
             return validation;
 
         _items.Clear();
-        foreach (var p in list)
+        foreach (var p in placements)
             _items.Add(new StockInItem(p.LocationId, new Quantity(p.Quantity), p.Strategy));
 
         return Result.Success();
@@ -60,30 +59,30 @@ public class StockInLine : Entity
     /// </summary>
     public Result ReplacePlacementsManual(IEnumerable<(Guid LocationId, int Quantity)> placements)
     {
-        var list = placements.ToList();
+        var validation = ValidatePlacements(
+            placements.Select(p => new PlacementAllocation(
+                p.LocationId, p.Quantity, PutawayStrategyType.Manual)
+            ).ToList());
 
-        var validation = ValidatePlacements(list);
         if (validation.IsFailure)
             return validation;
 
         _items.Clear();
-        foreach (var p in list)
+        foreach (var p in placements)
             _items.Add(new StockInItem(p.LocationId, new Quantity(p.Quantity), PutawayStrategyType.Manual));
 
         return Result.Success();
     }
 
-    private Result ValidatePlacements(IEnumerable<(Guid LocationId, int Quantity)> placements)
+    private Result ValidatePlacements(IReadOnlyList<PlacementAllocation> placements)
     {
-        var list = placements.ToList();
-
-        if (list.Count == 0)
+        if (placements.Count == 0)
             return StockInErrors.PlacementsRequired();
 
-        if (list.Any(p => p.Quantity <= 0))
+        if (placements.Any(p => p.Quantity <= 0))
             return StockInErrors.PlacementQuantityMustBePositive();
 
-        var total = list.Sum(p => p.Quantity);
+        var total = placements.Sum(p => p.Quantity);
         if (total != Quantity.Value)
             return StockInErrors.PlacementsDoNotMatchLineTotal(ProductId, Quantity.Value, total);
 

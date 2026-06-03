@@ -1,6 +1,6 @@
 using Wms.Domain.Enums;
 
-namespace Wms.Application.Putaway;
+namespace Wms.Domain.Models;
 
 /// <summary>
 /// One planned placement: how much of a stock-in line to put into a location,

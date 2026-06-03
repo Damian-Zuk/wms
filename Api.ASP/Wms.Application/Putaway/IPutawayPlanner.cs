@@ -1,5 +1,6 @@
 using Wms.Domain.Entities;
 using Wms.Domain.ValueObjects;
+using Wms.Domain.Models;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Putaway;

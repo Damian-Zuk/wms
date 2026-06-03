@@ -54,7 +54,7 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
                     l.ProductId,
                     l.LotId,
                     Quantity = l.Quantity.Value,
-                    Items = l.Items.Select(i => new
+                    Items = l.Items.OrderBy(i => i.Strategy).Select(i => new
                     {
                         i.Id,
                         i.LocationId,
