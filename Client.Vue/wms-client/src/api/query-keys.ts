@@ -36,4 +36,8 @@ export const qk = {
     list: (filters: StockInFilters) => ['stock-ins', 'list', filters] as const,
     detail: (id: string) => ['stock-ins', 'detail', id] as const,
   },
+  users: {
+    all: ['users'] as const,
+    list: () => ['users', 'list'] as const,
+  },
 }

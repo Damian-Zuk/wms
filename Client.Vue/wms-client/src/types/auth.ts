@@ -14,6 +14,19 @@ export interface LoginRequest {
   password: string
 }
 
+export interface RegisterRequest {
+  email: string
+  userName: string
+  password: string
+  firstName: string
+  lastName: string
+  role: Role
+}
+
+export interface ChangePasswordRequest {
+  newPassword: string
+}
+
 export interface LoginResponse {
   token: string
   /** ISO 8601 timestamp */

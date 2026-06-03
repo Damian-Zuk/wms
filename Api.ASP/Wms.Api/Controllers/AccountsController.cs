@@ -74,6 +74,68 @@ public class AccountsController : ControllerBase
         return Created($"/api/accounts/{user.Id}", userDto);
     }
 
+    // GET /api/accounts
+    [Authorize(Roles = "Admin")]
+    [HttpGet]
+    public async Task<IActionResult> ListUsers()
+    {
+        var users = _userManager.Users
+            .OrderBy(u => u.UserName)
+            .ToList();
+
+        var result = new List<UserDto>(users.Count);
+        foreach (var user in users)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            result.Add(new UserDto(
+                user.Id, user.Email!, user.UserName!,
+                user.FirstName, user.LastName, roles));
+        }
+
+        return Ok(result);
+    }
+
+    // PUT /api/accounts/{id}/password
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id}/password")]
+    public async Task<IActionResult> ChangePassword(
+        [FromRoute] string id, [FromBody] ChangePasswordRequest request)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user is null)
+            return NotFound(new { message = "User not found." });
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
+
+        if (!result.Succeeded)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+
+        return NoContent();
+    }
+
+    // DELETE /api/accounts/{id}
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUser([FromRoute] string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user is null)
+            return NotFound(new { message = "User not found." });
+
+        // Prevent an admin from deleting their own account.
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (user.Id == currentUserId)
+            return BadRequest(new { message = "You cannot delete your own account." });
+
+        var result = await _userManager.DeleteAsync(user);
+
+        if (!result.Succeeded)
+            return BadRequest(new { errors = result.Errors.Select(e => e.Description) });
+
+        return NoContent();
+    }
+
     // GET /api/accounts/me
     [HttpGet("me")]
     public async Task<IActionResult> Me()

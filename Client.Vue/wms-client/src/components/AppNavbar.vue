@@ -15,13 +15,23 @@ const displayName = computed(() => {
   return full || auth.user.userName
 })
 
-const menuItems = [
+const menuItems = computed(() => [
+  ...(auth.hasRole('Admin')
+    ? [
+        {
+          label: 'Admin panel',
+          icon: 'pi pi-shield',
+          command: () => router.push({ name: 'admin' }),
+        },
+        { separator: true },
+      ]
+    : []),
   {
     label: 'Logout',
     icon: 'pi pi-sign-out',
     command: () => onLogout(),
   },
-]
+])
 
 function toggleMenu(event: Event) {
   menu.value?.toggle(event)

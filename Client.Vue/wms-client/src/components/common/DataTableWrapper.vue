@@ -10,6 +10,7 @@ withDefaults(
     loading?: boolean
     dataKey?: string
     rowsPerPageOptions?: number[]
+    paginate?: boolean
   }>(),
   {
     totalCount: 0,
@@ -18,6 +19,7 @@ withDefaults(
     loading: false,
     dataKey: 'id',
     rowsPerPageOptions: () => [10, 20, 50],
+    paginate: true,
   },
 )
 
@@ -42,8 +44,8 @@ function onRowClick(event: { data: T }) {
     :value="items"
     :data-key="dataKey"
     :loading="loading"
-    lazy
-    paginator
+    :lazy="paginate"
+    :paginator="paginate"
     :rows="pageSize"
     :first="(page - 1) * pageSize"
     :total-records="totalCount"

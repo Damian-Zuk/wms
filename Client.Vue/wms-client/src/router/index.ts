@@ -107,6 +107,12 @@ const router = createRouter({
       component: () => import('@/features/stock-ins/StockInsView.vue'),
     },
     {
+      path: '/admin',
+      name: 'admin',
+      component: () => import('@/features/admin/AdminPanelView.vue'),
+      meta: { requiresAdmin: true },
+    },
+    {
       path: '/stock-ins/new',
       name: 'stock-in-create',
       component: () => import('@/features/stock-ins/StockInCreateView.vue'),
@@ -134,6 +140,11 @@ router.beforeEach((to) => {
   // Routes that perform mutations require Admin/Manager.
   if (to.meta.requiresMutate && !auth.canMutate) {
     return { name: 'products' }
+  }
+
+  // Admin-only routes (e.g. the admin panel).
+  if (to.meta.requiresAdmin && !auth.hasRole('Admin')) {
+    return { name: 'dashboard' }
   }
 
   return true
