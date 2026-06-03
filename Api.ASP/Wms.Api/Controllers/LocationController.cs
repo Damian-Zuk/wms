@@ -1,10 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Models;
-using Wms.Application.Features.Locations.Commands;
-using Wms.Application.Features.Locations.Queries;
+using Wms.Application.Handlers.Locations.Commands;
+using Wms.Application.Handlers.Locations.Queries;
 using Wms.Domain.Enums;
 using Wms.Shared.Common;
 

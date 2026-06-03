@@ -1,0 +1,96 @@
+using FluentValidation;
+using Microsoft.EntityFrameworkCore;
+using Wms.Application.Common.Data;
+using Wms.Application.Common.Messaging;
+using Wms.Application.Common.Models;
+using Wms.Application.Refs;
+using Wms.Domain.Enums;
+using Wms.Shared.Common;
+
+namespace Wms.Application.Handlers.StockMovements.Queries;
+
+public sealed record ListStockMovementsQuery(
+    Guid? ProductId,
+    Guid? LocationId,
+    Guid? LotId,
+    StockMovementType? Type,
+    StockMovementSource? Source,
+    int Page = 1,
+    int PageSize = 20) : IQuery<PagedResult<StockMovementDto>>;
+
+public sealed class ListStockMovementsValidator : AbstractValidator<ListStockMovementsQuery>
+{
+    public ListStockMovementsValidator()
+    {
+        RuleFor(x => x.Page).GreaterThan(0).WithMessage("Page must be greater than 0");
+        RuleFor(x => x.PageSize).InclusiveBetween(1, 100).WithMessage("Page size must be between 1 and 100");
+    }
+}
+
+public sealed class ListStockMovementsQueryHandler(IAppDbContext context)
+    : IQueryHandler<ListStockMovementsQuery, PagedResult<StockMovementDto>>
+{
+    public async Task<Result<PagedResult<StockMovementDto>>> Handle(
+        ListStockMovementsQuery query,
+        CancellationToken cancellationToken)
+    {
+        var movementsQuery = context.StockMovements.AsNoTracking().AsQueryable();
+
+        if (query.ProductId.HasValue)
+            movementsQuery = movementsQuery.Where(m => m.ProductId == query.ProductId.Value);
+
+        if (query.LocationId.HasValue)
+            movementsQuery = movementsQuery.Where(m => m.LocationId == query.LocationId.Value);
+
+        if (query.LotId.HasValue)
+            movementsQuery = movementsQuery.Where(m => m.LotId == query.LotId.Value);
+
+        if (query.Type.HasValue)
+            movementsQuery = movementsQuery.Where(m => m.Type == query.Type.Value);
+
+        if (query.Source.HasValue)
+            movementsQuery = movementsQuery.Where(m => m.Source == query.Source.Value);
+
+        var totalCount = await movementsQuery.CountAsync(cancellationToken);
+
+        var page = await movementsQuery
+            .OrderByDescending(m => m.CreatedAt)
+            .Skip((query.Page - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(m => new
+            {
+                m.Id,
+                m.ProductId,
+                m.LocationId,
+                m.LotId,
+                m.QuantityChange,
+                m.Type,
+                m.Source,
+                m.SourceId,
+                m.CreatedAt
+            })
+            .ToListAsync(cancellationToken);
+
+        var productIds = page.Select(m => m.ProductId).Distinct().ToList();
+        var locationIds = page.Select(m => m.LocationId).Distinct().ToList();
+        var lotIds = page.Where(m => m.LotId.HasValue).Select(m => m.LotId!.Value).Distinct().ToList();
+
+        var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
+        var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
+        var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
+
+        var items = page.Select(m => new StockMovementDto(
+                m.Id,
+                products[m.ProductId],
+                locations[m.LocationId],
+                m.LotId.HasValue ? lots[m.LotId.Value] : null,
+                m.QuantityChange,
+                m.Type,
+                m.Source,
+                m.SourceId,
+                m.CreatedAt))
+            .ToList();
+
+        return new PagedResult<StockMovementDto>(items, query.Page, query.PageSize, totalCount);
+    }
+}

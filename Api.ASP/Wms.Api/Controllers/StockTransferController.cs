@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Common.Messaging;
-using Wms.Application.Features.StockTransfers.Commands;
+using Wms.Application.Handlers.StockTransfers.Commands;
 using Wms.Shared.Common;
 
 namespace Wms.Api.Controllers;

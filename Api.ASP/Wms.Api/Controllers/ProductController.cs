@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Models;
-using Wms.Application.Features.Products.Commands;
-using Wms.Application.Features.Products.Queries;
+using Wms.Application.Handlers.Products.Commands;
+using Wms.Application.Handlers.Products.Queries;
 using Wms.Domain.Enums;
 using Wms.Shared.Common;
 

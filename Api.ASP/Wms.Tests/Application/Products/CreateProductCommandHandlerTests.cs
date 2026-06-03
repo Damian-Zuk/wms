@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Features.Products.Commands;
+using Wms.Application.Handlers.Products.Commands;
 using Wms.Domain.Enums;
 using Wms.Tests.Common;
 using Xunit;

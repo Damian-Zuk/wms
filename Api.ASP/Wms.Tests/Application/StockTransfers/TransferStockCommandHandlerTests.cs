@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Features.StockTransfers.Commands;
+using Wms.Application.Handlers.StockTransfers.Commands;
 using Wms.Domain.Enums;
 using Wms.Tests.Common;
 using Xunit;

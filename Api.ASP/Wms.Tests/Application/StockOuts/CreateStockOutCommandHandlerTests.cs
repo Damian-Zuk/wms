@@ -1,7 +1,7 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Allocations;
-using Wms.Application.Features.StockOuts.Commands;
+using Wms.Application.Handlers.StockOuts.Commands;
 using Wms.Domain.Enums;
 using Wms.Tests.Common;
 using Xunit;

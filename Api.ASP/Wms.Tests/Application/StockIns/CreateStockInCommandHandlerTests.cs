@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Features.StockIns.Commands;
+using Wms.Application.Handlers.StockIns.Commands;
 using Wms.Application.Putaway;
 using Wms.Application.Putaway.Strategies;
 using Wms.Domain.Entities;

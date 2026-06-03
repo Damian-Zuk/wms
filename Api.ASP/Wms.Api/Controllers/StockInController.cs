@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Models;
-using Wms.Application.Features.StockIns.Commands;
-using Wms.Application.Features.StockIns.Queries;
+using Wms.Application.Handlers.StockIns.Commands;
+using Wms.Application.Handlers.StockIns.Queries;
 using Wms.Shared.Common;
 
 namespace Wms.Api.Controllers;

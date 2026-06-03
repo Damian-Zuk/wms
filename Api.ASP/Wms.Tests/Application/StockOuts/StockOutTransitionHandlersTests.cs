@@ -1,6 +1,6 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Features.StockOuts.Commands;
+using Wms.Application.Handlers.StockOuts.Commands;
 using Wms.Domain.Entities;
 using Wms.Domain.Enums;
 using Wms.Domain.ValueObjects;
