@@ -6,12 +6,14 @@ import {
   useQueryClient,
 } from '@tanstack/vue-query'
 import { inventoryApi } from '@/api/endpoints/inventory'
+import { stockTransfersApi } from '@/api/endpoints/stock-transfers'
 import { qk } from '@/api/query-keys'
 import type {
   AdjustInventoryRequest,
   AvailabilityParams,
   InventoryFilters,
 } from '@/types/inventory'
+import type { TransferStockRequest } from '@/types/stock-transfers'
 
 // Inventory is correctness-critical: never serve stale on-hand/available
 // numbers. staleTime 0 forces a refetch whenever a view mounts/refocuses.
@@ -57,8 +59,17 @@ export function useAdjustInventory() {
     mutationFn: (vars: { id: string; body: AdjustInventoryRequest }) =>
       inventoryApi.adjust(vars.id, vars.body),
     onSuccess: () => {
-      // Adjusting changes stock everywhere — invalidate all inventory views
-      // (list, detail, availability, expiring) under the shared prefix.
+      void qc.invalidateQueries({ queryKey: qk.inventories.all })
+    },
+  })
+}
+
+export function useTransferStock() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: TransferStockRequest) => stockTransfersApi.create(body),
+    onSuccess: () => {
+
       void qc.invalidateQueries({ queryKey: qk.inventories.all })
     },
   })

@@ -8,6 +8,7 @@ import ProductSelect from '@/components/pickers/ProductSelect.vue'
 import LocationSelect from '@/components/pickers/LocationSelect.vue'
 import InventoryTabs from './InventoryTabs.vue'
 import AdjustInventoryDialog from './AdjustInventoryDialog.vue'
+import TransferStockDialog from './TransferStockDialog.vue'
 import { useInventories } from './useInventory'
 import { useAuthStore } from '@/stores/auth'
 import type { InventoryDto, InventoryFilters } from '@/types/inventory'
@@ -23,6 +24,9 @@ const { data, isFetching } = useInventories(filters)
 
 const adjustVisible = ref(false)
 const adjustTarget = ref<InventoryDto | null>(null)
+
+const transferVisible = ref(false)
+const transferTarget = ref<InventoryDto | null>(null)
 
 function onProductChange(value: string | null) {
   filters.value = { ...filters.value, productId: value ?? undefined, page: 1 }
@@ -47,6 +51,11 @@ function openDetail(row: InventoryDto) {
 function openAdjust(row: InventoryDto) {
   adjustTarget.value = row
   adjustVisible.value = true
+}
+
+function openTransfer(row: InventoryDto) {
+  transferTarget.value = row
+  transferVisible.value = true
 }
 </script>
 
@@ -109,20 +118,31 @@ function openAdjust(row: InventoryDto) {
           <span class="font-semibold">{{ row.available }}</span>
         </template>
       </Column>
-      <Column v-if="auth.canMutate" header="" style="width: 7rem">
+      <Column v-if="auth.canMutate" header="" style="width: 13rem">
         <template #body="{ data: row }: { data: InventoryDto }">
-          <Button
-            label="Adjust"
-            icon="pi pi-sliders-h"
-            size="small"
-            severity="secondary"
-            outlined
-            @click.stop="openAdjust(row)"
-          />
+          <div class="flex gap-2">
+            <Button
+              label="Adjust"
+              icon="pi pi-sliders-h"
+              size="small"
+              severity="secondary"
+              outlined
+              @click.stop="openAdjust(row)"
+            />
+            <Button
+              label="Transfer"
+              icon="pi pi-arrow-right-arrow-left"
+              size="small"
+              severity="secondary"
+              outlined
+              @click.stop="openTransfer(row)"
+            />
+          </div>
         </template>
       </Column>
     </DataTableWrapper>
 
     <AdjustInventoryDialog v-model:visible="adjustVisible" :inventory="adjustTarget" />
+    <TransferStockDialog v-model:visible="transferVisible" :inventory="transferTarget" />
   </section>
 </template>

@@ -6,6 +6,7 @@ import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import PageHeader from '@/components/common/PageHeader.vue'
 import AdjustInventoryDialog from './AdjustInventoryDialog.vue'
+import TransferStockDialog from './TransferStockDialog.vue'
 import { useInventory } from './useInventory'
 import { useAuthStore } from '@/stores/auth'
 
@@ -17,6 +18,7 @@ const id = computed(() => route.params.id as string)
 const { data: inventory, isLoading, isError, error } = useInventory(id)
 
 const adjustVisible = ref(false)
+const transferVisible = ref(false)
 </script>
 
 <template>
@@ -38,6 +40,13 @@ const adjustVisible = ref(false)
           label="Adjust"
           icon="pi pi-sliders-h"
           @click="adjustVisible = true"
+        />
+
+        <Button
+          v-if="auth.canMutate && inventory"
+          label="Transfer"
+          icon="pi pi-arrow-right-arrow-left"
+          @click="transferVisible = true"
         />
       </template>
     </PageHeader>
@@ -104,5 +113,6 @@ const adjustVisible = ref(false)
     </template>
 
     <AdjustInventoryDialog v-model:visible="adjustVisible" :inventory="inventory ?? null" />
+    <TransferStockDialog v-model:visible="transferVisible" :inventory="inventory ?? null" />
   </section>
 </template>
