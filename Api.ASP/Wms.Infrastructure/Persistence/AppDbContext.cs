@@ -23,6 +23,7 @@ public class AppDbContext(
     public DbSet<StockInItem> StockInItems => Set<StockInItem>();
     public DbSet<CapacityReservation> CapacityReservations => Set<CapacityReservation>();
     public DbSet<StockOut> StockOuts => Set<StockOut>();
+    public DbSet<StockOutLine> StockOutLines => Set<StockOutLine>();
     public DbSet<StockOutItem> StockOutItems => Set<StockOutItem>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
 

@@ -11,8 +11,8 @@ public sealed record StartPickingStockOutCommand(Guid Id) : ICommand;
 /// <summary>
 /// Transitions a Draft stock-out into Picking. The reservation against
 /// inventory was already established by CreateStockOut, so this handler
-/// touches nothing physical — it only flips the status. Physical removal
-/// happens at Pack.
+/// touches nothing physical — it only flips the status. Stock is removed
+/// incrementally as each item is picked.
 /// </summary>
 public sealed class StartPickingStockOutCommandHandler(IAppDbContext context)
     : ICommandHandler<StartPickingStockOutCommand>

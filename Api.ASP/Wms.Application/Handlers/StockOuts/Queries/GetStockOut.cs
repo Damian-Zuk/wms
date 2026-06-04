@@ -10,17 +10,26 @@ namespace Wms.Application.Handlers.StockOuts.Queries;
 
 public sealed record StockOutItemDto(
     Guid Id,
-    ProductRef Product,
     LocationRef Location,
     LotRef? Lot,
-    int Quantity);
+    int Quantity,
+    int PickedQuantity,
+    PickingStrategyType Strategy);
+
+public sealed record StockOutLineDto(
+    Guid Id,
+    ProductRef Product,
+    PickingStrategyType Strategy,
+    int Quantity,
+    IReadOnlyList<StockOutItemDto> Items);
 
 public sealed record StockOutDto(
     Guid Id,
     StockOutStatus Status,
+    StockOutStatus? CancelledFrom,
     DateTime CreatedAt,
     string? CreatedBy,
-    IReadOnlyList<StockOutItemDto> Items);
+    IReadOnlyList<StockOutLineDto> Lines);
 
 public sealed record GetStockOutQuery(Guid Id) : IQuery<StockOutDto>;
 
@@ -31,21 +40,29 @@ public sealed class GetStockOutQueryHandler(IAppDbContext context)
     {
         var stockOut = await context.StockOuts
             .AsNoTracking()
-            .Include(s => s.Items)
             .Where(s => s.Id == query.Id)
             .Select(s => new
             {
                 s.Id,
                 s.Status,
+                s.CancelledFrom,
                 s.CreatedAt,
                 s.CreatedBy,
-                Items = s.Items.Select(i => new
+                Lines = s.Lines.Select(l => new
                 {
-                    i.Id,
-                    i.ProductId,
-                    i.LocationId,
-                    i.LotId,
-                    Quantity = i.Quantity.Value
+                    l.Id,
+                    l.ProductId,
+                    l.Strategy,
+                    Quantity = l.Quantity.Value,
+                    Items = l.Items.Select(i => new
+                    {
+                        i.Id,
+                        i.LocationId,
+                        i.LotId,
+                        Quantity = i.Quantity.Value,
+                        PickedQuantity = i.PickedQuantity.Value,
+                        i.Strategy
+                    }).ToList()
                 }).ToList()
             })
             .FirstOrDefaultAsync(cancellationToken);
@@ -53,28 +70,38 @@ public sealed class GetStockOutQueryHandler(IAppDbContext context)
         if (stockOut is null)
             return StockOutErrors.NotFound(query.Id);
 
-        var productIds = stockOut.Items.Select(i => i.ProductId).Distinct().ToList();
-        var locationIds = stockOut.Items.Select(i => i.LocationId).Distinct().ToList();
-        var lotIds = stockOut.Items.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
+        var productIds = stockOut.Lines.Select(l => l.ProductId).Distinct().ToList();
+        var items = stockOut.Lines.SelectMany(l => l.Items).ToList();
+        var locationIds = items.Select(i => i.LocationId).Distinct().ToList();
+        var lotIds = items.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
 
         var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
         var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
         var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
 
-        var items = stockOut.Items
-            .Select(i => new StockOutItemDto(
-                i.Id,
-                products[i.ProductId],
-                locations[i.LocationId],
-                i.LotId.HasValue ? lots[i.LotId.Value] : null,
-                i.Quantity))
+        var lines = stockOut.Lines
+            .Select(l => new StockOutLineDto(
+                l.Id,
+                products[l.ProductId],
+                l.Strategy,
+                l.Quantity,
+                l.Items
+                    .Select(i => new StockOutItemDto(
+                        i.Id,
+                        locations[i.LocationId],
+                        i.LotId.HasValue ? lots[i.LotId.Value] : null,
+                        i.Quantity,
+                        i.PickedQuantity,
+                        i.Strategy))
+                    .ToList()))
             .ToList();
 
         return new StockOutDto(
             stockOut.Id,
             stockOut.Status,
+            stockOut.CancelledFrom,
             stockOut.CreatedAt,
             stockOut.CreatedBy,
-            items);
+            lines);
     }
 }

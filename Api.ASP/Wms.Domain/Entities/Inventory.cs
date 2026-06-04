@@ -21,6 +21,8 @@ public class Inventory : Entity
     /// <summary>Units that can still be promised.</summary>
     public Quantity Available => new(OnHand.Value - Reserved.Value);
 
+    public DateTime? ReceivedAt { get; private set; }
+
     private Inventory() { }
 
     public Inventory(Guid productId, Guid locationId, Guid? lotId = null)
@@ -34,12 +36,24 @@ public class Inventory : Entity
     }
 
     /// <summary>
-    /// Adds physical stock. Used by stock-in receive and by cancel-after-pick
-    /// return-to-stock. Does not touch Reserved.
+    /// Adds physical stock. Used by cancel-after-pick return-to-stock. Does not
+    /// touch Reserved or <see cref="ReceivedAt"/>.
     /// </summary>
     public void Increase(Quantity qty)
     {
         OnHand = OnHand.Add(qty);
+    }
+
+    /// <summary>
+    /// Receives physical stock from a putaway. Adds to OnHand and stamps
+    /// <see cref="ReceivedAt"/> on the first receipt into this location+lot bucket
+    /// (later top-ups keep the original date so FIFO ages by the oldest units).
+    /// Does not touch Reserved.
+    /// </summary>
+    public void Receive(Quantity qty, DateTime receivedAt)
+    {
+        OnHand = OnHand.Add(qty);
+        ReceivedAt ??= receivedAt;
     }
 
     /// <summary>

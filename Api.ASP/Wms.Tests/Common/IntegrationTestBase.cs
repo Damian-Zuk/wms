@@ -24,6 +24,7 @@ public abstract class IntegrationTestBase : IAsyncLifetime
         "StockInItems",
         "StockInLines",
         "StockOutItems",
+        "StockOutLines",
         "StockIns",
         "StockOuts",
         "Inventories",

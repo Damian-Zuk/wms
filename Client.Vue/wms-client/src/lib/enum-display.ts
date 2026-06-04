@@ -1,7 +1,9 @@
 import type {
   LocationType,
+  PickingStrategyType,
   PutawayStrategyType,
   StockInStatus,
+  StockOutStatus,
   TemperatureZone,
 } from '@/types/enums'
 
@@ -50,4 +52,21 @@ export const putawayStrategySeverity: Record<PutawayStrategyType, TagSeverity> =
   NearestAvailable: 'warn',
   Proximity: 'info',
   Manual: 'contrast',
+}
+
+export const stockOutStatusSeverity: Record<StockOutStatus, TagSeverity> = {
+  Draft: 'secondary',
+  Picking: 'info',
+  Completed: 'success',
+  Cancelled: 'danger',
+}
+
+export const pickingStrategyLabel: Record<PickingStrategyType, string> = {
+  Fefo: 'FEFO (earliest expiry)',
+  Fifo: 'FIFO (oldest first)',
+}
+
+export const pickingStrategySeverity: Record<PickingStrategyType, TagSeverity> = {
+  Fefo: 'info',
+  Fifo: 'warn',
 }

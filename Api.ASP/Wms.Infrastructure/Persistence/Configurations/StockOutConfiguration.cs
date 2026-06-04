@@ -16,13 +16,16 @@ public class StockOutConfiguration : EntityConfiguration<StockOut>
             .HasConversion<int>()
             .IsRequired();
 
-        builder.HasMany(s => s.Items)
+        builder.Property(s => s.CancelledFrom)
+            .HasConversion<int?>();
+
+        builder.HasMany(s => s.Lines)
             .WithOne()
             .HasForeignKey("StockOutId")
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Navigation(s => s.Items)
+        builder.Navigation(s => s.Lines)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.Property<uint>("xmin").IsRowVersion();

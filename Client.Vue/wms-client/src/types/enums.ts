@@ -4,13 +4,7 @@ export type LocationType = 'Storage' | 'Quarantine' | 'Returns'
 
 export type StockInStatus = 'Draft' | 'Putaway' | 'Completed' | 'Cancelled'
 
-export type StockOutStatus =
-  | 'Draft'
-  | 'Picking'
-  | 'Packed'
-  | 'Shipped'
-  | 'Completed'
-  | 'Cancelled'
+export type StockOutStatus = 'Draft' | 'Picking' | 'Completed' | 'Cancelled'
 
 export type PutawayStrategyType =
   | 'PreferredLocation'
@@ -20,6 +14,8 @@ export type PutawayStrategyType =
   | 'NearestAvailable'
   | 'Proximity'
   | 'Manual'
+
+export type PickingStrategyType = 'Fefo' | 'Fifo'
 
 export type StockMovementType = 'In' | 'Out'
 

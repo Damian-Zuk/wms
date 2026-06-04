@@ -14,6 +14,8 @@ public sealed class CompleteStockOutCommandHandler(IAppDbContext context)
     public async Task<Result> Handle(CompleteStockOutCommand command, CancellationToken cancellationToken)
     {
         var stockOut = await context.StockOuts
+            .Include(s => s.Lines)
+            .ThenInclude(l => l.Items)
             .FirstOrDefaultAsync(s => s.Id == command.Id, cancellationToken);
 
         if (stockOut is null)

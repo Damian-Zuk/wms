@@ -1,5 +1,6 @@
 using Wms.Domain.Entities;
 using Wms.Domain.Enums;
+using Wms.Domain.Models;
 using Wms.Domain.ValueObjects;
 
 namespace Wms.Tests.Common;
@@ -64,12 +65,16 @@ public static class TestData
         Guid productId,
         Guid locationId,
         Guid? lotId = null,
-        int onHand = 0)
+        int onHand = 0,
+        DateTime? receivedAt = null)
     {
         var inv = new Inventory(productId, locationId, lotId);
         if (onHand > 0)
         {
-            inv.Increase(new Quantity(onHand));
+            if (receivedAt.HasValue)
+                inv.Receive(new Quantity(onHand), receivedAt.Value);
+            else
+                inv.Increase(new Quantity(onHand));
         }
         return inv;
     }
@@ -93,6 +98,27 @@ public static class TestData
             new Quantity(quantity),
             [new(locationId, quantity, strategy)]);
         return stockIn;
+    }
+
+    /// <summary>
+    /// A StockOut with a single line whose quantity is drawn entirely from one
+    /// location (and lot). Keeps the arrange-block short for tests that only care
+    /// about a one-line, one-allocation pick.
+    /// </summary>
+    public static StockOut StockOut(
+        Guid productId,
+        Guid locationId,
+        int quantity,
+        Guid? lotId = null,
+        PickingStrategyType strategy = PickingStrategyType.Fefo)
+    {
+        var stockOut = new StockOut(Guid.NewGuid());
+        stockOut.AddLineWithAllocations(
+            productId,
+            strategy,
+            new Quantity(quantity),
+            [new PickAllocation(locationId, lotId, quantity, strategy)]);
+        return stockOut;
     }
 
     /// <summary>

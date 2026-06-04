@@ -1,76 +1,78 @@
 using Microsoft.EntityFrameworkCore;
-using Wms.Domain.Enums;
+using Wms.Application.Common.Data;
+using Wms.Application.Common.Messaging;
+using Wms.Application.Extensions;
 using Wms.Domain.Entities;
 using Wms.Domain.Errors;
+using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
-using Wms.Application.Extensions;
-using Wms.Application.Common.Messaging;
-using Wms.Application.Common.Data;
 
 namespace Wms.Application.Handlers.StockOuts.Commands;
 
 public sealed record CancelStockOutCommand(Guid Id) : ICommand;
 
+/// <summary>
+/// Cancels a stock-out (Draft or Picking only). For every item it releases the
+/// still-reserved remainder, and — when cancelling from Picking — returns the
+/// already-picked units to stock (the domain raises the return-to-stock event that
+/// writes the StockMovement(In) audit row).
+/// </summary>
 public sealed class CancelStockOutCommandHandler(IAppDbContext context)
     : ICommandHandler<CancelStockOutCommand>
 {
     public async Task<Result> Handle(CancelStockOutCommand command, CancellationToken cancellationToken)
     {
         var stockOut = await context.StockOuts
-            .Include(s => s.Items)
+            .Include(s => s.Lines)
+            .ThenInclude(l => l.Items)
             .FirstOrDefaultAsync(s => s.Id == command.Id, cancellationToken);
 
         if (stockOut is null)
             return StockOutErrors.NotFound(command.Id);
 
-        var statusBeforeCancel = stockOut.Status;
-
         var transition = stockOut.Cancel();
         if (transition.IsFailure)
             return transition;
 
-        var locationIds = stockOut.Items.Select(i => i.LocationId).Distinct().ToList();
-        var productIds = stockOut.Items.Select(i => i.ProductId).Distinct().ToList();
+        var productIds = stockOut.Lines.Select(l => l.ProductId).Distinct().ToList();
+        var locationIds = stockOut.Lines.SelectMany(l => l.Items).Select(i => i.LocationId).Distinct().ToList();
 
         var inventories = await context.Inventories
-            .Where(i => locationIds.Contains(i.LocationId) && productIds.Contains(i.ProductId))
+            .Where(i => productIds.Contains(i.ProductId) && locationIds.Contains(i.LocationId))
             .ToListAsync(cancellationToken);
 
-        // Draft and Picking — reservation exists, no physical removal yet.
-        // Release the reservation (or noop if the row vanished).
-        // Packed — physical stock was removed at Pack; put it back.
-        var releaseOnly = statusBeforeCancel is StockOutStatus.Draft or StockOutStatus.Picking;
-
-        foreach (var item in stockOut.Items)
+        foreach (var line in stockOut.Lines)
         {
-            var inventory = inventories.FirstOrDefault(i =>
-                i.ProductId == item.ProductId
-                && i.LocationId == item.LocationId
-                && i.LotId == item.LotId);
-
-            if (releaseOnly)
+            foreach (var item in line.Items)
             {
-                if (inventory is null)
-                    continue;
+                var inventory = inventories.FirstOrDefault(i =>
+                    i.ProductId == line.ProductId
+                    && i.LocationId == item.LocationId
+                    && i.LotId == item.LotId);
 
-                var release = inventory.ReleaseReservation(item.Quantity);
-                if (release.IsFailure)
-                    return release;
-            }
-            else
-            {
-                if (inventory is null)
+                // Release the reservation on units that were never picked.
+                if (item.Remaining > 0 && inventory is not null)
                 {
-                    inventory = new Inventory(item.ProductId, item.LocationId, item.LotId);
-                    await context.Inventories.AddAsync(inventory, cancellationToken);
-                    inventories.Add(inventory);
+                    var release = inventory.ReleaseReservation(new Quantity(item.Remaining));
+                    if (release.IsFailure)
+                        return release;
                 }
 
-                inventory.Increase(item.Quantity);
+                // Return the already-picked units to stock (recreate the row if it vanished).
+                if (item.PickedQuantity.Value > 0)
+                {
+                    if (inventory is null)
+                    {
+                        inventory = new Inventory(line.ProductId, item.LocationId, item.LotId);
+                        await context.Inventories.AddAsync(inventory, cancellationToken);
+                        inventories.Add(inventory);
+                    }
+
+                    inventory.Increase(new Quantity(item.PickedQuantity.Value));
+                }
             }
         }
 
-        var saveResult = await context.SaveChangesWithConcurrencyCheckAsync(cancellationToken);
-        return saveResult;
+        return await context.SaveChangesWithConcurrencyCheckAsync(cancellationToken);
     }
 }

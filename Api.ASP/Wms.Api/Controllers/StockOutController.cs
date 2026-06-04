@@ -40,17 +40,6 @@ public class StockOutController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
-    [HttpGet("{id:guid}/pick-list")]
-    public async Task<IResult> GetPickList(
-        [FromRoute] Guid id,
-        [FromServices] IQueryHandler<GetPickListQuery, PickListDto> handler,
-        CancellationToken cancellationToken)
-    {
-        var result = await handler.Handle(new GetPickListQuery(id), cancellationToken);
-
-        return result.Match(Results.Ok, CustomResults.Problem);
-    }
-
     [Authorize(Roles = "Admin,Manager")]
     [HttpPost]
     public async Task<IResult> CreateStockOut(
@@ -74,24 +63,17 @@ public class StockOutController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
-    [HttpPost("{id:guid}/pack")]
-    public async Task<IResult> Pack(
+    [HttpPost("{id:guid}/items/{itemId:guid}/pick")]
+    public async Task<IResult> PickItem(
         [FromRoute] Guid id,
-        [FromServices] ICommandHandler<PackStockOutCommand> handler,
+        [FromRoute] Guid itemId,
+        [FromBody] PickStockOutItemRequest request,
+        [FromServices] ICommandHandler<PickStockOutItemCommand> handler,
         CancellationToken cancellationToken)
     {
-        var result = await handler.Handle(new PackStockOutCommand(id), cancellationToken);
-
-        return result.Match(Results.NoContent, CustomResults.Problem);
-    }
-
-    [HttpPost("{id:guid}/ship")]
-    public async Task<IResult> Ship(
-        [FromRoute] Guid id,
-        [FromServices] ICommandHandler<ShipStockOutCommand> handler,
-        CancellationToken cancellationToken)
-    {
-        var result = await handler.Handle(new ShipStockOutCommand(id), cancellationToken);
+        var result = await handler.Handle(
+            new PickStockOutItemCommand(id, itemId, request.Quantity),
+            cancellationToken);
 
         return result.Match(Results.NoContent, CustomResults.Problem);
     }

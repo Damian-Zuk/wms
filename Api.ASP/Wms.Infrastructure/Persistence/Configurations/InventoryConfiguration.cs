@@ -33,6 +33,8 @@ public class InventoryConfiguration : EntityConfiguration<Inventory>
 
         builder.Property(i => i.LotId).IsRequired(false);
 
+        builder.Property(i => i.ReceivedAt).IsRequired(false);
+
         builder.HasOne<Product>()
             .WithMany()
             .HasForeignKey(i => i.ProductId)

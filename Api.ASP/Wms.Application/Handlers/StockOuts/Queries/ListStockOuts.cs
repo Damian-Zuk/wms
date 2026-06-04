@@ -40,21 +40,30 @@ public sealed class ListStockOutsQueryHandler(IAppDbContext context)
             {
                 s.Id,
                 s.Status,
+                s.CancelledFrom,
                 s.CreatedAt,
                 s.CreatedBy,
-                Items = s.Items.Select(i => new
+                Lines = s.Lines.Select(l => new
                 {
-                    i.Id,
-                    i.ProductId,
-                    i.LocationId,
-                    i.LotId,
-                    Quantity = i.Quantity.Value
+                    l.Id,
+                    l.ProductId,
+                    l.Strategy,
+                    Quantity = l.Quantity.Value,
+                    Items = l.Items.Select(i => new
+                    {
+                        i.Id,
+                        i.LocationId,
+                        i.LotId,
+                        Quantity = i.Quantity.Value,
+                        PickedQuantity = i.PickedQuantity.Value,
+                        i.Strategy
+                    }).ToList()
                 }).ToList()
             })
             .ToListAsync(cancellationToken);
 
-        var allItems = page.SelectMany(s => s.Items).ToList();
-        var productIds = allItems.Select(i => i.ProductId).Distinct().ToList();
+        var allItems = page.SelectMany(s => s.Lines).SelectMany(l => l.Items).ToList();
+        var productIds = page.SelectMany(s => s.Lines).Select(l => l.ProductId).Distinct().ToList();
         var locationIds = allItems.Select(i => i.LocationId).Distinct().ToList();
         var lotIds = allItems.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
 
@@ -65,14 +74,23 @@ public sealed class ListStockOutsQueryHandler(IAppDbContext context)
         var items = page.Select(s => new StockOutDto(
                 s.Id,
                 s.Status,
+                s.CancelledFrom,
                 s.CreatedAt,
                 s.CreatedBy,
-                s.Items.Select(i => new StockOutItemDto(
-                        i.Id,
-                        products[i.ProductId],
-                        locations[i.LocationId],
-                        i.LotId.HasValue ? lots[i.LotId.Value] : null,
-                        i.Quantity))
+                s.Lines.Select(l => new StockOutLineDto(
+                        l.Id,
+                        products[l.ProductId],
+                        l.Strategy,
+                        l.Quantity,
+                        l.Items
+                            .Select(i => new StockOutItemDto(
+                                i.Id,
+                                locations[i.LocationId],
+                                i.LotId.HasValue ? lots[i.LotId.Value] : null,
+                                i.Quantity,
+                                i.PickedQuantity,
+                                i.Strategy))
+                            .ToList()))
                     .ToList()))
             .ToList();
 

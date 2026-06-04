@@ -165,8 +165,13 @@ public static class WarehouseSeeder
 
                 var onHand = Math.Min(random.Next(10, 241), available);
 
+                // Stamp the received date from the lot's manufacture date so FIFO picking
+                // has a meaningful age signal on seed data (falls back to now if unset).
+                var receivedAt = lot.ManufactureDate?.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc)
+                    ?? DateTime.UtcNow;
+
                 var inventory = new Inventory(product.Id, location.Id, lot.Id);
-                inventory.Increase(new Quantity(onHand));
+                inventory.Receive(new Quantity(onHand), receivedAt);
                 inventories.Add(inventory);
 
                 remainingCapacity[location.Id] = available - onHand;

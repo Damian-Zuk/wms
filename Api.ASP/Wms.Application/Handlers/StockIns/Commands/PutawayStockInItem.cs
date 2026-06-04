@@ -94,7 +94,7 @@ public sealed class PutawayStockInItemCommandHandler(IAppDbContext context)
             await context.Inventories.AddAsync(inventory, cancellationToken);
         }
 
-        inventory.Increase(quantity);
+        inventory.Receive(quantity, DateTime.UtcNow);
 
         // Release the matching capacity hold by the same amount; drop it once empty.
         var reservation = await context.CapacityReservations

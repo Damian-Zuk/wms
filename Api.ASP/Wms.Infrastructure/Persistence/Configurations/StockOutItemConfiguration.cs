@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Wms.Domain.Entities;
 
@@ -12,21 +12,30 @@ public class StockOutItemConfiguration : EntityConfiguration<StockOutItem>
 
         builder.ToTable("StockOutItems");
 
-        builder.Property<Guid>("StockOutId").IsRequired();
+        builder.Property<Guid>("StockOutLineId")
+            .IsRequired();
 
-        builder.OwnsOne(i => i.Quantity, qtyBuilder =>
+        builder.ComplexProperty(i => i.Quantity, qtyBuilder =>
         {
             qtyBuilder.Property(q => q.Value)
                 .HasColumnName("Quantity")
                 .IsRequired();
         });
 
-        builder.Property(i => i.LotId).IsRequired(false);
+        builder.ComplexProperty(i => i.PickedQuantity, qtyBuilder =>
+        {
+            qtyBuilder.Property(q => q.Value)
+                .HasColumnName("PickedQuantity")
+                .HasDefaultValue(0)
+                .IsRequired();
+        });
 
-        builder.HasOne<Product>()
-            .WithMany()
-            .HasForeignKey(i => i.ProductId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(i => i.Strategy)
+            .HasConversion<int>()
+            .IsRequired();
+
+        builder.Property(i => i.LotId)
+            .IsRequired(false);
 
         builder.HasOne<Location>()
             .WithMany()
@@ -37,5 +46,8 @@ public class StockOutItemConfiguration : EntityConfiguration<StockOutItem>
             .WithMany()
             .HasForeignKey(i => i.LotId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex("StockOutLineId");
+        builder.HasIndex(i => i.LocationId);
     }
 }

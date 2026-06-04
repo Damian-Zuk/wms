@@ -3,6 +3,7 @@ import type { LocationFilters } from '@/types/locations'
 import type { LotFilters } from '@/types/lots'
 import type { AvailabilityParams, InventoryFilters } from '@/types/inventory'
 import type { StockInFilters } from '@/types/stock-ins'
+import type { StockOutFilters } from '@/types/stock-outs'
 
 export const qk = {
   products: {
@@ -35,6 +36,11 @@ export const qk = {
     all: ['stock-ins'] as const,
     list: (filters: StockInFilters) => ['stock-ins', 'list', filters] as const,
     detail: (id: string) => ['stock-ins', 'detail', id] as const,
+  },
+  stockOuts: {
+    all: ['stock-outs'] as const,
+    list: (filters: StockOutFilters) => ['stock-outs', 'list', filters] as const,
+    detail: (id: string) => ['stock-outs', 'detail', id] as const,
   },
   users: {
     all: ['users'] as const,

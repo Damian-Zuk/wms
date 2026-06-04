@@ -123,6 +123,22 @@ const router = createRouter({
       name: 'stock-in-detail',
       component: () => import('@/features/stock-ins/StockInDetailView.vue'),
     },
+    {
+      path: '/stock-outs',
+      name: 'stock-outs',
+      component: () => import('@/features/stock-outs/StockOutsView.vue'),
+    },
+    {
+      path: '/stock-outs/new',
+      name: 'stock-out-create',
+      component: () => import('@/features/stock-outs/StockOutCreateView.vue'),
+      meta: { requiresMutate: true },
+    },
+    {
+      path: '/stock-outs/:id',
+      name: 'stock-out-detail',
+      component: () => import('@/features/stock-outs/StockOutDetailView.vue'),
+    },
   ],
 })
 

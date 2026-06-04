@@ -1,44 +1,42 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Wms.Application.Common.Data;
+using Wms.Application.Common.Messaging;
+using Wms.Application.Extensions;
 using Wms.Application.Picking;
 using Wms.Domain.Entities;
+using Wms.Domain.Enums;
 using Wms.Domain.Errors;
+using Wms.Domain.Models;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
-using Wms.Application.Extensions;
-using Wms.Application.Common.Messaging;
-using Wms.Application.Common.Data;
 
 namespace Wms.Application.Handlers.StockOuts.Commands;
 
-public sealed record StockOutItemRequest(Guid ProductId, Guid LocationId, Guid? LotId, int Quantity);
+public sealed record StockOutLineRequest(Guid ProductId, PickingStrategyType Strategy, int Quantity);
 
-public sealed record CreateStockOutCommand(List<StockOutItemRequest> Items) : ICommand<Guid>;
+public sealed record CreateStockOutCommand(List<StockOutLineRequest> Lines) : ICommand<Guid>;
 
 public sealed class CreateStockOutValidator : AbstractValidator<CreateStockOutCommand>
 {
     public CreateStockOutValidator()
     {
-        RuleFor(x => x.Items).NotEmpty().WithMessage("At least one item is required");
-        RuleForEach(x => x.Items).ChildRules(item =>
+        RuleFor(x => x.Lines).NotEmpty().WithMessage("At least one line is required");
+        RuleForEach(x => x.Lines).ChildRules(line =>
         {
-            item.RuleFor(x => x.ProductId).NotEmpty().WithMessage("Product ID is required");
-            item.RuleFor(x => x.LocationId).NotEmpty().WithMessage("Location ID is required");
-            item.RuleFor(x => x.Quantity).GreaterThan(0).WithMessage("Quantity must be greater than 0");
+            line.RuleFor(x => x.ProductId).NotEmpty().WithMessage("Product ID is required");
+            line.RuleFor(x => x.Strategy).IsInEnum().WithMessage("A valid picking strategy is required");
+            line.RuleFor(x => x.Quantity).GreaterThan(0).WithMessage("Quantity must be greater than 0");
         });
     }
 }
 
-public sealed class CreateStockOutCommandHandler(
-    IAppDbContext context,
-    IFefoAllocator fefoAllocator)
+public sealed class CreateStockOutCommandHandler(IAppDbContext context, IPickingPlanner planner)
     : ICommandHandler<CreateStockOutCommand, Guid>
 {
     public async Task<Result<Guid>> Handle(CreateStockOutCommand request, CancellationToken cancellationToken)
     {
-        var productIds = request.Items.Select(i => i.ProductId).Distinct().ToList();
-        var locationIds = request.Items.Select(i => i.LocationId).Distinct().ToList();
-        var lotIds = request.Items.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
+        var productIds = request.Lines.Select(l => l.ProductId).Distinct().ToList();
 
         var existingProductIds = await context.Products
             .AsNoTracking()
@@ -50,131 +48,88 @@ public sealed class CreateStockOutCommandHandler(
         if (missingProduct != default)
             return StockOutErrors.ProductNotFound(missingProduct);
 
-        var existingLocationIds = await context.Locations
-            .AsNoTracking()
-            .Where(l => locationIds.Contains(l.Id))
-            .Select(l => l.Id)
-            .ToListAsync(cancellationToken);
-
-        var missingLocation = locationIds.Except(existingLocationIds).FirstOrDefault();
-        if (missingLocation != default)
-            return StockOutErrors.LocationNotFound(missingLocation);
-
-        if (lotIds.Count > 0)
-        {
-            var existingLotIds = await context.Lots
-                .AsNoTracking()
-                .Where(l => lotIds.Contains(l.Id))
-                .Select(l => l.Id)
-                .ToListAsync(cancellationToken);
-
-            var missingLot = lotIds.Except(existingLotIds).FirstOrDefault();
-            if (missingLot != default)
-                return StockOutErrors.LotNotFound(missingLot);
-        }
-
-        var lotTrackedProductIds = (await context.Lots
-                .AsNoTracking()
-                .Where(l => productIds.Contains(l.ProductId))
-                .Select(l => l.ProductId)
-                .Distinct()
-                .ToListAsync(cancellationToken))
-            .ToHashSet();
-
+        // One snapshot the planner reasons over: tracked inventory (we reserve against
+        // it on save), plus the lots and locations needed to rank pick candidates.
         var inventories = await context.Inventories
-            .Where(i => locationIds.Contains(i.LocationId) && productIds.Contains(i.ProductId))
+            .Where(i => productIds.Contains(i.ProductId))
             .ToListAsync(cancellationToken);
 
-        // Pass 1 — build the reservation plan without mutating any
-        // inventory rows. Each planned reservation pins the exact Inventory
-        // entity that will be reserved; the second pass simply applies them.
-        // This means a mid-list failure leaves all earlier inventory rows
-        // exactly as we read them, instead of relying on EF discarding
-        // tracked mutations on the failure return.
-        var plan = new List<(Inventory Inventory, Quantity Quantity, Guid? LotId, Guid ProductId, Guid LocationId)>();
+        var lots = await context.Lots
+            .AsNoTracking()
+            .Where(l => productIds.Contains(l.ProductId))
+            .ToListAsync(cancellationToken);
 
-        foreach (var item in request.Items)
+        var locations = await context.Locations
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        var pickContext = new PickingContext(inventories, lots, locations);
+
+        // Plan every line first; if any line can't be picked in full, fail before saving.
+        var plannedLines = new List<(StockOutLineRequest Line, IReadOnlyList<PickAllocation> Allocations)>();
+        foreach (var line in request.Lines)
         {
-            // FEFO branch: lot-tracked product, caller didn't pin a lot.
-            if (!item.LotId.HasValue && lotTrackedProductIds.Contains(item.ProductId))
+            var plan = planner.Plan(line.ProductId, line.Strategy, new Quantity(line.Quantity), pickContext);
+            if (plan.IsFailure)
+                return plan.Error;
+
+            plannedLines.Add((line, plan.Value));
+        }
+
+        // Resolve every allocation to its tracked inventory row and sum per row, so two
+        // lines drawing from the same source are checked together. The planner already
+        // committed against the snapshot, so these totals never exceed Available; the
+        // check is a fail-fast guard that keeps us from half-reserving on a shortfall.
+        var reservePlan = new List<(Inventory Inventory, int Quantity)>();
+        foreach (var (line, allocations) in plannedLines)
+        {
+            foreach (var allocation in allocations)
             {
-                var fefo = await fefoAllocator.AllocateAsync(
-                    item.ProductId,
-                    item.LocationId,
-                    new Quantity(item.Quantity),
-                    cancellationToken);
+                var inventory = inventories.FirstOrDefault(i =>
+                    i.ProductId == line.ProductId
+                    && i.LocationId == allocation.LocationId
+                    && i.LotId == allocation.LotId);
 
-                if (fefo.IsFailure)
-                    return Result.Failure<Guid>(fefo.Error);
+                if (inventory is null)
+                    return InventoryErrors.InsufficientAvailableStock(0, allocation.Quantity);
 
-                foreach (var allocation in fefo.Value)
-                {
-                    var allocInventory = inventories.FirstOrDefault(i =>
-                        i.ProductId == item.ProductId
-                        && i.LocationId == item.LocationId
-                        && i.LotId == allocation.LotId);
-
-                    if (allocInventory is null)
-                    {
-                        // FEFO promised this lot has Available; if the row
-                        // vanished between read and plan, treat as a
-                        // concurrency-style failure so the caller retries.
-                        return InventoryErrors.InsufficientAvailableStock(0, allocation.Quantity.Value);
-                    }
-
-                    plan.Add((allocInventory, allocation.Quantity, allocation.LotId, item.ProductId, item.LocationId));
-                }
-
-                continue;
+                reservePlan.Add((inventory, allocation.Quantity));
             }
-
-            // Non-FEFO branch: explicit LotId, or a product with no lots.
-            var inventory = inventories.FirstOrDefault(i =>
-                i.ProductId == item.ProductId
-                && i.LocationId == item.LocationId
-                && i.LotId == item.LotId);
-
-            if (inventory is null)
-                return InventoryErrors.InsufficientAvailableStock(0, item.Quantity);
-
-            plan.Add((inventory, new Quantity(item.Quantity), item.LotId, item.ProductId, item.LocationId));
         }
 
-        // Validation pass — the same inventory row may appear multiple
-        // times across plan entries (e.g. two requested lines from the same
-        // product+location+lot). Sum per row and check the total against
-        // Available so we fail fast and don't half-reserve.
-        var totalsByInventory = plan
-            .GroupBy(p => p.Inventory)
-            .Select(g => new { Inventory = g.Key, Total = g.Sum(x => x.Quantity.Value) });
-
-        foreach (var row in totalsByInventory)
+        foreach (var row in reservePlan.GroupBy(p => p.Inventory))
         {
-            if (row.Total > row.Inventory.Available.Value)
-                return InventoryErrors.InsufficientAvailableStock(
-                    row.Inventory.Available.Value,
-                    row.Total);
+            var total = row.Sum(x => x.Quantity);
+            if (total > row.Key.Available.Value)
+                return InventoryErrors.InsufficientAvailableStock(row.Key.Available.Value, total);
         }
 
-        // Pass 2 — apply. By this point the plan is guaranteed to succeed
-        // for every line; Reserve cannot fail because we already checked
-        // Available above.
+        // Apply: build the aggregate, then reserve every allocation's units.
         var stockOut = new StockOut(Guid.NewGuid());
-
-        foreach (var entry in plan)
+        foreach (var (line, allocations) in plannedLines)
         {
-            var reserveResult = entry.Inventory.Reserve(entry.Quantity);
-            if (reserveResult.IsFailure)
-                return Result.Failure<Guid>(reserveResult.Error);
+            var add = stockOut.AddLineWithAllocations(
+                line.ProductId,
+                line.Strategy,
+                new Quantity(line.Quantity),
+                allocations);
 
-            stockOut.AddItem(entry.ProductId, entry.LocationId, entry.LotId, entry.Quantity);
+            if (add.IsFailure)
+                return add.Error;
+        }
+
+        foreach (var (inventory, quantity) in reservePlan)
+        {
+            var reserve = inventory.Reserve(new Quantity(quantity));
+            if (reserve.IsFailure)
+                return reserve.Error;
         }
 
         await context.StockOuts.AddAsync(stockOut, cancellationToken);
 
         var saveResult = await context.SaveChangesWithConcurrencyCheckAsync(cancellationToken);
         if (saveResult.IsFailure)
-            return Result.Failure<Guid>(saveResult.Error);
+            return saveResult.Error;
 
         return stockOut.Id;
     }
