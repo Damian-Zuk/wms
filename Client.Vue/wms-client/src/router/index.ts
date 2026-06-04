@@ -139,6 +139,11 @@ const router = createRouter({
       name: 'stock-out-detail',
       component: () => import('@/features/stock-outs/StockOutDetailView.vue'),
     },
+    {
+      path: '/stock-movements',
+      name: 'stock-movements',
+      component: () => import('@/features/stock-movements/StockMovementsView.vue'),
+    },
   ],
 })
 

@@ -4,6 +4,7 @@ import type { LotFilters } from '@/types/lots'
 import type { AvailabilityParams, InventoryFilters } from '@/types/inventory'
 import type { StockInFilters } from '@/types/stock-ins'
 import type { StockOutFilters } from '@/types/stock-outs'
+import type { StockMovementFilters } from '@/types/stock-movements'
 
 export const qk = {
   products: {
@@ -41,6 +42,12 @@ export const qk = {
     all: ['stock-outs'] as const,
     list: (filters: StockOutFilters) => ['stock-outs', 'list', filters] as const,
     detail: (id: string) => ['stock-outs', 'detail', id] as const,
+  },
+  stockMovements: {
+    all: ['stock-movements'] as const,
+    list: (filters: StockMovementFilters) =>
+      ['stock-movements', 'list', filters] as const,
+    detail: (id: string) => ['stock-movements', 'detail', id] as const,
   },
   users: {
     all: ['users'] as const,

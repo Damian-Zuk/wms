@@ -3,6 +3,8 @@ import type {
   PickingStrategyType,
   PutawayStrategyType,
   StockInStatus,
+  StockMovementSource,
+  StockMovementType,
   StockOutStatus,
   TemperatureZone,
 } from '@/types/enums'
@@ -69,4 +71,25 @@ export const pickingStrategyLabel: Record<PickingStrategyType, string> = {
 export const pickingStrategySeverity: Record<PickingStrategyType, TagSeverity> = {
   Fefo: 'info',
   Fifo: 'warn',
+}
+
+export const stockMovementTypeSeverity: Record<StockMovementType, TagSeverity> = {
+  In: 'success',
+  Out: 'danger',
+}
+
+export const stockMovementSourceLabel: Record<StockMovementSource, string> = {
+  StockIn: 'Stock-In',
+  StockOut: 'Stock-Out',
+  Adjustment: 'Adjustment',
+  Transfer: 'Transfer',
+  StockOutCancellation: 'Stock-Out Cancellation',
+}
+
+export const stockMovementSourceSeverity: Record<StockMovementSource, TagSeverity> = {
+  StockIn: 'success',
+  StockOut: 'info',
+  Adjustment: 'warn',
+  Transfer: 'secondary',
+  StockOutCancellation: 'contrast',
 }
