@@ -52,4 +52,10 @@ export const qk = {
     all: ['users'] as const,
     list: () => ['users', 'list'] as const,
   },
+  dashboard: {
+    all: ['dashboard'] as const,
+    overview: (days: number) => ['dashboard', 'overview', days] as const,
+    inbound: (days: number) => ['dashboard', 'inbound', days] as const,
+    outbound: (days: number) => ['dashboard', 'outbound', days] as const,
+  },
 }

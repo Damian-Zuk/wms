@@ -14,6 +14,7 @@
     "@tanstack/vue-query": "^5.100.14",
     "@vee-validate/zod": "^4.15.1",
     "axios": "^1.16.1",
+    "chart.js": "^4.5.1",
     "pinia": "^3.0.4",
     "primeicons": "^7.0.0",
     "primevue": "^4.5.5",
@@ -22,6 +23,7 @@
     "vee-validate": "^4.15.1",
     "vue": "^3.5.34",
     "vue-router": "^4.6.4",
+    "vue3-apexcharts": "^1.11.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {
