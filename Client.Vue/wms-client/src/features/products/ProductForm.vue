@@ -4,6 +4,7 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
 import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
@@ -38,6 +39,8 @@ const schema = toTypedSchema(
         : z.string(),
     name: z.string().min(1, 'Name is required'),
     description: z.string(),
+    weight: z.number({ message: 'Weight is required' }).positive('Weight must be greater than 0'),
+    volume: z.number({ message: 'Volume is required' }).positive('Volume must be greater than 0'),
     requiredTemperatureZone: z.enum(['Ambient', 'Chilled', 'Frozen']),
     preferredLocationIds: z.array(z.string()),
   }),
@@ -51,6 +54,8 @@ const { handleSubmit, defineField, errors, setErrors } = useForm({
 const [sku, skuAttrs] = defineField('sku')
 const [name, nameAttrs] = defineField('name')
 const [description, descriptionAttrs] = defineField('description')
+const [weight] = defineField('weight')
+const [volume] = defineField('volume')
 const [requiredTemperatureZone] = defineField('requiredTemperatureZone')
 const [preferredLocationIds] = defineField('preferredLocationIds')
 
@@ -108,6 +113,41 @@ const onSubmit = handleSubmit((values) => emit('submit', values as ProductFormVa
         :invalid="!!errors.description"
       />
       <small v-if="errors.description" class="text-red-500">{{ errors.description }}</small>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="flex flex-col gap-1">
+        <label for="weight" class="text-sm font-medium text-surface-700">Weight (kg)</label>
+        <InputNumber
+          input-id="weight"
+          v-model="weight"
+          mode="decimal"
+          :min="0"
+          :min-fraction-digits="0"
+          :max-fraction-digits="3"
+          :use-grouping="false"
+          suffix=" kg"
+          fluid
+          :invalid="!!errors.weight"
+        />
+        <small v-if="errors.weight" class="text-red-500">{{ errors.weight }}</small>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="volume" class="text-sm font-medium text-surface-700">Volume (dm³)</label>
+        <InputNumber
+          input-id="volume"
+          v-model="volume"
+          mode="decimal"
+          :min="0"
+          :min-fraction-digits="0"
+          :max-fraction-digits="3"
+          :use-grouping="false"
+          suffix=" dm³"
+          fluid
+          :invalid="!!errors.volume"
+        />
+        <small v-if="errors.volume" class="text-red-500">{{ errors.volume }}</small>
+      </div>
     </div>
 
     <div class="flex flex-col gap-1">

@@ -83,9 +83,16 @@ public sealed class TransferStockCommandHandler(IAppDbContext context)
             .Where(i => i.LocationId == command.DestinationLocationId)
             .ToListAsync(cancellationToken);
 
+        // Products occupying the destination, needed to weigh its existing contents
+        // on the Weight/Volume capacity dimensions.
+        var contentsProductIds = destinationContents.Select(i => i.ProductId).Distinct().ToList();
+        var contentsProducts = await context.Products
+            .Where(p => contentsProductIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
         var quantity = new Quantity(command.Quantity);
 
-        var canAccept = destinationLocation.CanAccept(product, lot, quantity, destinationContents);
+        var canAccept = destinationLocation.CanAccept(product, lot, quantity, destinationContents, contentsProducts);
         if (canAccept.IsFailure)
             return Result.Failure<Guid>(canAccept.Error);
 

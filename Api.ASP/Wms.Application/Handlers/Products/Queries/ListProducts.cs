@@ -13,6 +13,8 @@ public record ProductDto(
     string Sku,
     string Name,
     string Description,
+    decimal Weight,
+    decimal Volume,
     TemperatureZone RequiredTemperatureZone,
     IReadOnlyList<Guid> PreferredLocationIds);
 
@@ -58,6 +60,8 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
                 p.Sku.Value,
                 p.Name,
                 p.Description,
+                p.Weight,
+                p.Volume,
                 p.RequiredTemperatureZone,
                 p.PreferredLocations
                     .OrderBy(pl => pl.Sequence)

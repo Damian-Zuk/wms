@@ -54,12 +54,7 @@ internal sealed class CapacityReservationService(AppDbContext db) : ICapacityRes
 
         var locations = lockedLocations.ToDictionary(l => l.Id);
 
-        var productIds = stockIn.Lines.Select(l => l.ProductId).Distinct().ToList();
         var lotIds = stockIn.Lines.Where(l => l.LotId.HasValue).Select(l => l.LotId!.Value).Distinct().ToList();
-
-        var products = await db.Products
-            .Where(p => productIds.Contains(p.Id))
-            .ToDictionaryAsync(p => p.Id, ct);
 
         var lots = lotIds.Count > 0
             ? await db.Lots.Where(l => lotIds.Contains(l.Id)).ToDictionaryAsync(l => l.Id, ct)
@@ -77,18 +72,26 @@ internal sealed class CapacityReservationService(AppDbContext db) : ICapacityRes
                 r.StockInId != stockInId)
             .ToListAsync(ct);
 
+        // Every product occupying these locations (this stock-in's lines + existing
+        // contents + other stock-ins' reservations), needed to weigh load on the
+        // Weight/Volume dimensions.
+        var productIds = stockIn.Lines.Select(l => l.ProductId)
+            .Concat(contentsByLocation.Values.SelectMany(c => c).Select(i => i.ProductId))
+            .Concat(otherActiveReservations.Select(r => r.ProductId))
+            .Distinct()
+            .ToList();
+
+        var products = await db.Products
+            .Where(p => productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, ct);
+
         // Per-location occupancy, seeded with other stock-ins' active reservations,
         // then grown as we fold in this stock-in's own placements.
         var occupancyByLocation = new Dictionary<Guid, CapacityOccupancy>();
-        foreach (var group in otherActiveReservations.GroupBy(r => r.LocationId))
-            OccupancyFor(occupancyByLocation, group.Key).Add(new Dictionary<CapacityDimension, int>
-            {
-                [CapacityDimension.Units] = group.Sum(r => r.Quantity.Value)
-            });
-
-        var incomingByLocation = placements
-            .GroupBy(i => i.LocationId)
-            .ToDictionary(g => g.Key, g => g.Sum(i => i.Quantity.Value));
+        foreach (var reservation in otherActiveReservations)
+            if (products.TryGetValue(reservation.ProductId, out var reservationProduct))
+                OccupancyFor(occupancyByLocation, reservation.LocationId)
+                    .Add(CapacityLoadCalculator.Load(reservationProduct, reservation.Quantity));
 
         var reservations = new List<CapacityReservation>();
 
@@ -109,20 +112,11 @@ internal sealed class CapacityReservationService(AppDbContext db) : ICapacityRes
                 var contents = contentsByLocation.TryGetValue(item.LocationId, out var c) ? c : [];
                 var occupancy = OccupancyFor(occupancyByLocation, item.LocationId);
 
-                var canAccept = location.CanAccept(product, lot, item.Quantity, contents, occupancy);
+                // Surface the failure as-is: a capacity clash returns the dimension-aware
+                // Location.CapacityExceeded error so the user sees which limit was hit.
+                var canAccept = location.CanAccept(product, lot, item.Quantity, contents, occupancy, products);
                 if (canAccept.IsFailure)
-                {
-                    if (canAccept.Error.Code == "Location.CapacityExceeded")
-                        return await RollbackAsync(
-                            transaction,
-                            StockInErrors.CapacityNoLongerAvailable(
-                                item.LocationId,
-                                location.Capacity.MaxUnits ?? 0,
-                                incomingByLocation.GetValueOrDefault(item.LocationId)),
-                            ct);
-
                     return await RollbackAsync(transaction, canAccept.Error, ct);
-                }
 
                 occupancy.Add(CapacityLoadCalculator.Load(product, item.Quantity));
 

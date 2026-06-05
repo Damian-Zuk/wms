@@ -70,6 +70,14 @@ public class LocationConfiguration : EntityConfiguration<Location>
         {
             capacityBuilder.Property(c => c.MaxUnits)
                 .HasColumnName("CapacityUnits");
+
+            capacityBuilder.Property(c => c.MaxWeight)
+                .HasColumnName("CapacityWeight")
+                .HasPrecision(18, 3);
+
+            capacityBuilder.Property(c => c.MaxVolume)
+                .HasColumnName("CapacityVolume")
+                .HasPrecision(18, 3);
         });
 
         builder.Navigation(l => l.Capacity).IsRequired();

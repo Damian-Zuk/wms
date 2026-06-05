@@ -22,12 +22,11 @@ const id = computed(() => route.params.id as string)
 const { data: location, isLoading, isError, error } = useLocation(id)
 const del = useDeleteLocation()
 
-/** Occupancy utilisation as a 0–100 percentage, or null when capacity is unlimited. */
-const occupancyPercent = computed(() => {
-  const loc = location.value
-  if (!loc || loc.capacity == null || loc.capacity === 0) return null
-  return Math.round((loc.occupancy / loc.capacity) * 100)
-})
+/** Occupancy utilisation as a 0–100 percentage, or null when that dimension is unlimited. */
+function utilisationPercent(used: number, limit: number | null): number | null {
+  if (limit == null || limit === 0) return null
+  return Math.round((used / limit) * 100)
+}
 
 function onEdit() {
   router.push({ name: 'location-edit', params: { id: id.value } })
@@ -114,18 +113,43 @@ function onDelete() {
         />
       </dd>
 
-      <dt class="text-surface-500">Capacity</dt>
-      <dd class="text-surface-900">{{ location.capacity ?? 'Unlimited' }}</dd>
-
-      <dt class="text-surface-500">Occupancy</dt>
+      <dt class="text-surface-500">Units</dt>
       <dd class="text-surface-900">
-        <span v-if="location.capacity != null">
+        <template v-if="location.capacity != null">
           {{ location.occupancy }} / {{ location.capacity }} units
-          <span v-if="occupancyPercent != null" class="text-surface-500"
-            >({{ occupancyPercent }}%)</span
+          <span class="text-surface-500"
+            >({{ utilisationPercent(location.occupancy, location.capacity) }}%)</span
           >
-        </span>
-        <span v-else>{{ location.occupancy }} units</span>
+        </template>
+        <template v-else>
+          {{ location.occupancy }} units · <span class="text-surface-500">Unlimited</span>
+        </template>
+      </dd>
+
+      <dt class="text-surface-500">Weight</dt>
+      <dd class="text-surface-900">
+        <template v-if="location.weightCapacity != null">
+          {{ location.weightOccupancy }} / {{ location.weightCapacity }} kg
+          <span class="text-surface-500"
+            >({{ utilisationPercent(location.weightOccupancy, location.weightCapacity) }}%)</span
+          >
+        </template>
+        <template v-else>
+          {{ location.weightOccupancy }} kg · <span class="text-surface-500">Unlimited</span>
+        </template>
+      </dd>
+
+      <dt class="text-surface-500">Volume</dt>
+      <dd class="text-surface-900">
+        <template v-if="location.volumeCapacity != null">
+          {{ location.volumeOccupancy }} / {{ location.volumeCapacity }} dm³
+          <span class="text-surface-500"
+            >({{ utilisationPercent(location.volumeOccupancy, location.volumeCapacity) }}%)</span
+          >
+        </template>
+        <template v-else>
+          {{ location.volumeOccupancy }} dm³ · <span class="text-surface-500">Unlimited</span>
+        </template>
       </dd>
 
       <dt class="text-surface-500">Mixed SKUs</dt>

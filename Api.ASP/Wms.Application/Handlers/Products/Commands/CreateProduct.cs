@@ -14,6 +14,8 @@ public sealed record CreateProductCommand(
     string Sku,
     string Name,
     string Description,
+    decimal Weight,
+    decimal Volume,
     TemperatureZone RequiredTemperatureZone = TemperatureZone.Ambient,
     IReadOnlyList<Guid>? PreferredLocationIds = null) : ICommand<Guid>;
 
@@ -23,6 +25,8 @@ public sealed class CreateProductValidator: AbstractValidator<CreateProductComma
     {
         RuleFor(x => x.Sku).NotEmpty().WithMessage("SKU is required");
         RuleFor(x => x.Name).NotEmpty().WithMessage("Name is required");
+        RuleFor(x => x.Weight).GreaterThan(0).WithMessage("Weight must be greater than 0");
+        RuleFor(x => x.Volume).GreaterThan(0).WithMessage("Volume must be greater than 0");
         RuleFor(x => x.RequiredTemperatureZone)
             .IsInEnum().WithMessage("RequiredTemperatureZone must be a valid value");
         RuleForEach(x => x.PreferredLocationIds!)
@@ -66,6 +70,8 @@ public sealed class CreateProductCommandHandler(IAppDbContext context)
         var product = new Product(
             new Sku(request.Sku),
             request.Name,
+            request.Weight,
+            request.Volume,
             request.Description,
             request.RequiredTemperatureZone);
 

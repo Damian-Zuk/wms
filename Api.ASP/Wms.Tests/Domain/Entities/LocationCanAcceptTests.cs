@@ -13,7 +13,9 @@ public class LocationCanAcceptTests
         TemperatureZone zone = TemperatureZone.Ambient,
         int? capacity = null,
         bool mixedSku = true,
-        bool mixedLot = true) =>
+        bool mixedLot = true,
+        decimal? weightCapacity = null,
+        decimal? volumeCapacity = null) =>
         new(
             new LocationCode($"LOC-{Guid.NewGuid():N}"[..10]),
             TestData.UniqueAddress(),
@@ -22,10 +24,15 @@ public class LocationCanAcceptTests
             temperatureZone: zone,
             capacity: capacity,
             isMixedSkuAllowed: mixedSku,
-            isMixedLotAllowed: mixedLot);
+            isMixedLotAllowed: mixedLot,
+            weightCapacity: weightCapacity,
+            volumeCapacity: volumeCapacity);
 
-    private static Product BuildProduct(TemperatureZone zone = TemperatureZone.Ambient) =>
-        new(new Sku($"SKU-{Guid.NewGuid():N}"[..10]), "p", "", zone);
+    private static Product BuildProduct(
+        TemperatureZone zone = TemperatureZone.Ambient,
+        decimal weight = 1m,
+        decimal volume = 1m) =>
+        new(new Sku($"SKU-{Guid.NewGuid():N}"[..10]), "p", weight, volume, "", zone);
 
     private static Inventory BuildInventory(Guid productId, Guid locationId, Guid? lotId, int onHand)
     {
@@ -35,13 +42,16 @@ public class LocationCanAcceptTests
         return inv;
     }
 
+    private static IReadOnlyDictionary<Guid, Product> Lookup(params Product[] products) =>
+        products.ToDictionary(p => p.Id);
+
     [Fact]
     public void Empty_location_accepts_compatible_product()
     {
         var loc = BuildLocation();
         var product = BuildProduct();
 
-        var result = loc.CanAccept(product, lot: null, new Quantity(5), Array.Empty<Inventory>());
+        var result = loc.CanAccept(product, lot: null, new Quantity(5), Array.Empty<Inventory>(), Lookup(product));
 
         result.IsSuccess.Should().BeTrue();
     }
@@ -53,7 +63,7 @@ public class LocationCanAcceptTests
         loc.Block("damaged shelf");
         var product = BuildProduct();
 
-        var result = loc.CanAccept(product, lot: null, new Quantity(1), Array.Empty<Inventory>());
+        var result = loc.CanAccept(product, lot: null, new Quantity(1), Array.Empty<Inventory>(), Lookup(product));
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("Location.Blocked");
@@ -66,7 +76,7 @@ public class LocationCanAcceptTests
         loc.Deactivate();
         var product = BuildProduct();
 
-        var result = loc.CanAccept(product, lot: null, new Quantity(1), Array.Empty<Inventory>());
+        var result = loc.CanAccept(product, lot: null, new Quantity(1), Array.Empty<Inventory>(), Lookup(product));
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("Location.Inactive");
@@ -80,7 +90,7 @@ public class LocationCanAcceptTests
             var loc = BuildLocation(zone: TemperatureZone.Frozen);
             var product = BuildProduct(zone: TemperatureZone.Ambient);
 
-            var result = loc.CanAccept(product, lot: null, new Quantity(1), Array.Empty<Inventory>());
+            var result = loc.CanAccept(product, lot: null, new Quantity(1), Array.Empty<Inventory>(), Lookup(product));
 
             result.IsFailure.Should().BeTrue();
             result.Error.Code.Should().Be("Location.TemperatureMismatch");
@@ -92,7 +102,7 @@ public class LocationCanAcceptTests
             var loc = BuildLocation(zone: TemperatureZone.Chilled);
             var product = BuildProduct(zone: TemperatureZone.Chilled);
 
-            var result = loc.CanAccept(product, lot: null, new Quantity(1), Array.Empty<Inventory>());
+            var result = loc.CanAccept(product, lot: null, new Quantity(1), Array.Empty<Inventory>(), Lookup(product));
 
             result.IsSuccess.Should().BeTrue();
         }
@@ -107,7 +117,7 @@ public class LocationCanAcceptTests
             var product = BuildProduct();
             var existing = BuildInventory(product.Id, loc.Id, null, onHand: 4);
 
-            var result = loc.CanAccept(product, null, new Quantity(5), new[] { existing });
+            var result = loc.CanAccept(product, null, new Quantity(5), new[] { existing }, Lookup(product));
 
             result.IsSuccess.Should().BeTrue();
         }
@@ -119,7 +129,7 @@ public class LocationCanAcceptTests
             var product = BuildProduct();
             var existing = BuildInventory(product.Id, loc.Id, null, onHand: 4);
 
-            var result = loc.CanAccept(product, null, new Quantity(6), new[] { existing });
+            var result = loc.CanAccept(product, null, new Quantity(6), new[] { existing }, Lookup(product));
 
             result.IsSuccess.Should().BeTrue();
         }
@@ -131,7 +141,7 @@ public class LocationCanAcceptTests
             var product = BuildProduct();
             var existing = BuildInventory(product.Id, loc.Id, null, onHand: 7);
 
-            var result = loc.CanAccept(product, null, new Quantity(5), new[] { existing });
+            var result = loc.CanAccept(product, null, new Quantity(5), new[] { existing }, Lookup(product));
 
             result.IsFailure.Should().BeTrue();
             result.Error.Code.Should().Be("Location.CapacityExceeded");
@@ -146,7 +156,7 @@ public class LocationCanAcceptTests
             var existing = BuildInventory(product.Id, loc.Id, null, onHand: 8);
             existing.Reserve(new Quantity(6));
 
-            var result = loc.CanAccept(product, null, new Quantity(5), new[] { existing });
+            var result = loc.CanAccept(product, null, new Quantity(5), new[] { existing }, Lookup(product));
 
             result.IsFailure.Should().BeTrue();
             result.Error.Code.Should().Be("Location.CapacityExceeded");
@@ -159,7 +169,76 @@ public class LocationCanAcceptTests
             var product = BuildProduct();
             var existing = BuildInventory(product.Id, loc.Id, null, onHand: 1_000_000);
 
-            var result = loc.CanAccept(product, null, new Quantity(1_000_000), new[] { existing });
+            var result = loc.CanAccept(product, null, new Quantity(1_000_000), new[] { existing }, Lookup(product));
+
+            result.IsSuccess.Should().BeTrue();
+        }
+    }
+
+    public class WeightAndVolumeRules
+    {
+        [Fact]
+        public void Over_weight_capacity_is_rejected()
+        {
+            // 4 units on hand = 8 kg; +2 units (4 kg) → 12 kg > 10 kg.
+            var loc = BuildLocation(weightCapacity: 10m);
+            var product = BuildProduct(weight: 2m);
+            var existing = BuildInventory(product.Id, loc.Id, null, onHand: 4);
+
+            var result = loc.CanAccept(product, null, new Quantity(2), new[] { existing }, Lookup(product));
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Location.CapacityExceeded");
+        }
+
+        [Fact]
+        public void Over_volume_capacity_is_rejected()
+        {
+            var loc = BuildLocation(volumeCapacity: 5m);
+            var product = BuildProduct(volume: 1m);
+
+            var result = loc.CanAccept(product, null, new Quantity(6), Array.Empty<Inventory>(), Lookup(product));
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Location.CapacityExceeded");
+        }
+
+        [Fact]
+        public void Most_restrictive_dimension_wins()
+        {
+            // Units fit (limit 100) but weight does not (limit 10 kg, 2 kg/unit → 6 units = 12 kg).
+            var loc = BuildLocation(capacity: 100, weightCapacity: 10m);
+            var product = BuildProduct(weight: 2m);
+
+            var result = loc.CanAccept(product, null, new Quantity(6), Array.Empty<Inventory>(), Lookup(product));
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Location.CapacityExceeded");
+        }
+
+        [Fact]
+        public void Existing_contents_weight_counts_against_a_different_incoming_sku()
+        {
+            // A heavy SKU already on hand fills most of the weight; a light SKU still won't fit.
+            var loc = BuildLocation(weightCapacity: 10m);
+            var heavy = BuildProduct(weight: 3m);
+            var light = BuildProduct(weight: 1m);
+            var existing = BuildInventory(heavy.Id, loc.Id, null, onHand: 3); // 9 kg
+
+            // 9 kg existing + 2 kg incoming = 11 kg > 10 kg.
+            var result = loc.CanAccept(light, null, new Quantity(2), new[] { existing }, Lookup(heavy, light));
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Location.CapacityExceeded");
+        }
+
+        [Fact]
+        public void Within_every_dimension_is_accepted()
+        {
+            var loc = BuildLocation(capacity: 100, weightCapacity: 100m, volumeCapacity: 100m);
+            var product = BuildProduct(weight: 2m, volume: 1m);
+
+            var result = loc.CanAccept(product, null, new Quantity(10), Array.Empty<Inventory>(), Lookup(product));
 
             result.IsSuccess.Should().BeTrue();
         }
@@ -175,7 +254,7 @@ public class LocationCanAcceptTests
             var otherProduct = BuildProduct();
             var existing = BuildInventory(otherProduct.Id, loc.Id, null, onHand: 1);
 
-            var result = loc.CanAccept(product, null, new Quantity(1), new[] { existing });
+            var result = loc.CanAccept(product, null, new Quantity(1), new[] { existing }, Lookup(product, otherProduct));
 
             result.IsFailure.Should().BeTrue();
             result.Error.Code.Should().Be("Location.MixedSkuNotAllowed");
@@ -188,7 +267,7 @@ public class LocationCanAcceptTests
             var product = BuildProduct();
             var existing = BuildInventory(product.Id, loc.Id, null, onHand: 2);
 
-            var result = loc.CanAccept(product, null, new Quantity(3), new[] { existing });
+            var result = loc.CanAccept(product, null, new Quantity(3), new[] { existing }, Lookup(product));
 
             result.IsSuccess.Should().BeTrue();
         }
@@ -203,7 +282,7 @@ public class LocationCanAcceptTests
             var otherProduct = BuildProduct();
             var drained = BuildInventory(otherProduct.Id, loc.Id, null, onHand: 0);
 
-            var result = loc.CanAccept(product, null, new Quantity(5), new[] { drained });
+            var result = loc.CanAccept(product, null, new Quantity(5), new[] { drained }, Lookup(product, otherProduct));
 
             result.IsSuccess.Should().BeTrue();
         }
@@ -221,7 +300,7 @@ public class LocationCanAcceptTests
 
             var newLot = new Lot(new LotNumber("NEW"), product.Id);
 
-            var result = loc.CanAccept(product, newLot, new Quantity(1), new[] { existing });
+            var result = loc.CanAccept(product, newLot, new Quantity(1), new[] { existing }, Lookup(product));
 
             result.IsFailure.Should().BeTrue();
             result.Error.Code.Should().Be("Location.MixedLotNotAllowed");
@@ -235,7 +314,7 @@ public class LocationCanAcceptTests
             var lot = new Lot(new LotNumber("LOT-A"), product.Id);
             var existing = BuildInventory(product.Id, loc.Id, lot.Id, onHand: 1);
 
-            var result = loc.CanAccept(product, lot, new Quantity(1), new[] { existing });
+            var result = loc.CanAccept(product, lot, new Quantity(1), new[] { existing }, Lookup(product));
 
             result.IsSuccess.Should().BeTrue();
         }
@@ -250,7 +329,7 @@ public class LocationCanAcceptTests
         loc.Block("audit");
         var product = BuildProduct(zone: TemperatureZone.Ambient);
 
-        var result = loc.CanAccept(product, null, new Quantity(100), Array.Empty<Inventory>());
+        var result = loc.CanAccept(product, null, new Quantity(100), Array.Empty<Inventory>(), Lookup(product));
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("Location.Blocked");

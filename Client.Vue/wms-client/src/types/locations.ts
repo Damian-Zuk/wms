@@ -18,6 +18,14 @@ export interface LocationDto {
   capacity: number | null
   /** Total physical units currently on hand across all inventory in this location. */
   occupancy: number
+  /** Weight limit in kilograms; null = unlimited. */
+  weightCapacity: number | null
+  /** Total weight (kg) currently on hand across all inventory in this location. */
+  weightOccupancy: number
+  /** Volume limit in cubic decimetres; null = unlimited. */
+  volumeCapacity: number | null
+  /** Total volume (dm³) currently on hand across all inventory in this location. */
+  volumeOccupancy: number
   isMixedSkuAllowed: boolean
   isMixedLotAllowed: boolean
   isActive: boolean
@@ -45,6 +53,8 @@ export interface LocationFormValues {
   type: LocationType
   temperatureZone: TemperatureZone
   capacity: number | null
+  weightCapacity: number | null
+  volumeCapacity: number | null
   description: string
   isMixedSkuAllowed: boolean
   isMixedLotAllowed: boolean
@@ -62,6 +72,8 @@ export interface CreateLocationCommand {
   description: string | null
   temperatureZone: TemperatureZone
   capacity: number | null
+  weightCapacity: number | null
+  volumeCapacity: number | null
   isMixedSkuAllowed: boolean
   isMixedLotAllowed: boolean
 }

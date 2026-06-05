@@ -33,7 +33,7 @@ public class PutawayPlannerTests
         var product = TestData.Product();
         var locA = StorageAt("B1", "A", capacity: 100);
         var locB = StorageAt("B2", "B", capacity: 100);
-        var context = new PutawayPlanContext([locA, locB], [], []);
+        var context = new PutawayPlanContext([locA, locB], [], [], [product]);
 
         var result = NewPlanner().Plan(product, null, new Quantity(150), context);
 
@@ -46,11 +46,31 @@ public class PutawayPlannerTests
     }
 
     [Fact]
+    public void Sizes_each_placement_by_the_most_restrictive_dimension()
+    {
+        // 2 kg per unit; each bin caps weight at 20 kg → only 10 units fit per bin
+        // despite the 100-unit capacity, so 15 units split 10 + 5 across two bins.
+        var product = TestData.Product(weight: 2m, volume: 0.1m);
+        var binA = TestData.LocationAt(
+            new LocationAddress("Z1", "A1", "R1", "S1", "B1"), "A", capacity: 100, weightCapacity: 20m);
+        var binB = TestData.LocationAt(
+            new LocationAddress("Z1", "A1", "R1", "S1", "B2"), "B", capacity: 100, weightCapacity: 20m);
+        var context = new PutawayPlanContext([binA, binB], [], [], [product]);
+
+        var result = NewPlanner().Plan(product, null, new Quantity(15), context);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Sum(a => a.Quantity).Should().Be(15);
+        result.Value.Single(a => a.LocationId == binA.Id).Quantity.Should().Be(10);
+        result.Value.Single(a => a.LocationId == binB.Id).Quantity.Should().Be(5);
+    }
+
+    [Fact]
     public void Fails_when_total_capacity_is_insufficient()
     {
         var product = TestData.Product();
         var loc = StorageAt("B1", "ONLY", capacity: 100);
-        var context = new PutawayPlanContext([loc], [], []);
+        var context = new PutawayPlanContext([loc], [], [], [product]);
 
         var result = NewPlanner().Plan(product, null, new Quantity(150), context);
 
@@ -70,7 +90,7 @@ public class PutawayPlannerTests
         var partial = StorageAt("B2", "PARTIAL", capacity: 100);
         var unlimited = StorageAt("B3", "UNLIMITED", capacity: null);
         var foreignStock = TestData.Inventory(other.Id, partial.Id, onHand: 90);
-        var context = new PutawayPlanContext([empty, partial, unlimited], [foreignStock], []);
+        var context = new PutawayPlanContext([empty, partial, unlimited], [foreignStock], [], [product, other]);
 
         var result = NewPlanner().Plan(product, null, new Quantity(150), context);
 
@@ -95,7 +115,7 @@ public class PutawayPlannerTests
     {
         var product = TestData.Product();
         var loc = StorageAt("B1", "INF", capacity: null);
-        var context = new PutawayPlanContext([loc], [], []);
+        var context = new PutawayPlanContext([loc], [], [], [product]);
 
         var result = NewPlanner().Plan(product, null, new Quantity(500), context);
 
@@ -112,7 +132,7 @@ public class PutawayPlannerTests
         var existing = StorageAt("B9", "EXIST", capacity: 100);
         var empty = StorageAt("B1", "EMPTY", capacity: 100);
         var inventory = TestData.Inventory(product.Id, existing.Id, onHand: 90);
-        var context = new PutawayPlanContext([existing, empty], [inventory], []);
+        var context = new PutawayPlanContext([existing, empty], [inventory], [], [product]);
 
         var result = NewPlanner().Plan(product, null, new Quantity(15), context);
 
@@ -133,7 +153,7 @@ public class PutawayPlannerTests
         var free = StorageAt("B2", "FREE", capacity: 100);
         var otherReservation = new CapacityReservation(
             Guid.NewGuid(), Guid.NewGuid(), reserved.Id, product.Id, null, new Quantity(100));
-        var context = new PutawayPlanContext([reserved, free], [], [otherReservation]);
+        var context = new PutawayPlanContext([reserved, free], [], [otherReservation], [product]);
 
         var result = NewPlanner().Plan(product, null, new Quantity(50), context);
 
@@ -146,7 +166,7 @@ public class PutawayPlannerTests
     {
         var product = TestData.Product();
         var loc = StorageAt("B1", "SHARED", capacity: 100);
-        var context = new PutawayPlanContext([loc], [], []);
+        var context = new PutawayPlanContext([loc], [], [], [product]);
         var planner = NewPlanner();
 
         var first = planner.Plan(product, null, new Quantity(70), context);
@@ -174,7 +194,7 @@ public class PutawayPlannerTests
 
         var free = StorageAt("B2", "FREE", capacity: 100);
         var foreignStock = TestData.Inventory(otherProduct.Id, preferred.Id, onHand: 10);
-        var context = new PutawayPlanContext([preferred, free], [foreignStock], []);
+        var context = new PutawayPlanContext([preferred, free], [foreignStock], [], [product, otherProduct]);
 
         var result = NewPlanner().Plan(product, null, new Quantity(20), context);
 
@@ -191,7 +211,7 @@ public class PutawayPlannerTests
         // A single mixed-SKU-disabled bin, empty, big enough for either product alone.
         var bin = StorageAt("B1", "NO-MIX", capacity: 100);
         SetMixedSkuDisallowed(bin);
-        var context = new PutawayPlanContext([bin], [], []);
+        var context = new PutawayPlanContext([bin], [], [], [productA, productB]);
         var planner = NewPlanner();
 
         var first = planner.Plan(productA, null, new Quantity(20), context);
@@ -214,7 +234,7 @@ public class PutawayPlannerTests
         var noMix = StorageAt("B1", "NO-MIX", capacity: 100);
         SetMixedSkuDisallowed(noMix);
         var free = StorageAt("B2", "FREE", capacity: 100);
-        var context = new PutawayPlanContext([noMix, free], [], []);
+        var context = new PutawayPlanContext([noMix, free], [], [], [productA, productB]);
         var planner = NewPlanner();
 
         var first = planner.Plan(productA, null, new Quantity(20), context);
@@ -235,7 +255,7 @@ public class PutawayPlannerTests
 
         var bin = StorageAt("B1", "NO-LOT-MIX", capacity: 100);
         SetMixedLotDisallowed(bin);
-        var context = new PutawayPlanContext([bin], [], []);
+        var context = new PutawayPlanContext([bin], [], [], [product]);
         var planner = NewPlanner();
 
         var first = planner.Plan(product, lot1, new Quantity(20), context);
@@ -256,7 +276,9 @@ public class PutawayPlannerTests
             location.TemperatureZone,
             location.Capacity.MaxUnits,
             isMixedSkuAllowed: false,
-            isMixedLotAllowed: true);
+            isMixedLotAllowed: true,
+            weightCapacity: location.Capacity.MaxWeight,
+            volumeCapacity: location.Capacity.MaxVolume);
 
     private static void SetMixedLotDisallowed(Location location) =>
         location.Update(
@@ -267,5 +289,7 @@ public class PutawayPlannerTests
             location.TemperatureZone,
             location.Capacity.MaxUnits,
             isMixedSkuAllowed: true,
-            isMixedLotAllowed: false);
+            isMixedLotAllowed: false,
+            weightCapacity: location.Capacity.MaxWeight,
+            volumeCapacity: location.Capacity.MaxVolume);
 }

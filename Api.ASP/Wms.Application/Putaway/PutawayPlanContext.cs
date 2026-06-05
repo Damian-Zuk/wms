@@ -16,6 +16,7 @@ namespace Wms.Application.Putaway;
 public sealed class PutawayPlanContext
 {
     private readonly Dictionary<Guid, Location> _locations;
+    private readonly Dictionary<Guid, Product> _productsById;
     private readonly Dictionary<Guid, List<Inventory>> _contentsByLocation;
     private readonly Dictionary<Guid, CapacityOccupancy> _occupancyByLocation = [];
 
@@ -28,24 +29,27 @@ public sealed class PutawayPlanContext
     public PutawayPlanContext(
         IEnumerable<Location> locations,
         IEnumerable<Inventory> inventories,
-        IEnumerable<CapacityReservation> activeReservations)
+        IEnumerable<CapacityReservation> activeReservations,
+        IEnumerable<Product> products)
     {
         _locations = locations.ToDictionary(l => l.Id);
+        _productsById = products.ToDictionary(p => p.Id);
 
         _contentsByLocation = inventories
             .GroupBy(i => i.LocationId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        foreach (var group in activeReservations.GroupBy(r => r.LocationId))
-        {
-            OccupancyFor(group.Key).Add(new Dictionary<CapacityDimension, int>
-            {
-                [CapacityDimension.Units] = group.Sum(r => r.Quantity.Value)
-            });
-        }
+        // Other stock-ins' active reservations already occupy space on every dimension.
+        foreach (var reservation in activeReservations)
+            if (_productsById.TryGetValue(reservation.ProductId, out var product))
+                OccupancyFor(reservation.LocationId)
+                    .Add(CapacityLoadCalculator.Load(product, reservation.Quantity));
     }
 
     public IReadOnlyCollection<Location> Locations => _locations.Values;
+
+    /// <summary>Products referenced by the snapshot's inventory and reservations, by id.</summary>
+    public IReadOnlyDictionary<Guid, Product> Products => _productsById;
 
     public Location? GetLocation(Guid locationId) =>
         _locations.TryGetValue(locationId, out var location) ? location : null;
@@ -61,7 +65,7 @@ public sealed class PutawayPlanContext
     /// </summary>
     public int OccupiedUnits(Guid locationId) =>
         ContentsAt(locationId).Sum(i => i.OnHand.Value)
-        + (_occupancyByLocation.TryGetValue(locationId, out var occupancy)
+        + (int)(_occupancyByLocation.TryGetValue(locationId, out var occupancy)
             ? occupancy.Get(CapacityDimension.Units)
             : 0);
 
@@ -91,7 +95,7 @@ public sealed class PutawayPlanContext
     /// <summary>
     /// Whether placing <paramref name="product"/>/<paramref name="lot"/> into
     /// <paramref name="location"/> would mix with a different SKU or lot already
-    /// planned into that same location earlier in this draft. <see cref="Location.CanAccept(Product, Lot?, Quantity, IEnumerable{Inventory}, CapacityOccupancy)"/>
+    /// planned into that same location earlier in this draft. <see cref="Location.CanAccept(Product, Lot?, Quantity, IEnumerable{Inventory}, CapacityOccupancy, IReadOnlyDictionary{Guid, Product})"/>
     /// only sees committed inventory, so sibling placements must be checked here.
     /// </summary>
     public bool WouldConflictWithPlanned(Location location, Product product, Lot? lot)

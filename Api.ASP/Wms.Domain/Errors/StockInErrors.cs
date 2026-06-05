@@ -60,9 +60,4 @@ public static class StockInErrors
     public static Error PlacementsDoNotMatchLineTotal(Guid productId, int expected, int actual) => Error.Conflict(
         "StockIn.PlacementsDoNotMatchLineTotal",
         $"Placements for product '{productId}' total {actual} but the line requires exactly {expected}.");
-
-    public static Error CapacityNoLongerAvailable(Guid locationId, int limit, int requestedTotal) => Error.Conflict(
-        "StockIn.CapacityNoLongerAvailable",
-        $"Location '{locationId}' no longer has capacity for this stock-in " +
-        $"(limit: {limit}, required total: {requestedTotal}).");
 }

@@ -13,6 +13,8 @@ export function toCommand(values: LocationFormValues): CreateLocationCommand {
     description: values.description.trim() || null,
     temperatureZone: values.temperatureZone,
     capacity: values.capacity,
+    weightCapacity: values.weightCapacity,
+    volumeCapacity: values.volumeCapacity,
     isMixedSkuAllowed: values.isMixedSkuAllowed,
     isMixedLotAllowed: values.isMixedLotAllowed,
   }

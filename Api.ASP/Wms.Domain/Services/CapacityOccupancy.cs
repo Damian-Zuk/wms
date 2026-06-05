@@ -10,13 +10,13 @@ namespace Wms.Domain.Services;
 /// </summary>
 public sealed class CapacityOccupancy
 {
-    private readonly Dictionary<CapacityDimension, int> _load = [];
+    private readonly Dictionary<CapacityDimension, decimal> _load = [];
 
     public static CapacityOccupancy Empty() => new();
 
-    public int Get(CapacityDimension dimension) => _load.GetValueOrDefault(dimension);
+    public decimal Get(CapacityDimension dimension) => _load.GetValueOrDefault(dimension);
 
-    public void Add(IReadOnlyDictionary<CapacityDimension, int> load)
+    public void Add(IReadOnlyDictionary<CapacityDimension, decimal> load)
     {
         foreach (var (dimension, value) in load)
             _load[dimension] = _load.GetValueOrDefault(dimension) + value;

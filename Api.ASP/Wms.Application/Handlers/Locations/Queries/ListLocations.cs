@@ -81,6 +81,16 @@ public sealed class ListLocationsQueryHandler(IAppDbContext context)
                 context.Inventories
                     .Where(i => i.LocationId == l.Id)
                     .Sum(i => i.OnHand.Value),
+                l.Capacity.MaxWeight,
+                context.Inventories
+                    .Where(i => i.LocationId == l.Id)
+                    .Join(context.Products, i => i.ProductId, p => p.Id, (i, p) => i.OnHand.Value * p.Weight)
+                    .Sum(),
+                l.Capacity.MaxVolume,
+                context.Inventories
+                    .Where(i => i.LocationId == l.Id)
+                    .Join(context.Products, i => i.ProductId, p => p.Id, (i, p) => i.OnHand.Value * p.Volume)
+                    .Sum(),
                 l.IsMixedSkuAllowed,
                 l.IsMixedLotAllowed,
                 l.IsActive,

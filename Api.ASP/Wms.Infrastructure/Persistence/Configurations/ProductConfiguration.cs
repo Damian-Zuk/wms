@@ -31,6 +31,14 @@ public class ProductConfiguration : EntityConfiguration<Product>
             .HasMaxLength(1000)
             .IsRequired();
 
+        builder.Property(p => p.Weight)
+            .HasPrecision(18, 3)
+            .IsRequired();
+
+        builder.Property(p => p.Volume)
+            .HasPrecision(18, 3)
+            .IsRequired();
+
         builder.Property(p => p.RequiredTemperatureZone)
             .HasConversion<int>()
             .IsRequired();

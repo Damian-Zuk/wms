@@ -21,6 +21,8 @@ public sealed record CreateLocationCommand(
     string? Description,
     TemperatureZone TemperatureZone = TemperatureZone.Ambient,
     int? Capacity = null,
+    decimal? WeightCapacity = null,
+    decimal? VolumeCapacity = null,
     bool IsMixedSkuAllowed = true,
     bool IsMixedLotAllowed = true) : ICommand<Guid>;
 
@@ -39,6 +41,12 @@ public sealed class CreateLocationValidator : AbstractValidator<CreateLocationCo
         RuleFor(x => x.Capacity)
             .GreaterThan(0).When(x => x.Capacity.HasValue)
             .WithMessage("Capacity must be greater than 0 when provided");
+        RuleFor(x => x.WeightCapacity)
+            .GreaterThan(0).When(x => x.WeightCapacity.HasValue)
+            .WithMessage("Weight capacity must be greater than 0 when provided");
+        RuleFor(x => x.VolumeCapacity)
+            .GreaterThan(0).When(x => x.VolumeCapacity.HasValue)
+            .WithMessage("Volume capacity must be greater than 0 when provided");
     }
 }
 
@@ -87,7 +95,9 @@ public sealed class CreateLocationCommandHandler(IAppDbContext context)
             request.TemperatureZone,
             request.Capacity,
             request.IsMixedSkuAllowed,
-            request.IsMixedLotAllowed);
+            request.IsMixedLotAllowed,
+            request.WeightCapacity,
+            request.VolumeCapacity);
 
         await context.Locations.AddAsync(location, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);

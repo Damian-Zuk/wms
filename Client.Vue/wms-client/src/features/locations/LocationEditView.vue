@@ -35,6 +35,8 @@ watch(
         type: l.type,
         temperatureZone: l.temperatureZone,
         capacity: l.capacity,
+        weightCapacity: l.weightCapacity,
+        volumeCapacity: l.volumeCapacity,
         description: l.description ?? '',
         isMixedSkuAllowed: l.isMixedSkuAllowed,
         isMixedLotAllowed: l.isMixedLotAllowed,

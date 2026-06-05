@@ -25,6 +25,8 @@ const initialValues: LocationFormValues = {
   type: 'Storage',
   temperatureZone: 'Ambient',
   capacity: null,
+  weightCapacity: null,
+  volumeCapacity: null,
   description: '',
   isMixedSkuAllowed: true,
   isMixedLotAllowed: true,

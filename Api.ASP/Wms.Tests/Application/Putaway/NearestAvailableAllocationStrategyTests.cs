@@ -30,7 +30,7 @@ public class NearestAvailableAllocationStrategyTests
         var finiteB1 = At("B1", "FINITE-B1", capacity: 100);
         var unlimitedB2 = At("B2", "UNLIMITED-B2", capacity: null);
         var unlimitedB0 = At("B0", "UNLIMITED-B0", capacity: null);
-        var context = new PutawayPlanContext([finiteB3, finiteB1, unlimitedB2, unlimitedB0], [], []);
+        var context = new PutawayPlanContext([finiteB3, finiteB1, unlimitedB2, unlimitedB0], [], [], [product]);
 
         var result = Strategy.CandidateLocations(product, null, context);
 
@@ -46,7 +46,8 @@ public class NearestAvailableAllocationStrategyTests
         var context = new PutawayPlanContext(
             [partial],
             [TestData.Inventory(product.Id, partial.Id, onHand: 90)],
-            []);
+            [],
+            [product]);
 
         var result = Strategy.CandidateLocations(product, null, context);
 
@@ -65,7 +66,8 @@ public class NearestAvailableAllocationStrategyTests
         var context = new PutawayPlanContext(
             [withRoom, fullByStock, fullByReservation],
             [TestData.Inventory(product.Id, fullByStock.Id, onHand: 10)],
-            [reservation]);
+            [reservation],
+            [product]);
 
         var result = Strategy.CandidateLocations(product, null, context);
 
@@ -85,7 +87,7 @@ public class NearestAvailableAllocationStrategyTests
         var cold = TestData.LocationAt(
             new LocationAddress("Z1", "A1", "R1", "S1", "B5"), "COLD",
             temperatureZone: TemperatureZone.Frozen, capacity: null);
-        var context = new PutawayPlanContext([ok, inactive, blocked, quarantine, cold], [], []);
+        var context = new PutawayPlanContext([ok, inactive, blocked, quarantine, cold], [], [], [product]);
 
         var result = Strategy.CandidateLocations(product, null, context);
 

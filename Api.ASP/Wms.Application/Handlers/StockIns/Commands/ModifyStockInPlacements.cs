@@ -4,7 +4,6 @@ using Wms.Application.Common.Auth;
 using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
 using Wms.Domain.Entities;
-using Wms.Domain.Enums;
 using Wms.Domain.Errors;
 using Wms.Domain.Services;
 using Wms.Domain.ValueObjects;
@@ -96,12 +95,22 @@ public sealed class ModifyStockInLinePlacementsCommandHandler(
                 r.StockInId != stockIn.Id)
             .ToListAsync(cancellationToken);
 
+        // Every product occupying these locations (existing contents + other stock-ins'
+        // reservations + this line), needed to weigh load on the Weight/Volume dimensions.
+        var productIds = contentsByLocation.Values.SelectMany(c => c).Select(i => i.ProductId)
+            .Concat(otherReservations.Select(r => r.ProductId))
+            .Append(line.ProductId)
+            .Distinct()
+            .ToList();
+        var products = await context.Products
+            .Where(p => productIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
         var occupancyByLocation = new Dictionary<Guid, CapacityOccupancy>();
-        foreach (var group in otherReservations.GroupBy(r => r.LocationId))
-            OccupancyFor(occupancyByLocation, group.Key).Add(new Dictionary<CapacityDimension, int>
-            {
-                [CapacityDimension.Units] = group.Sum(r => r.Quantity.Value)
-            });
+        foreach (var reservation in otherReservations)
+            if (products.TryGetValue(reservation.ProductId, out var reservationProduct))
+                OccupancyFor(occupancyByLocation, reservation.LocationId)
+                    .Add(CapacityLoadCalculator.Load(reservationProduct, reservation.Quantity));
 
         // Validate each target accepts its share, accumulating sibling placements as we go.
         foreach (var placement in command.Placements)
@@ -111,7 +120,7 @@ public sealed class ModifyStockInLinePlacementsCommandHandler(
             var occupancy = OccupancyFor(occupancyByLocation, placement.LocationId);
             var quantity = new Quantity(placement.Quantity);
 
-            var canAccept = location.CanAccept(product, lot, quantity, contents, occupancy);
+            var canAccept = location.CanAccept(product, lot, quantity, contents, occupancy, products);
             if (canAccept.IsFailure)
                 return canAccept;
 

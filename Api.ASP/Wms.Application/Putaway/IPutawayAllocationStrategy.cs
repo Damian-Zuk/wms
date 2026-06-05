@@ -9,7 +9,7 @@ namespace Wms.Application.Putaway;
 /// locations for a product/lot over a pre-loaded <see cref="PutawayPlanContext"/>
 /// snapshot — the planner decides how much each candidate receives. Strategies are
 /// pure and read-only: no DB access, no mutation. The planner still validates every
-/// candidate with <see cref="Location.CanAccept(Product, Lot?, ValueObjects.Quantity, IEnumerable{Inventory}, Services.CapacityOccupancy)"/>.
+/// candidate with <see cref="Location.CanAccept(Product, Lot?, ValueObjects.Quantity, IEnumerable{Inventory}, Services.CapacityOccupancy, IReadOnlyDictionary{Guid, Product})"/>.
 /// </summary>
 public interface IPutawayAllocationStrategy
 {

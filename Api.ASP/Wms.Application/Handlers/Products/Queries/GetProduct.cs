@@ -21,6 +21,8 @@ public sealed class GetProductQueryHandler(IAppDbContext context)
                 p.Sku.Value,
                 p.Name,
                 p.Description,
+                p.Weight,
+                p.Volume,
                 p.RequiredTemperatureZone,
                 p.PreferredLocations
                     .OrderBy(pl => pl.Sequence)

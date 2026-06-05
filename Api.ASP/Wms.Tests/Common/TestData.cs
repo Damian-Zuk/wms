@@ -17,8 +17,10 @@ public static class TestData
     public static Product Product(
         string sku = "SKU-1",
         string name = "Widget",
-        TemperatureZone temperatureZone = TemperatureZone.Ambient) =>
-        new(new Sku(sku), name, "test product", temperatureZone);
+        TemperatureZone temperatureZone = TemperatureZone.Ambient,
+        decimal weight = 1m,
+        decimal volume = 1m) =>
+        new(new Sku(sku), name, weight, volume, "test product", temperatureZone);
 
     public static Location Location(
         string code = "LOC-1",
@@ -26,7 +28,9 @@ public static class TestData
         TemperatureZone temperatureZone = TemperatureZone.Ambient,
         int? capacity = null,
         bool isMixedSkuAllowed = true,
-        bool isMixedLotAllowed = true) =>
+        bool isMixedLotAllowed = true,
+        decimal? weightCapacity = null,
+        decimal? volumeCapacity = null) =>
         new(
             new LocationCode(code),
             UniqueAddress(),
@@ -35,7 +39,9 @@ public static class TestData
             temperatureZone: temperatureZone,
             capacity: capacity,
             isMixedSkuAllowed: isMixedSkuAllowed,
-            isMixedLotAllowed: isMixedLotAllowed);
+            isMixedLotAllowed: isMixedLotAllowed,
+            weightCapacity: weightCapacity,
+            volumeCapacity: volumeCapacity);
 
     public static Location LocationAt(
         LocationAddress address,
@@ -44,7 +50,9 @@ public static class TestData
         TemperatureZone temperatureZone = TemperatureZone.Ambient,
         int? capacity = null,
         bool isMixedSkuAllowed = true,
-        bool isMixedLotAllowed = true) =>
+        bool isMixedLotAllowed = true,
+        decimal? weightCapacity = null,
+        decimal? volumeCapacity = null) =>
         new(
             new LocationCode(code),
             address,
@@ -53,7 +61,9 @@ public static class TestData
             temperatureZone: temperatureZone,
             capacity: capacity,
             isMixedSkuAllowed: isMixedSkuAllowed,
-            isMixedLotAllowed: isMixedLotAllowed);
+            isMixedLotAllowed: isMixedLotAllowed,
+            weightCapacity: weightCapacity,
+            volumeCapacity: volumeCapacity);
 
     public static Lot Lot(
         Guid productId,

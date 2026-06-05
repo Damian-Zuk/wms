@@ -42,7 +42,8 @@ public class ProximityAllocationStrategyTests
         var context = new PutawayPlanContext(
             locations,
             [TestData.Inventory(product.Id, anchor.Id, onHand: 5)],
-            []);
+            [],
+            [product]);
 
         var result = Strategy.CandidateLocations(product, null, context);
 
@@ -66,7 +67,7 @@ public class ProximityAllocationStrategyTests
         var product = TestData.Product();
         var a = At("Z1", "A1", "R1", "S1", "B1", "A");
         var b = At("Z1", "A1", "R1", "S1", "B2", "B");
-        var context = new PutawayPlanContext([a, b], [], []);
+        var context = new PutawayPlanContext([a, b], [], [], [product]);
 
         Strategy.CandidateLocations(product, null, context).Should().BeEmpty();
     }
@@ -89,7 +90,8 @@ public class ProximityAllocationStrategyTests
                 TestData.Inventory(product.Id, lotAnchor.Id, lot1.Id, onHand: 5),
                 TestData.Inventory(product.Id, skuAnchor.Id, lot2.Id, onHand: 5),
             ],
-            []);
+            [],
+            [product]);
 
         var result = Strategy.CandidateLocations(product, lot1, context);
 
@@ -113,7 +115,8 @@ public class ProximityAllocationStrategyTests
         var context = new PutawayPlanContext(
             [skuAnchor, neighbour],
             [TestData.Inventory(product.Id, skuAnchor.Id, existingLot.Id, onHand: 5)],
-            []);
+            [],
+            [product]);
 
         var result = Strategy.CandidateLocations(product, incomingLot, context);
 

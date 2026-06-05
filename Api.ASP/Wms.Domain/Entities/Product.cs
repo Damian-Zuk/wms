@@ -13,6 +13,12 @@ public class Product : Entity
     public string Description { get; private set; } = string.Empty;
     public TemperatureZone RequiredTemperatureZone { get; private set; } = TemperatureZone.Ambient;
 
+    /// <summary>Weight of one unit in kilograms.</summary>
+    public decimal Weight { get; private set; }
+
+    /// <summary>Volume of one unit in cubic decimetres.</summary>
+    public decimal Volume { get; private set; }
+
     public IReadOnlyCollection<ProductPreferredLocation> PreferredLocations => _preferredLocations;
 
     private Product() { }
@@ -20,20 +26,31 @@ public class Product : Entity
     public Product(
         Sku sku,
         string name,
+        decimal weight,
+        decimal volume,
         string description = "",
         TemperatureZone requiredTemperatureZone = TemperatureZone.Ambient)
     {
         Id = Guid.NewGuid();
         Name = name;
         Sku = sku;
+        Weight = weight;
+        Volume = volume;
         Description = description;
         RequiredTemperatureZone = requiredTemperatureZone;
     }
 
-    public void Update(string name, string description, TemperatureZone requiredTemperatureZone)
+    public void Update(
+        string name,
+        string description,
+        decimal weight,
+        decimal volume,
+        TemperatureZone requiredTemperatureZone)
     {
         Name = name;
         Description = description;
+        Weight = weight;
+        Volume = volume;
         RequiredTemperatureZone = requiredTemperatureZone;
     }
 

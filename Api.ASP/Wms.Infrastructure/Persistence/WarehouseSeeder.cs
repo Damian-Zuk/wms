@@ -14,34 +14,39 @@ public static class WarehouseSeeder
         ("C", TemperatureZone.Frozen)
     ];
 
-    private static readonly (string Sku, string Name, string Description, TemperatureZone Temperature)[] Catalog =
+    // Weight is kilograms, Volume is cubic decimetres (litres) — per unit.
+    private static readonly (string Sku, string Name, string Description, decimal Weight, decimal Volume, TemperatureZone Temperature)[] Catalog =
     [
-        ("RICE-5KG", "Basmati Rice 5kg", "Long-grain white basmati rice, 5kg sack", TemperatureZone.Ambient),
-        ("PASTA-500", "Spaghetti 500g", "Durum wheat spaghetti, 500g pack", TemperatureZone.Ambient),
-        ("FLOUR-1KG", "All-Purpose Flour 1kg", "Plain wheat flour, 1kg bag", TemperatureZone.Ambient),
-        ("SUGAR-1KG", "Granulated Sugar 1kg", "Fine white granulated sugar, 1kg bag", TemperatureZone.Ambient),
-        ("BEANS-CAN", "Canned Black Beans 400g", "Cooked black beans in water, 400g can", TemperatureZone.Ambient),
-        ("COFFEE-250", "Ground Coffee 250g", "Medium-roast ground coffee, 250g pack", TemperatureZone.Ambient),
-        ("OIL-1L", "Sunflower Oil 1L", "Refined sunflower cooking oil, 1L bottle", TemperatureZone.Ambient),
-        ("MILK-1L", "Whole Milk 1L", "Pasteurised whole cow's milk, 1L carton", TemperatureZone.Chilled),
-        ("YOG-500", "Greek Yogurt 500g", "Strained natural Greek yogurt, 500g tub", TemperatureZone.Chilled),
-        ("CHEESE-200", "Cheddar Cheese 200g", "Mature cheddar cheese block, 200g", TemperatureZone.Chilled),
-        ("BUTTER-250", "Salted Butter 250g", "Churned salted butter, 250g block", TemperatureZone.Chilled),
-        ("CHKN-FILLET", "Chicken Breast Fillet 1kg", "Fresh skinless chicken breast, 1kg", TemperatureZone.Chilled),
-        ("JUICE-1L", "Orange Juice 1L", "Not-from-concentrate orange juice, 1L", TemperatureZone.Chilled),
-        ("EGGS-12", "Free-Range Eggs (12)", "Free-range large hen eggs, dozen", TemperatureZone.Chilled),
-        ("PEAS-FRZ", "Frozen Garden Peas 1kg", "Frozen petit pois garden peas, 1kg bag", TemperatureZone.Frozen),
-        ("ICECR-1L", "Vanilla Ice Cream 1L", "Vanilla dairy ice cream, 1L tub", TemperatureZone.Frozen),
-        ("FISH-FILLET", "Frozen Cod Fillet 500g", "Skinless frozen cod fillets, 500g", TemperatureZone.Frozen),
-        ("PIZZA-FRZ", "Margherita Pizza 350g", "Frozen stone-baked margherita pizza, 350g", TemperatureZone.Frozen),
-        ("FRIES-FRZ", "Frozen French Fries 1.5kg", "Straight-cut frozen french fries, 1.5kg", TemperatureZone.Frozen),
-        ("BERRY-FRZ", "Frozen Mixed Berries 500g", "Frozen strawberry, blueberry & raspberry mix, 500g", TemperatureZone.Frozen)
+        ("RICE-5KG", "Basmati Rice 5kg", "Long-grain white basmati rice, 5kg sack", 5.0m, 6.0m, TemperatureZone.Ambient),
+        ("PASTA-500", "Spaghetti 500g", "Durum wheat spaghetti, 500g pack", 0.5m, 1.2m, TemperatureZone.Ambient),
+        ("FLOUR-1KG", "All-Purpose Flour 1kg", "Plain wheat flour, 1kg bag", 1.0m, 1.6m, TemperatureZone.Ambient),
+        ("SUGAR-1KG", "Granulated Sugar 1kg", "Fine white granulated sugar, 1kg bag", 1.0m, 1.1m, TemperatureZone.Ambient),
+        ("BEANS-CAN", "Canned Black Beans 400g", "Cooked black beans in water, 400g can", 0.42m, 0.45m, TemperatureZone.Ambient),
+        ("COFFEE-250", "Ground Coffee 250g", "Medium-roast ground coffee, 250g pack", 0.25m, 0.6m, TemperatureZone.Ambient),
+        ("OIL-1L", "Sunflower Oil 1L", "Refined sunflower cooking oil, 1L bottle", 0.92m, 1.05m, TemperatureZone.Ambient),
+        ("MILK-1L", "Whole Milk 1L", "Pasteurised whole cow's milk, 1L carton", 1.03m, 1.0m, TemperatureZone.Chilled),
+        ("YOG-500", "Greek Yogurt 500g", "Strained natural Greek yogurt, 500g tub", 0.5m, 0.5m, TemperatureZone.Chilled),
+        ("CHEESE-200", "Cheddar Cheese 200g", "Mature cheddar cheese block, 200g", 0.2m, 0.25m, TemperatureZone.Chilled),
+        ("BUTTER-250", "Salted Butter 250g", "Churned salted butter, 250g block", 0.25m, 0.28m, TemperatureZone.Chilled),
+        ("CHKN-FILLET", "Chicken Breast Fillet 1kg", "Fresh skinless chicken breast, 1kg", 1.0m, 1.1m, TemperatureZone.Chilled),
+        ("JUICE-1L", "Orange Juice 1L", "Not-from-concentrate orange juice, 1L", 1.05m, 1.0m, TemperatureZone.Chilled),
+        ("EGGS-12", "Free-Range Eggs (12)", "Free-range large hen eggs, dozen", 0.75m, 1.2m, TemperatureZone.Chilled),
+        ("PEAS-FRZ", "Frozen Garden Peas 1kg", "Frozen petit pois garden peas, 1kg bag", 1.0m, 1.5m, TemperatureZone.Frozen),
+        ("ICECR-1L", "Vanilla Ice Cream 1L", "Vanilla dairy ice cream, 1L tub", 0.55m, 1.0m, TemperatureZone.Frozen),
+        ("FISH-FILLET", "Frozen Cod Fillet 500g", "Skinless frozen cod fillets, 500g", 0.5m, 0.6m, TemperatureZone.Frozen),
+        ("PIZZA-FRZ", "Margherita Pizza 350g", "Frozen stone-baked margherita pizza, 350g", 0.35m, 2.0m, TemperatureZone.Frozen),
+        ("FRIES-FRZ", "Frozen French Fries 1.5kg", "Straight-cut frozen french fries, 1.5kg", 1.5m, 2.5m, TemperatureZone.Frozen),
+        ("BERRY-FRZ", "Frozen Mixed Berries 500g", "Frozen strawberry, blueberry & raspberry mix, 500g", 0.5m, 0.7m, TemperatureZone.Frozen)
     ];
 
     private const int LocationCount = 50;
     private const int LotsPerProduct = 5;
     private const int LocationsPerLot = 2;
-    private const int LocationCapacity = 500;
+    private const int LocationCapacity = 2000;
+    // Storage weight/volume caps, sized to comfortably exceed the seeded fill (≤ 350 units
+    // of the heaviest/bulkiest product per location) so seeded occupancy never exceeds 100%.
+    private const decimal StorageWeightCapacity = 2500m;
+    private const decimal StorageVolumeCapacity = 4000m;
     private const double MaxFillRatio = 0.70;
     private const int PreferredLocationsPerProduct = 2;
     private const int MaxProductsPerPreferredLocation = 4;
@@ -92,13 +97,18 @@ public static class WarehouseSeeder
                 _ => LocationType.Storage
             };
 
+            // Storage bins cap units, weight and volume; quarantine and returns are unlimited.
+            var isStorage = type == LocationType.Storage;
+
             locations.Add(new Location(
                 new LocationCode($"LOC-{i + 1:D4}"),
                 address,
                 type,
                 description: $"Zone {zoneCode} aisle {aisle} rack {rack}",
                 temperatureZone: temperature,
-                capacity: LocationCapacity));
+                capacity: null, // isStorage ? LocationCapacity : null,
+                weightCapacity: isStorage ? StorageWeightCapacity : null,
+                volumeCapacity: isStorage ? StorageVolumeCapacity : null));
         }
 
         return locations;
@@ -106,7 +116,7 @@ public static class WarehouseSeeder
 
     private static List<Product> BuildProducts() =>
         Catalog
-            .Select(p => new Product(new Sku(p.Sku), p.Name, p.Description, p.Temperature))
+            .Select(p => new Product(new Sku(p.Sku), p.Name, p.Weight, p.Volume, p.Description, p.Temperature))
             .ToList();
 
     private static List<Lot> BuildLots(IReadOnlyList<Product> products, Random random)

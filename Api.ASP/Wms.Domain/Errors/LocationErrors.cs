@@ -42,9 +42,17 @@ public static class LocationErrors
         $"Location '{locationId}' temperature zone '{locationZone}' " +
         $"does not match product required zone '{productZone}'.");
 
-    public static Error CapacityExceeded(Guid locationId, CapacityDimension dimension, int limit, int requested) => Error.Conflict(
+    public static Error CapacityExceeded(Guid locationId, CapacityDimension dimension, decimal limit, decimal requested) => Error.Conflict(
         "Location.CapacityExceeded",
-        $"Location '{locationId}' {dimension} capacity exceeded (limit: {limit}, requested total: {requested}).");
+        $"Location '{locationId}' {dimension} capacity exceeded " +
+        $"(limit: {limit:0.###} {UnitLabel(dimension)}, requested total: {requested:0.###} {UnitLabel(dimension)}).");
+
+    private static string UnitLabel(CapacityDimension dimension) => dimension switch
+    {
+        CapacityDimension.Weight => "kg",
+        CapacityDimension.Volume => "dm³",
+        _ => "units"
+    };
 
     public static Error MixedSkuNotAllowed(Guid locationId, Guid existingProductId) => Error.Conflict(
         "Location.MixedSkuNotAllowed",

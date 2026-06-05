@@ -5,6 +5,10 @@ export interface ProductDto {
   sku: string
   name: string
   description: string
+  /** Weight of one unit in kilograms. */
+  weight: number
+  /** Volume of one unit in cubic decimetres (litres). */
+  volume: number
   requiredTemperatureZone: TemperatureZone
   preferredLocationIds: string[]
 }
@@ -19,6 +23,8 @@ export interface ProductFormValues {
   sku: string
   name: string
   description: string
+  weight: number
+  volume: number
   requiredTemperatureZone: TemperatureZone
   preferredLocationIds: string[]
 }
@@ -30,6 +36,8 @@ export type CreateProductCommand = ProductFormValues
 export interface UpdateProductRequest {
   name: string
   description: string
+  weight: number
+  volume: number
   requiredTemperatureZone: TemperatureZone
   preferredLocationIds: string[]
 }

@@ -21,6 +21,8 @@ public class CreateProductCommandHandlerTests : IntegrationTestBase
             Sku: "SKU-001",
             Name: "Widget",
             Description: "a widget",
+            Weight: 2.5m,
+            Volume: 1.5m,
             RequiredTemperatureZone: TemperatureZone.Chilled);
 
         var result = await handler.Handle(command, TestContext.Current.CancellationToken);
@@ -37,6 +39,8 @@ public class CreateProductCommandHandlerTests : IntegrationTestBase
 
         stored.Sku.Value.Should().Be("SKU-001");
         stored.Name.Should().Be("Widget");
+        stored.Weight.Should().Be(2.5m);
+        stored.Volume.Should().Be(1.5m);
         stored.RequiredTemperatureZone.Should().Be(TemperatureZone.Chilled);
     }
 
@@ -46,7 +50,7 @@ public class CreateProductCommandHandlerTests : IntegrationTestBase
         var handler = new CreateProductCommandHandler(Context);
 
         var first = await handler.Handle(
-            new CreateProductCommand("SKU-DUP", "First", "first"),
+            new CreateProductCommand("SKU-DUP", "First", "first", 1m, 1m),
             TestContext.Current.CancellationToken);
 
         first.IsSuccess.Should().BeTrue();
@@ -55,7 +59,7 @@ public class CreateProductCommandHandlerTests : IntegrationTestBase
         // and doesn't just see a tracked entity from the first call.
         await using var secondContext = CreateContext();
         var second = await new CreateProductCommandHandler(secondContext).Handle(
-            new CreateProductCommand("SKU-DUP", "Second", "second"),
+            new CreateProductCommand("SKU-DUP", "Second", "second", 1m, 1m),
             TestContext.Current.CancellationToken);
 
         second.IsFailure.Should().BeTrue();
@@ -90,6 +94,8 @@ public class CreateProductCommandHandlerTests : IntegrationTestBase
                     "SKU-PL-1",
                     "Widget",
                     "desc",
+                    1m,
+                    1m,
                     PreferredLocationIds: new[] { realLocation.Id, missing }),
                 TestContext.Current.CancellationToken);
 
@@ -121,6 +127,8 @@ public class CreateProductCommandHandlerTests : IntegrationTestBase
                     "SKU-PL-2",
                     "Widget",
                     "desc",
+                    1m,
+                    1m,
                     PreferredLocationIds: new[]
                     {
                         locB.Id, Guid.Empty, locA.Id, locA.Id, locB.Id
@@ -148,7 +156,7 @@ public class CreateProductCommandHandlerTests : IntegrationTestBase
             var handler = new CreateProductCommandHandler(actContext);
 
             var result = await handler.Handle(
-                new CreateProductCommand("SKU-PL-3", "Widget", "desc", PreferredLocationIds: null),
+                new CreateProductCommand("SKU-PL-3", "Widget", "desc", 1m, 1m, PreferredLocationIds: null),
                 TestContext.Current.CancellationToken);
 
             result.IsSuccess.Should().BeTrue();

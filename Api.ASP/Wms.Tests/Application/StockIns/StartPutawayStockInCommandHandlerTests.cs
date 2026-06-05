@@ -72,7 +72,7 @@ public class StartPutawayStockInCommandHandlerTests : IntegrationTestBase
         var result = await service.ReserveForStartPutawayAsync(stockIn.Id, ct);
 
         result.IsFailure.Should().BeTrue();
-        result.Error.Code.Should().Be("StockIn.CapacityNoLongerAvailable");
+        result.Error.Code.Should().Be("Location.CapacityExceeded");
 
         await using var verify = CreateContext();
         var reloaded = await verify.StockIns.AsNoTracking().SingleAsync(s => s.Id == stockIn.Id, ct);
@@ -109,7 +109,7 @@ public class StartPutawayStockInCommandHandlerTests : IntegrationTestBase
 
         results.Count(r => r.IsSuccess).Should().Be(1);
         results.Count(r => r.IsFailure).Should().Be(1);
-        results.Single(r => r.IsFailure).Error.Code.Should().Be("StockIn.CapacityNoLongerAvailable");
+        results.Single(r => r.IsFailure).Error.Code.Should().Be("Location.CapacityExceeded");
 
         await using var verify = CreateContext();
         var putawayCount = await verify.StockIns

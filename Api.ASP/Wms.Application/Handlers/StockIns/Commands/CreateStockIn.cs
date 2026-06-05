@@ -37,10 +37,11 @@ public sealed class CreateStockInCommandHandler(IAppDbContext context, IPutawayP
         var productIds = request.Lines.Select(l => l.ProductId).Distinct().ToList();
         var lotIds = request.Lines.Where(l => l.LotId.HasValue).Select(l => l.LotId!.Value).Distinct().ToList();
 
-        // Products are needed (with preferred locations) for the PreferredLocation strategy.
+        // All products, with preferred locations: the requested lines need theirs for the
+        // PreferredLocation strategy, and the plan context needs every product that occupies
+        // a candidate location to weigh its existing contents on the Weight/Volume dimensions.
         var products = await context.Products
             .Include(p => p.PreferredLocations)
-            .Where(p => productIds.Contains(p.Id))
             .ToDictionaryAsync(p => p.Id, cancellationToken);
 
         var missingProduct = productIds.FirstOrDefault(id => !products.ContainsKey(id));
@@ -64,7 +65,7 @@ public sealed class CreateStockInCommandHandler(IAppDbContext context, IPutawayP
             .AsNoTracking()
             .ToListAsync(cancellationToken);
 
-        var planContext = new PutawayPlanContext(locations, inventories, activeReservations);
+        var planContext = new PutawayPlanContext(locations, inventories, activeReservations, products.Values);
 
         // Plan every line first; if any line can't be placed in full, fail before saving anything.
         var plannedLines = new List<(StockInLineRequest Line, IReadOnlyList<PlacementAllocation> Allocations)>();

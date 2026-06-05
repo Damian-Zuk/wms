@@ -29,7 +29,7 @@ public class NearestEmptyAllocationStrategyTests
         var third = At("B3", "THIRD", capacity: 100);
         var first = At("B1", "FIRST", capacity: 100);
         var second = At("B2", "SECOND", capacity: 100);
-        var context = new PutawayPlanContext([third, first, second], [], []);
+        var context = new PutawayPlanContext([third, first, second], [], [], [product]);
 
         var result = Strategy.CandidateLocations(product, null, context);
 
@@ -42,7 +42,7 @@ public class NearestEmptyAllocationStrategyTests
         var product = TestData.Product();
         var finite = At("B1", "FINITE", capacity: 100);
         var unlimited = At("B2", "UNLIMITED", capacity: null);
-        var context = new PutawayPlanContext([finite, unlimited], [], []);
+        var context = new PutawayPlanContext([finite, unlimited], [], [], [product]);
 
         var result = Strategy.CandidateLocations(product, null, context);
 
@@ -58,7 +58,8 @@ public class NearestEmptyAllocationStrategyTests
         var context = new PutawayPlanContext(
             [empty, occupied],
             [TestData.Inventory(product.Id, occupied.Id, onHand: 1)],
-            []);
+            [],
+            [product]);
 
         var result = Strategy.CandidateLocations(product, null, context);
 
@@ -73,7 +74,7 @@ public class NearestEmptyAllocationStrategyTests
         var reserved = At("B2", "RESERVED", capacity: 100);
         var reservation = new CapacityReservation(
             Guid.NewGuid(), Guid.NewGuid(), reserved.Id, product.Id, null, new Quantity(10));
-        var context = new PutawayPlanContext([empty, reserved], [], [reservation]);
+        var context = new PutawayPlanContext([empty, reserved], [], [reservation], [product]);
 
         var result = Strategy.CandidateLocations(product, null, context);
 
@@ -94,7 +95,7 @@ public class NearestEmptyAllocationStrategyTests
         var cold = TestData.LocationAt(
             new LocationAddress("Z1", "A1", "R1", "S1", "B5"), "COLD",
             temperatureZone: TemperatureZone.Frozen, capacity: 100);
-        var context = new PutawayPlanContext([ok, inactive, blocked, quarantine, cold], [], []);
+        var context = new PutawayPlanContext([ok, inactive, blocked, quarantine, cold], [], [], [product]);
 
         var result = Strategy.CandidateLocations(product, null, context);
 

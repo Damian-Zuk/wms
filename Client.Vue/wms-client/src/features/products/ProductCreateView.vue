@@ -18,6 +18,8 @@ const initialValues: ProductFormValues = {
   sku: '',
   name: '',
   description: '',
+  weight: 0,
+  volume: 0,
   requiredTemperatureZone: 'Ambient',
   preferredLocationIds: [],
 }

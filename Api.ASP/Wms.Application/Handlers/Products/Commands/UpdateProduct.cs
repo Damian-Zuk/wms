@@ -12,6 +12,8 @@ public sealed record UpdateProductCommand(
     Guid Id,
     string Name,
     string Description,
+    decimal Weight,
+    decimal Volume,
     TemperatureZone RequiredTemperatureZone,
     IReadOnlyList<Guid>? PreferredLocationIds) : ICommand;
 
@@ -21,6 +23,8 @@ public sealed class UpdateProductValidator : AbstractValidator<UpdateProductComm
     {
         RuleFor(x => x.Id).NotEmpty().WithMessage("Product ID is required");
         RuleFor(x => x.Name).NotEmpty().WithMessage("Name is required");
+        RuleFor(x => x.Weight).GreaterThan(0).WithMessage("Weight must be greater than 0");
+        RuleFor(x => x.Volume).GreaterThan(0).WithMessage("Volume must be greater than 0");
         RuleFor(x => x.RequiredTemperatureZone)
             .IsInEnum().WithMessage("RequiredTemperatureZone must be a valid value");
         RuleForEach(x => x.PreferredLocationIds!)
@@ -59,7 +63,7 @@ public sealed class UpdateProductCommandHandler(IAppDbContext context)
                 return LocationErrors.NotFound(missing);
         }
 
-        product.Update(request.Name, request.Description, request.RequiredTemperatureZone);
+        product.Update(request.Name, request.Description, request.Weight, request.Volume, request.RequiredTemperatureZone);
         product.SetPreferredLocations(distinctPreferred);
 
         await context.SaveChangesAsync(cancellationToken);

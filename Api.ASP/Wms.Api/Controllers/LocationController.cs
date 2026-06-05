@@ -80,6 +80,8 @@ public class LocationController : ControllerBase
                 request.Description,
                 request.TemperatureZone,
                 request.Capacity,
+                request.WeightCapacity,
+                request.VolumeCapacity,
                 request.IsMixedSkuAllowed,
                 request.IsMixedLotAllowed),
             cancellationToken);
@@ -112,5 +114,7 @@ public sealed record UpdateLocationRequest(
     string? Description,
     TemperatureZone TemperatureZone,
     int? Capacity,
+    decimal? WeightCapacity,
+    decimal? VolumeCapacity,
     bool IsMixedSkuAllowed,
     bool IsMixedLotAllowed);

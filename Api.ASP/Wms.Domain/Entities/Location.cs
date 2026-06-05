@@ -31,7 +31,9 @@ public class Location : Entity
         TemperatureZone temperatureZone = TemperatureZone.Ambient,
         int? capacity = null,
         bool isMixedSkuAllowed = true,
-        bool isMixedLotAllowed = true)
+        bool isMixedLotAllowed = true,
+        decimal? weightCapacity = null,
+        decimal? volumeCapacity = null)
     {
         Id = Guid.NewGuid();
         Code = code;
@@ -39,7 +41,7 @@ public class Location : Entity
         Type = type;
         Description = description;
         TemperatureZone = temperatureZone;
-        Capacity = new LocationCapacity(capacity);
+        Capacity = new LocationCapacity(capacity, weightCapacity, volumeCapacity);
         IsMixedSkuAllowed = isMixedSkuAllowed;
         IsMixedLotAllowed = isMixedLotAllowed;
         IsActive = true;
@@ -54,14 +56,16 @@ public class Location : Entity
         TemperatureZone temperatureZone,
         int? capacity,
         bool isMixedSkuAllowed,
-        bool isMixedLotAllowed)
+        bool isMixedLotAllowed,
+        decimal? weightCapacity = null,
+        decimal? volumeCapacity = null)
     {
         Code = code;
         Address = address;
         Type = type;
         Description = description;
         TemperatureZone = temperatureZone;
-        Capacity = new LocationCapacity(capacity);
+        Capacity = new LocationCapacity(capacity, weightCapacity, volumeCapacity);
         IsMixedSkuAllowed = isMixedSkuAllowed;
         IsMixedLotAllowed = isMixedLotAllowed;
     }
@@ -99,23 +103,27 @@ public class Location : Entity
         Product product,
         Lot? lot,
         Quantity quantity,
-        IEnumerable<Inventory> currentContents)
-        => CanAccept(product, lot, quantity, currentContents, CapacityOccupancy.Empty());
+        IEnumerable<Inventory> currentContents,
+        IReadOnlyDictionary<Guid, Product> contentsProducts)
+        => CanAccept(product, lot, quantity, currentContents, CapacityOccupancy.Empty(), contentsProducts);
 
     /// <summary>
     /// Validates whether this location can accept <paramref name="quantity"/> of
     /// <paramref name="product"/>. <paramref name="extraOccupancy"/> is space that
     /// must be treated as already used on top of <paramref name="currentContents"/> —
     /// e.g. other stock-ins' active reservations or sibling placements being planned
-    /// in the same draft. Capacity is checked generically over every configured
-    /// dimension so new dimensions (weight, volume, …) need no change here.
+    /// in the same draft. <paramref name="contentsProducts"/> resolves the products of
+    /// <paramref name="currentContents"/> so their weight/volume load can be summed
+    /// (the Units dimension needs no lookup). Capacity is checked generically over
+    /// every configured dimension and the most restrictive one wins.
     /// </summary>
     public Result CanAccept(
         Product product,
         Lot? lot,
         Quantity quantity,
         IEnumerable<Inventory> currentContents,
-        CapacityOccupancy extraOccupancy)
+        CapacityOccupancy extraOccupancy,
+        IReadOnlyDictionary<Guid, Product> contentsProducts)
     {
         if (IsBlocked)
             return LocationErrors.LocationBlocked(Id, BlockedReason);
@@ -137,7 +145,7 @@ public class Location : Entity
             // Capacity = physical occupancy. Reserved units still take up space,
             // so OnHand (not Available) is the right basis here.
             var limit = Capacity.Limit(dimension)!.Value;
-            var totalAfter = ExistingLoad(dimension, contents)
+            var totalAfter = ExistingLoad(dimension, contents, contentsProducts)
                 + extraOccupancy.Get(dimension)
                 + incoming.GetValueOrDefault(dimension);
 
@@ -169,26 +177,56 @@ public class Location : Entity
     }
 
     /// <summary>
-    /// How many additional units this location can physically hold given its current
-    /// contents plus <paramref name="extraOccupancy"/>. Returns null when the Units
-    /// dimension is unlimited (caller should place the whole remainder in one go).
-    /// This only sizes against the Units capacity — callers MUST first gate with
-    /// <see cref="CanAccept(Product, Lot?, Quantity, IEnumerable{Inventory}, CapacityOccupancy)"/>
+    /// How many additional whole units of <paramref name="product"/> this location can
+    /// hold given its current contents plus <paramref name="extraOccupancy"/>, taking
+    /// the most restrictive configured dimension (units / weight / volume). Returns null
+    /// when no configured dimension constrains the product (caller should place the whole
+    /// remainder in one go). Callers MUST first gate with
+    /// <see cref="CanAccept(Product, Lot?, Quantity, IEnumerable{Inventory}, CapacityOccupancy, IReadOnlyDictionary{Guid, Product})"/>
     /// for zone / mixed-SKU / mixed-lot / blocked rules before sizing with this.
     /// </summary>
-    public int? UnitsThatFit(IEnumerable<Inventory> currentContents, CapacityOccupancy extraOccupancy)
+    public int? UnitsThatFit(
+        Product product,
+        IEnumerable<Inventory> currentContents,
+        CapacityOccupancy extraOccupancy,
+        IReadOnlyDictionary<Guid, Product> contentsProducts)
     {
-        if (!Capacity.MaxUnits.HasValue)
-            return null;
+        var contents = currentContents as IReadOnlyCollection<Inventory> ?? currentContents.ToList();
+        var perUnit = CapacityLoadCalculator.Load(product, new Quantity(1));
 
-        var used = currentContents.Sum(i => i.OnHand.Value) + extraOccupancy.Get(CapacityDimension.Units);
-        return Math.Max(0, Capacity.MaxUnits.Value - used);
+        int? fit = null;
+        foreach (var dimension in Capacity.ConfiguredDimensions())
+        {
+            var perUnitLoad = perUnit.GetValueOrDefault(dimension);
+            if (perUnitLoad <= 0)
+                continue; // a zero-load product can never fill this dimension
+
+            var remaining = Capacity.Limit(dimension)!.Value
+                - ExistingLoad(dimension, contents, contentsProducts)
+                - extraOccupancy.Get(dimension);
+
+            var dimensionFit = remaining <= 0 ? 0 : (int)Math.Floor(remaining / perUnitLoad);
+            fit = fit is null ? dimensionFit : Math.Min(fit.Value, dimensionFit);
+        }
+
+        return fit;
     }
 
-    private static int ExistingLoad(CapacityDimension dimension, IReadOnlyCollection<Inventory> contents) => dimension switch
+    private static decimal ExistingLoad(
+        CapacityDimension dimension,
+        IReadOnlyCollection<Inventory> contents,
+        IReadOnlyDictionary<Guid, Product> contentsProducts)
     {
-        // Physical occupancy is per unit regardless of which SKU occupies the space.
-        CapacityDimension.Units => contents.Sum(i => i.OnHand.Value),
-        _ => 0
-    };
+        // Units occupancy is one per physical unit regardless of SKU, so it needs no
+        // product lookup. Weight/volume occupancy is summed from each line's product.
+        if (dimension == CapacityDimension.Units)
+            return contents.Sum(i => i.OnHand.Value);
+
+        decimal total = 0;
+        foreach (var line in contents)
+            if (contentsProducts.TryGetValue(line.ProductId, out var lineProduct))
+                total += CapacityLoadCalculator.Load(lineProduct, line.OnHand).GetValueOrDefault(dimension);
+
+        return total;
+    }
 }

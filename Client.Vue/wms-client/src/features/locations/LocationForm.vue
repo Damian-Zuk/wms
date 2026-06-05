@@ -52,6 +52,14 @@ const schema = toTypedSchema(
       .int()
       .positive('Capacity must be greater than 0')
       .nullable(),
+    weightCapacity: z
+      .number()
+      .positive('Weight capacity must be greater than 0')
+      .nullable(),
+    volumeCapacity: z
+      .number()
+      .positive('Volume capacity must be greater than 0')
+      .nullable(),
     description: z.string(),
     isMixedSkuAllowed: z.boolean(),
     isMixedLotAllowed: z.boolean(),
@@ -72,6 +80,8 @@ const [bin, binAttrs] = defineField('bin')
 const [type] = defineField('type')
 const [temperatureZone] = defineField('temperatureZone')
 const [capacity] = defineField('capacity')
+const [weightCapacity] = defineField('weightCapacity')
+const [volumeCapacity] = defineField('volumeCapacity')
 const [description, descriptionAttrs] = defineField('description')
 const [isMixedSkuAllowed] = defineField('isMixedSkuAllowed')
 const [isMixedLotAllowed] = defineField('isMixedLotAllowed')
@@ -155,20 +165,57 @@ const onSubmit = handleSubmit((values) => emit('submit', values as LocationFormV
       </div>
     </div>
 
-    <div class="flex flex-col gap-1">
-      <label for="capacity" class="text-sm font-medium text-surface-700">Capacity</label>
-      <InputNumber
-        input-id="capacity"
-        v-model="capacity"
-        :min="1"
-        :use-grouping="false"
-        placeholder="Unlimited"
-        fluid
-        :invalid="!!errors.capacity"
-      />
-      <small v-if="errors.capacity" class="text-red-500">{{ errors.capacity }}</small>
-      <small v-else class="text-surface-400">Leave empty for unlimited capacity.</small>
-    </div>
+    <fieldset class="flex flex-col gap-2 border border-surface-200 rounded-lg p-4">
+      <legend class="text-sm font-medium text-surface-700 px-1">Capacity limits</legend>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="flex flex-col gap-1">
+          <label for="capacity" class="text-xs text-surface-500">Units</label>
+          <InputNumber
+            input-id="capacity"
+            v-model="capacity"
+            :min="1"
+            :use-grouping="false"
+            placeholder="Unlimited"
+            fluid
+            :invalid="!!errors.capacity"
+          />
+          <small v-if="errors.capacity" class="text-red-500">{{ errors.capacity }}</small>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="weightCapacity" class="text-xs text-surface-500">Weight (kg)</label>
+          <InputNumber
+            input-id="weightCapacity"
+            v-model="weightCapacity"
+            mode="decimal"
+            :min="0"
+            :min-fraction-digits="0"
+            :max-fraction-digits="3"
+            :use-grouping="false"
+            placeholder="Unlimited"
+            fluid
+            :invalid="!!errors.weightCapacity"
+          />
+          <small v-if="errors.weightCapacity" class="text-red-500">{{ errors.weightCapacity }}</small>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label for="volumeCapacity" class="text-xs text-surface-500">Volume (dm³)</label>
+          <InputNumber
+            input-id="volumeCapacity"
+            v-model="volumeCapacity"
+            mode="decimal"
+            :min="0"
+            :min-fraction-digits="0"
+            :max-fraction-digits="3"
+            :use-grouping="false"
+            placeholder="Unlimited"
+            fluid
+            :invalid="!!errors.volumeCapacity"
+          />
+          <small v-if="errors.volumeCapacity" class="text-red-500">{{ errors.volumeCapacity }}</small>
+        </div>
+      </div>
+      <small class="text-surface-400">Leave a field empty for unlimited on that dimension.</small>
+    </fieldset>
 
     <div class="flex flex-col gap-1">
       <label for="description" class="text-sm font-medium text-surface-700">Description</label>

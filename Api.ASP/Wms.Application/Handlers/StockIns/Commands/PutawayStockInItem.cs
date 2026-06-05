@@ -73,7 +73,14 @@ public sealed class PutawayStockInItemCommandHandler(IAppDbContext context)
             .Where(i => i.LocationId == item.LocationId)
             .ToListAsync(cancellationToken);
 
-        var canAccept = location.CanAccept(product, lot, quantity, contentsAtLocation);
+        // Products occupying the destination, needed to weigh its existing contents
+        // on the Weight/Volume capacity dimensions.
+        var contentsProductIds = contentsAtLocation.Select(i => i.ProductId).Distinct().ToList();
+        var contentsProducts = await context.Products
+            .Where(p => contentsProductIds.Contains(p.Id))
+            .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+        var canAccept = location.CanAccept(product, lot, quantity, contentsAtLocation, contentsProducts);
         if (canAccept.IsFailure)
             return canAccept;
 

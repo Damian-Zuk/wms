@@ -28,6 +28,8 @@ watch(
         sku: p.sku,
         name: p.name,
         description: p.description,
+        weight: p.weight,
+        volume: p.volume,
         requiredTemperatureZone: p.requiredTemperatureZone,
         preferredLocationIds: [...p.preferredLocationIds],
       }
@@ -41,6 +43,8 @@ function onSubmit(values: ProductFormValues) {
   const body: UpdateProductRequest = {
     name: values.name,
     description: values.description,
+    weight: values.weight,
+    volume: values.volume,
     requiredTemperatureZone: values.requiredTemperatureZone,
     preferredLocationIds: values.preferredLocationIds,
   }

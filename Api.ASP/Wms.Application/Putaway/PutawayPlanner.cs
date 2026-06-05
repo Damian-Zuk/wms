@@ -9,7 +9,7 @@ namespace Wms.Application.Putaway;
 
 /// <summary>
 /// Walks the allocation strategies in registration order. For each candidate
-/// location it gates with <see cref="Location.CanAccept(Product, Lot?, Quantity, IEnumerable{Inventory}, Services.CapacityOccupancy)"/>,
+/// location it gates with <see cref="Location.CanAccept(Product, Lot?, Quantity, IEnumerable{Inventory}, Services.CapacityOccupancy, IReadOnlyDictionary{Guid, Product})"/>,
 /// then takes as much of the remaining quantity as fits (the whole remainder for
 /// unlimited locations), committing the load back into the shared context so later
 /// candidates and later lines see the space as used. Fails if anything is left
@@ -44,7 +44,7 @@ internal sealed class PutawayPlanner(IEnumerable<IPutawayAllocationStrategy> str
                 var occupancy = context.OccupancyFor(locationId);
 
                 // Gate zone / mixed-sku / mixed-lot / blocked / capacity-for-one before sizing.
-                if (location.CanAccept(product, lot, new Quantity(1), contents, occupancy).IsFailure)
+                if (location.CanAccept(product, lot, new Quantity(1), contents, occupancy, context.Products).IsFailure)
                     continue;
 
                 // CanAccept only sees committed inventory; also reject if a different
@@ -52,7 +52,7 @@ internal sealed class PutawayPlanner(IEnumerable<IPutawayAllocationStrategy> str
                 if (context.WouldConflictWithPlanned(location, product, lot))
                     continue;
 
-                var headroom = location.UnitsThatFit(contents, occupancy);
+                var headroom = location.UnitsThatFit(product, contents, occupancy, context.Products);
                 var take = headroom is null ? remaining : Math.Min(remaining, headroom.Value);
                 if (take <= 0)
                     continue;

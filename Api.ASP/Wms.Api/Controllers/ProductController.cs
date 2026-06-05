@@ -68,6 +68,8 @@ public class ProductController : ControllerBase
                 id,
                 request.Name,
                 request.Description,
+                request.Weight,
+                request.Volume,
                 request.RequiredTemperatureZone,
                 request.PreferredLocationIds),
             cancellationToken);
@@ -92,5 +94,7 @@ public class ProductController : ControllerBase
 public sealed record UpdateProductRequest(
     string Name,
     string Description,
+    decimal Weight,
+    decimal Volume,
     TemperatureZone RequiredTemperatureZone,
     IReadOnlyList<Guid>? PreferredLocationIds);
