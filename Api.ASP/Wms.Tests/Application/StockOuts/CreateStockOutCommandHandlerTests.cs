@@ -1,8 +1,10 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
-using Wms.Application.Picking;
 using Wms.Application.Handlers.StockOuts.Commands;
+using Wms.Application.Picking;
+using Wms.Application.Picking.Strategies;
 using Wms.Domain.Enums;
+using Wms.Domain.ValueObjects;
 using Wms.Tests.Common;
 using Xunit;
 
@@ -14,318 +16,217 @@ public class CreateStockOutCommandHandlerTests : IntegrationTestBase
     {
     }
 
-    public class FefoBranch : CreateStockOutCommandHandlerTests
+    private static IPickingPlanner Planner() => new PickingPlanner(
+    [
+        new FefoAllocationStrategy(),
+        new FifoAllocationStrategy()
+    ]);
+
+    [Fact]
+    public async Task Fefo_allocates_from_earliest_expiring_lot_and_reserves_each_source()
     {
-        public FefoBranch(PostgresContainerFixture fixture) : base(fixture) { }
+        var ct = TestContext.Current.CancellationToken;
 
-        [Fact]
-        public async Task Allocates_from_earliest_expiring_lot()
-        {
-            // Arrange: one product with two lots in the same location. Caller
-            // doesn't specify a LotId, so FEFO must pick the earliest.
-            var product = TestData.Product("SO-PROD");
-            var location = TestData.Location("SO-LOC");
+        // One product with two lots in the same location. The line asks for FEFO,
+        // so the earliest-expiring lot must be drained before the later one.
+        var product = TestData.Product("SO-PROD");
+        var location = TestData.Location("SO-LOC");
 
-            var earlyLot = TestData.Lot(product.Id, "EARLY", new DateOnly(2026, 06, 01));
-            var lateLot = TestData.Lot(product.Id, "LATE", new DateOnly(2027, 06, 01));
+        var earlyLot = TestData.Lot(product.Id, "EARLY", new DateOnly(2026, 06, 01));
+        var lateLot = TestData.Lot(product.Id, "LATE", new DateOnly(2027, 06, 01));
 
-            var earlyInv = TestData.Inventory(product.Id, location.Id, earlyLot.Id, onHand: 8);
-            var lateInv = TestData.Inventory(product.Id, location.Id, lateLot.Id, onHand: 10);
+        var earlyInv = TestData.Inventory(product.Id, location.Id, earlyLot.Id, onHand: 8);
+        var lateInv = TestData.Inventory(product.Id, location.Id, lateLot.Id, onHand: 10);
 
-            Context.Products.Add(product);
-            Context.Locations.Add(location);
-            Context.Lots.AddRange(earlyLot, lateLot);
-            Context.Inventories.AddRange(earlyInv, lateInv);
-            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        Context.Products.Add(product);
+        Context.Locations.Add(location);
+        Context.Lots.AddRange(earlyLot, lateLot);
+        Context.Inventories.AddRange(earlyInv, lateInv);
+        await Context.SaveChangesAsync(ct);
 
-            // Act: pull 12 units, expecting 8 from early (drained) + 4 from late.
-            await using var actContext = CreateContext();
-            var handler = new CreateStockOutCommandHandler(actContext, new FefoAllocator(actContext));
-            var command = new CreateStockOutCommand(new List<StockOutItemRequest>
-            {
-                new(product.Id, location.Id, LotId: null, Quantity: 12)
-            });
+        await using var actContext = CreateContext();
+        var handler = new CreateStockOutCommandHandler(actContext, Planner());
 
-            var result = await handler.Handle(command, TestContext.Current.CancellationToken);
+        // Pull 12 units: 8 from early (drained) + 4 from late.
+        var result = await handler.Handle(
+            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 12)]),
+            ct);
 
-            result.IsSuccess.Should().BeTrue();
+        result.IsSuccess.Should().BeTrue();
 
-            var ct = TestContext.Current.CancellationToken;
+        await using var verify = CreateContext();
+        var stockOut = await verify.StockOuts
+            .AsNoTracking()
+            .Include(s => s.Lines)
+            .ThenInclude(l => l.Items)
+            .SingleAsync(s => s.Id == result.Value, ct);
 
-            await using var verify = CreateContext();
-            var stockOut = await verify.StockOuts
-                .Include(s => s.Items)
-                .SingleAsync(s => s.Id == result.Value, ct);
+        stockOut.Status.Should().Be(StockOutStatus.Draft);
+        var line = stockOut.Lines.Should().ContainSingle().Subject;
+        line.Items.Should().HaveCount(2);
 
-            stockOut.Status.Should().Be(StockOutStatus.Draft);
-            stockOut.Items.Should().HaveCount(2);
+        var qtyByLot = line.Items.ToDictionary(i => i.LotId!.Value, i => i.Quantity.Value);
+        qtyByLot[earlyLot.Id].Should().Be(8);
+        qtyByLot[lateLot.Id].Should().Be(4);
 
-            var itemByLot = stockOut.Items.ToDictionary(i => i.LotId!.Value, i => i.Quantity.Value);
-            itemByLot[earlyLot.Id].Should().Be(8);
-            itemByLot[lateLot.Id].Should().Be(4);
+        var inventories = await verify.Inventories
+            .AsNoTracking()
+            .Where(i => i.ProductId == product.Id)
+            .ToListAsync(ct);
 
-            var inventories = await verify.Inventories
-                .AsNoTracking()
-                .Where(i => i.ProductId == product.Id)
-                .ToListAsync(ct);
+        var earlyAfter = inventories.Single(i => i.LotId == earlyLot.Id);
+        earlyAfter.OnHand.Value.Should().Be(8);
+        earlyAfter.Reserved.Value.Should().Be(8);
+        earlyAfter.Available.Value.Should().Be(0);
 
-            var earlyAfter = inventories.Single(i => i.LotId == earlyLot.Id);
-            earlyAfter.OnHand.Value.Should().Be(8);
-            earlyAfter.Reserved.Value.Should().Be(8);
-            earlyAfter.Available.Value.Should().Be(0);
-
-            var lateAfter = inventories.Single(i => i.LotId == lateLot.Id);
-            lateAfter.OnHand.Value.Should().Be(10);
-            lateAfter.Reserved.Value.Should().Be(4);
-            lateAfter.Available.Value.Should().Be(6);
-        }
+        var lateAfter = inventories.Single(i => i.LotId == lateLot.Id);
+        lateAfter.OnHand.Value.Should().Be(10);
+        lateAfter.Reserved.Value.Should().Be(4);
+        lateAfter.Available.Value.Should().Be(6);
     }
 
-    public class NonFefoBranch : CreateStockOutCommandHandlerTests
+    [Fact]
+    public async Task Fifo_allocates_from_earliest_received_stock_first()
     {
-        public NonFefoBranch(PostgresContainerFixture fixture) : base(fixture) { }
+        var ct = TestContext.Current.CancellationToken;
 
-        [Fact]
-        public async Task Explicit_lot_reserves_against_the_matching_inventory_row_only()
-        {
-            // Same product has two lots, but caller pins the later lot
-            // explicitly — FEFO must NOT override an explicit LotId.
-            var product = TestData.Product("SO-EXPL");
-            var location = TestData.Location("SO-EXPL-LOC");
-            var earlyLot = TestData.Lot(product.Id, "EARLY", new DateOnly(2026, 06, 01));
-            var pinnedLot = TestData.Lot(product.Id, "PIN", new DateOnly(2027, 06, 01));
-            var earlyInv = TestData.Inventory(product.Id, location.Id, earlyLot.Id, onHand: 5);
-            var pinnedInv = TestData.Inventory(product.Id, location.Id, pinnedLot.Id, onHand: 5);
+        // Two locations hold the same (lotless) product received on different
+        // dates; FIFO must draw from the oldest receipt first.
+        var product = TestData.Product("SO-FIFO");
+        var oldLoc = TestData.Location("SO-FIFO-OLD");
+        var newLoc = TestData.Location("SO-FIFO-NEW");
 
-            Context.Products.Add(product);
-            Context.Locations.Add(location);
-            Context.Lots.AddRange(earlyLot, pinnedLot);
-            Context.Inventories.AddRange(earlyInv, pinnedInv);
-            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var oldInv = TestData.Inventory(product.Id, oldLoc.Id, lotId: null, onHand: 6,
+            receivedAt: new DateTime(2026, 01, 01, 0, 0, 0, DateTimeKind.Utc));
+        var newInv = TestData.Inventory(product.Id, newLoc.Id, lotId: null, onHand: 6,
+            receivedAt: new DateTime(2026, 03, 01, 0, 0, 0, DateTimeKind.Utc));
 
-            await using var actContext = CreateContext();
-            var handler = new CreateStockOutCommandHandler(actContext, new FefoAllocator(actContext));
+        Context.Products.Add(product);
+        Context.Locations.AddRange(oldLoc, newLoc);
+        Context.Inventories.AddRange(oldInv, newInv);
+        await Context.SaveChangesAsync(ct);
 
-            var result = await handler.Handle(
-                new CreateStockOutCommand(new List<StockOutItemRequest>
-                {
-                    new(product.Id, location.Id, LotId: pinnedLot.Id, Quantity: 3)
-                }),
-                TestContext.Current.CancellationToken);
+        await using var actContext = CreateContext();
+        var handler = new CreateStockOutCommandHandler(actContext, Planner());
 
-            result.IsSuccess.Should().BeTrue();
+        var result = await handler.Handle(
+            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fifo, 9)]),
+            ct);
 
-            await using var verify = CreateContext();
-            var ct = TestContext.Current.CancellationToken;
+        result.IsSuccess.Should().BeTrue();
 
-            var inventories = await verify.Inventories
-                .AsNoTracking()
-                .Where(i => i.ProductId == product.Id)
-                .ToListAsync(ct);
+        await using var verify = CreateContext();
+        var inventories = await verify.Inventories
+            .AsNoTracking()
+            .Where(i => i.ProductId == product.Id)
+            .ToListAsync(ct);
 
-            inventories.Single(i => i.LotId == earlyLot.Id).Reserved.Value.Should().Be(0);
-            inventories.Single(i => i.LotId == pinnedLot.Id).Reserved.Value.Should().Be(3);
-        }
-
-        [Fact]
-        public async Task Non_lot_tracked_product_reserves_against_the_lotless_inventory_row()
-        {
-            // Product has no lots at all → handler bypasses FEFO entirely
-            // and reserves the row with LotId == null.
-            var product = TestData.Product("SO-NOLOT");
-            var location = TestData.Location("SO-NOLOT-LOC");
-            var inv = TestData.Inventory(product.Id, location.Id, lotId: null, onHand: 8);
-
-            Context.Products.Add(product);
-            Context.Locations.Add(location);
-            Context.Inventories.Add(inv);
-            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-            await using var actContext = CreateContext();
-            var handler = new CreateStockOutCommandHandler(actContext, new FefoAllocator(actContext));
-
-            var result = await handler.Handle(
-                new CreateStockOutCommand(new List<StockOutItemRequest>
-                {
-                    new(product.Id, location.Id, LotId: null, Quantity: 5)
-                }),
-                TestContext.Current.CancellationToken);
-
-            result.IsSuccess.Should().BeTrue();
-
-            await using var verify = CreateContext();
-            var ct = TestContext.Current.CancellationToken;
-
-            var reloaded = await verify.Inventories
-                .AsNoTracking()
-                .SingleAsync(i => i.Id == inv.Id, ct);
-            reloaded.OnHand.Value.Should().Be(8);
-            reloaded.Reserved.Value.Should().Be(5);
-
-            var stockOut = await verify.StockOuts
-                .Include(s => s.Items)
-                .SingleAsync(s => s.Id == result.Value, ct);
-            stockOut.Items.Should().ContainSingle()
-                .Which.LotId.Should().BeNull();
-        }
+        // Oldest location fully reserved (6); newest covers the remaining 3.
+        inventories.Single(i => i.LocationId == oldLoc.Id).Reserved.Value.Should().Be(6);
+        inventories.Single(i => i.LocationId == newLoc.Id).Reserved.Value.Should().Be(3);
     }
 
-    public class FailurePaths : CreateStockOutCommandHandlerTests
+    [Fact]
+    public async Task Non_lot_tracked_product_reserves_the_lotless_row()
     {
-        public FailurePaths(PostgresContainerFixture fixture) : base(fixture) { }
+        var ct = TestContext.Current.CancellationToken;
 
-        [Fact]
-        public async Task Missing_product_returns_product_not_found()
-        {
-            var location = TestData.Location("SO-FAIL-LOC-1");
-            Context.Locations.Add(location);
-            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var product = TestData.Product("SO-NOLOT");
+        var location = TestData.Location("SO-NOLOT-LOC");
+        var inv = TestData.Inventory(product.Id, location.Id, lotId: null, onHand: 8);
 
-            await using var actContext = CreateContext();
-            var handler = new CreateStockOutCommandHandler(actContext, new FefoAllocator(actContext));
+        Context.Products.Add(product);
+        Context.Locations.Add(location);
+        Context.Inventories.Add(inv);
+        await Context.SaveChangesAsync(ct);
 
-            var result = await handler.Handle(
-                new CreateStockOutCommand(new List<StockOutItemRequest>
-                {
-                    new(Guid.NewGuid(), location.Id, null, 1)
-                }),
-                TestContext.Current.CancellationToken);
+        await using var actContext = CreateContext();
+        var handler = new CreateStockOutCommandHandler(actContext, Planner());
 
-            result.IsFailure.Should().BeTrue();
-            result.Error.Code.Should().Be("StockOut.ProductNotFound");
-        }
+        var result = await handler.Handle(
+            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 5)]),
+            ct);
 
-        [Fact]
-        public async Task Missing_location_returns_location_not_found()
-        {
-            var product = TestData.Product("SO-FAIL-2");
-            Context.Products.Add(product);
-            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        result.IsSuccess.Should().BeTrue();
 
-            await using var actContext = CreateContext();
-            var handler = new CreateStockOutCommandHandler(actContext, new FefoAllocator(actContext));
+        await using var verify = CreateContext();
+        var reloaded = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == inv.Id, ct);
+        reloaded.OnHand.Value.Should().Be(8);
+        reloaded.Reserved.Value.Should().Be(5);
 
-            var result = await handler.Handle(
-                new CreateStockOutCommand(new List<StockOutItemRequest>
-                {
-                    new(product.Id, Guid.NewGuid(), null, 1)
-                }),
-                TestContext.Current.CancellationToken);
+        var stockOut = await verify.StockOuts
+            .AsNoTracking()
+            .Include(s => s.Lines)
+            .ThenInclude(l => l.Items)
+            .SingleAsync(s => s.Id == result.Value, ct);
+        stockOut.Lines.Single().Items.Should().ContainSingle()
+            .Which.LotId.Should().BeNull();
+    }
 
-            result.IsFailure.Should().BeTrue();
-            result.Error.Code.Should().Be("StockOut.LocationNotFound");
-        }
+    [Fact]
+    public async Task Missing_product_returns_product_not_found()
+    {
+        await using var actContext = CreateContext();
+        var handler = new CreateStockOutCommandHandler(actContext, Planner());
 
-        [Fact]
-        public async Task Missing_lot_returns_lot_not_found()
-        {
-            var product = TestData.Product("SO-FAIL-3");
-            var location = TestData.Location("SO-FAIL-LOC-3");
-            Context.Products.Add(product);
-            Context.Locations.Add(location);
-            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        var result = await handler.Handle(
+            new CreateStockOutCommand([new StockOutLineRequest(Guid.NewGuid(), PickingStrategyType.Fefo, 1)]),
+            TestContext.Current.CancellationToken);
 
-            await using var actContext = CreateContext();
-            var handler = new CreateStockOutCommandHandler(actContext, new FefoAllocator(actContext));
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("StockOut.ProductNotFound");
+    }
 
-            var result = await handler.Handle(
-                new CreateStockOutCommand(new List<StockOutItemRequest>
-                {
-                    new(product.Id, location.Id, LotId: Guid.NewGuid(), Quantity: 1)
-                }),
-                TestContext.Current.CancellationToken);
+    [Fact]
+    public async Task Cannot_pick_full_quantity_when_no_inventory_exists()
+    {
+        var ct = TestContext.Current.CancellationToken;
 
-            result.IsFailure.Should().BeTrue();
-            result.Error.Code.Should().Be("StockOut.LotNotFound");
-        }
+        var product = TestData.Product("SO-FAIL-1");
+        Context.Products.Add(product);
+        await Context.SaveChangesAsync(ct);
 
-        [Fact]
-        public async Task Missing_inventory_row_returns_insufficient_available_stock()
-        {
-            // Product and location exist, but no inventory row covers them
-            // and the product has no lots → non-FEFO branch, no matching row.
-            var product = TestData.Product("SO-FAIL-4");
-            var location = TestData.Location("SO-FAIL-LOC-4");
-            Context.Products.Add(product);
-            Context.Locations.Add(location);
-            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        await using var actContext = CreateContext();
+        var handler = new CreateStockOutCommandHandler(actContext, Planner());
 
-            await using var actContext = CreateContext();
-            var handler = new CreateStockOutCommandHandler(actContext, new FefoAllocator(actContext));
+        var result = await handler.Handle(
+            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 1)]),
+            ct);
 
-            var result = await handler.Handle(
-                new CreateStockOutCommand(new List<StockOutItemRequest>
-                {
-                    new(product.Id, location.Id, null, 1)
-                }),
-                TestContext.Current.CancellationToken);
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Picking.CannotPickFullQuantity");
+    }
 
-            result.IsFailure.Should().BeTrue();
-            result.Error.Code.Should().Be("Inventory.InsufficientAvailableStock");
-        }
+    [Fact]
+    public async Task Insufficient_available_stock_fails_and_persists_nothing()
+    {
+        var ct = TestContext.Current.CancellationToken;
 
-        [Fact]
-        public async Task Insufficient_available_stock_returns_failure_and_persists_nothing()
-        {
-            // Non-FEFO branch: enough OnHand but not enough Available.
-            var product = TestData.Product("SO-FAIL-5");
-            var location = TestData.Location("SO-FAIL-LOC-5");
-            var inv = TestData.Inventory(product.Id, location.Id, null, onHand: 5);
-            inv.Reserve(new Wms.Domain.ValueObjects.Quantity(4));
-            Context.Products.Add(product);
-            Context.Locations.Add(location);
-            Context.Inventories.Add(inv);
-            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
+        // Enough OnHand, but most of it is already reserved, so the planner
+        // cannot cover the request out of Available.
+        var product = TestData.Product("SO-FAIL-2");
+        var location = TestData.Location("SO-FAIL-LOC-2");
+        var inv = TestData.Inventory(product.Id, location.Id, lotId: null, onHand: 5);
+        inv.Reserve(new Quantity(4));
 
-            await using var actContext = CreateContext();
-            var handler = new CreateStockOutCommandHandler(actContext, new FefoAllocator(actContext));
+        Context.Products.Add(product);
+        Context.Locations.Add(location);
+        Context.Inventories.Add(inv);
+        await Context.SaveChangesAsync(ct);
 
-            var result = await handler.Handle(
-                new CreateStockOutCommand(new List<StockOutItemRequest>
-                {
-                    new(product.Id, location.Id, null, Quantity: 3)
-                }),
-                TestContext.Current.CancellationToken);
+        await using var actContext = CreateContext();
+        var handler = new CreateStockOutCommandHandler(actContext, Planner());
 
-            result.IsFailure.Should().BeTrue();
-            result.Error.Code.Should().Be("Inventory.InsufficientAvailableStock");
+        var result = await handler.Handle(
+            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 3)]),
+            ct);
 
-            await using var verify = CreateContext();
-            var ct = TestContext.Current.CancellationToken;
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Picking.CannotPickFullQuantity");
 
-            // Nothing persisted.
-            (await verify.StockOuts.AsNoTracking().AnyAsync(ct)).Should().BeFalse();
-            var unchanged = await verify.Inventories.AsNoTracking()
-                .SingleAsync(i => i.Id == inv.Id, ct);
-            unchanged.Reserved.Value.Should().Be(4);
-        }
-
-        [Fact]
-        public async Task Fefo_branch_with_insufficient_total_available_returns_fefo_failure()
-        {
-            var product = TestData.Product("SO-FAIL-6");
-            var location = TestData.Location("SO-FAIL-LOC-6");
-            var lot = TestData.Lot(product.Id, "LOT", new DateOnly(2026, 06, 01));
-            var inv = TestData.Inventory(product.Id, location.Id, lot.Id, onHand: 2);
-
-            Context.Products.Add(product);
-            Context.Locations.Add(location);
-            Context.Lots.Add(lot);
-            Context.Inventories.Add(inv);
-            await Context.SaveChangesAsync(TestContext.Current.CancellationToken);
-
-            await using var actContext = CreateContext();
-            var handler = new CreateStockOutCommandHandler(actContext, new FefoAllocator(actContext));
-
-            var result = await handler.Handle(
-                new CreateStockOutCommand(new List<StockOutItemRequest>
-                {
-                    new(product.Id, location.Id, LotId: null, Quantity: 10)
-                }),
-                TestContext.Current.CancellationToken);
-
-            result.IsFailure.Should().BeTrue();
-            result.Error.Code.Should().Be("Inventory.InsufficientAvailableStockForFefo");
-        }
+        await using var verify = CreateContext();
+        (await verify.StockOuts.AsNoTracking().AnyAsync(ct)).Should().BeFalse();
+        var unchanged = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == inv.Id, ct);
+        unchanged.Reserved.Value.Should().Be(4);
     }
 }
