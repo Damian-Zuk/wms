@@ -1,24 +1,41 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
+import InputNumber from 'primevue/inputnumber'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
 import ProductSelect from '@/components/pickers/ProductSelect.vue'
 import LocationSelect from '@/components/pickers/LocationSelect.vue'
-import InventoryTabs from './InventoryTabs.vue'
+import LotSelect from '@/components/pickers/LotSelect.vue'
 import AdjustInventoryDialog from './AdjustInventoryDialog.vue'
 import TransferStockDialog from './TransferStockDialog.vue'
 import { useInventories } from './useInventory'
 import { useAuthStore } from '@/stores/auth'
+import { formatDate } from '@/lib/date'
 import type { InventoryDto, InventoryFilters } from '@/types/inventory'
 
+const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 
-const filters = ref<InventoryFilters>({ page: 1, pageSize: 20 })
-const productFilter = ref<string | null>(null)
-const locationFilter = ref<string | null>(null)
+// Seed the filters from the query string so "Check inventory" links from the
+// product/lot/location detail pages land pre-filtered.
+const productFilter = ref<string | null>((route.query.productId as string) ?? null)
+const locationFilter = ref<string | null>((route.query.locationId as string) ?? null)
+const lotFilter = ref<string | null>((route.query.lotId as string) ?? null)
+const expiringWithinDays = ref<number | null>(
+  route.query.expiringWithinDays != null ? Number(route.query.expiringWithinDays) : null,
+)
+
+const filters = ref<InventoryFilters>({
+  productId: productFilter.value ?? undefined,
+  locationId: locationFilter.value ?? undefined,
+  lotId: lotFilter.value ?? undefined,
+  expiringWithinDays: expiringWithinDays.value ?? undefined,
+  page: 1,
+  pageSize: 20,
+})
 
 const { data, isFetching } = useInventories(filters)
 
@@ -29,11 +46,26 @@ const transferVisible = ref(false)
 const transferTarget = ref<InventoryDto | null>(null)
 
 function onProductChange(value: string | null) {
-  filters.value = { ...filters.value, productId: value ?? undefined, page: 1 }
+  // Lot is product-scoped; clear it when the product changes.
+  lotFilter.value = null
+  filters.value = {
+    ...filters.value,
+    productId: value ?? undefined,
+    lotId: undefined,
+    page: 1,
+  }
 }
 
 function onLocationChange(value: string | null) {
   filters.value = { ...filters.value, locationId: value ?? undefined, page: 1 }
+}
+
+function onLotChange(value: string | null) {
+  filters.value = { ...filters.value, lotId: value ?? undefined, page: 1 }
+}
+
+function onExpiringChange(value: number | null) {
+  filters.value = { ...filters.value, expiringWithinDays: value ?? undefined, page: 1 }
 }
 
 function setPage(page: number) {
@@ -62,10 +94,19 @@ function openTransfer(row: InventoryDto) {
 <template>
   <section class="p-6 flex flex-col gap-4" style="max-width: 1400px">
     <h1 class="text-2xl font-semibold text-surface-900">Inventory</h1>
-    <InventoryTabs />
 
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-end gap-2">
       <div class="w-72">
+        <label class="text-sm font-medium text-surface-700">Location</label>
+        <LocationSelect
+          v-model="locationFilter"
+          show-clear
+          placeholder="All locations"
+          @update:model-value="onLocationChange"
+        />
+      </div>
+      <div class="w-72">
+        <label class="text-sm font-medium text-surface-700">Product</label>
         <ProductSelect
           v-model="productFilter"
           show-clear
@@ -73,12 +114,29 @@ function openTransfer(row: InventoryDto) {
           @update:model-value="onProductChange"
         />
       </div>
-      <div class="w-72">
-        <LocationSelect
-          v-model="locationFilter"
+      <div class="w-56">
+        <label class="text-sm font-medium text-surface-700">Lot</label>
+        <LotSelect
+          v-model="lotFilter"
+          :product-id="productFilter ?? undefined"
           show-clear
-          placeholder="All locations"
-          @update:model-value="onLocationChange"
+          placeholder="All lots"
+          @update:model-value="onLotChange"
+        />
+      </div>
+      <div class="w-56">
+        <label for="expiringWithinDays" class="text-sm font-medium text-surface-700">
+          Expiring within (days)
+        </label>
+        <InputNumber
+          input-id="expiringWithinDays"
+          v-model="expiringWithinDays"
+          :min="0"
+          :allow-empty="true"
+          show-buttons
+          placeholder="Any"
+          fluid
+          @update:model-value="onExpiringChange"
         />
       </div>
     </div>
@@ -109,6 +167,11 @@ function openTransfer(row: InventoryDto) {
       <Column header="Lot" style="width: 12rem">
         <template #body="{ data: row }: { data: InventoryDto }">
           {{ row.lot?.number ?? '—' }}
+        </template>
+      </Column>
+      <Column header="Expires" style="width: 9rem">
+        <template #body="{ data: row }: { data: InventoryDto }">
+          {{ formatDate(row.expirationDate) }}
         </template>
       </Column>
       <Column field="onHand" header="On Hand" style="width: 8rem" />

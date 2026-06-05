@@ -87,16 +87,6 @@ const router = createRouter({
       component: () => import('@/features/inventory/InventoryView.vue'),
     },
     {
-      path: '/inventory/availability',
-      name: 'inventory-availability',
-      component: () => import('@/features/inventory/AvailabilityView.vue'),
-    },
-    {
-      path: '/inventory/expiring',
-      name: 'inventory-expiring',
-      component: () => import('@/features/inventory/ExpiringView.vue'),
-    },
-    {
       path: '/inventory/:id',
       name: 'inventory-detail',
       component: () => import('@/features/inventory/InventoryDetailView.vue'),

@@ -18,6 +18,7 @@ public class InventoryController : ControllerBase
         [FromQuery] Guid? productId,
         [FromQuery] Guid? locationId,
         [FromQuery] Guid? lotId,
+        [FromQuery] int? expiringWithinDays,
         [FromQuery] int page,
         [FromQuery] int pageSize,
         [FromServices] IQueryHandler<ListInventoriesQuery, PagedResult<InventoryDto>> handler,
@@ -28,6 +29,7 @@ public class InventoryController : ControllerBase
                 productId,
                 locationId,
                 lotId,
+                expiringWithinDays,
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);
@@ -71,19 +73,6 @@ public class InventoryController : ControllerBase
     {
         var result = await handler.Handle(
             new GetAvailabilityQuery(productId, locationId, lotId),
-            cancellationToken);
-
-        return result.Match(Results.Ok, CustomResults.Problem);
-    }
-
-    [HttpGet("expiring")]
-    public async Task<IResult> GetExpiringInventory(
-        [FromQuery] int withinDays,
-        [FromServices] IQueryHandler<GetExpiringInventoryQuery, IReadOnlyList<ExpiringInventoryLineDto>> handler,
-        CancellationToken cancellationToken)
-    {
-        var result = await handler.Handle(
-            new GetExpiringInventoryQuery(withinDays),
             cancellationToken);
 
         return result.Match(Results.Ok, CustomResults.Problem);

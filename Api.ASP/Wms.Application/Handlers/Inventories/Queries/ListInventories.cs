@@ -12,6 +12,7 @@ public sealed record ListInventoriesQuery(
     Guid? ProductId,
     Guid? LocationId,
     Guid? LotId,
+    int? ExpiringWithinDays = null,
     int Page = 1,
     int PageSize = 20) : IQuery<PagedResult<InventoryDto>>;
 
@@ -41,6 +42,14 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
 
         if (query.LotId.HasValue)
             inventoriesQuery = inventoriesQuery.Where(i => i.LotId == query.LotId.Value);
+
+        if (query.ExpiringWithinDays.HasValue)
+        {
+            var threshold = DateOnly.FromDateTime(DateTime.Today).AddDays(query.ExpiringWithinDays.Value);
+            inventoriesQuery = inventoriesQuery.Where(i =>
+                context.Lots.Any(l =>
+                    l.Id == i.LotId && l.ExpirationDate != null && l.ExpirationDate.Value <= threshold));
+        }
 
         var totalCount = await inventoriesQuery.CountAsync(cancellationToken);
 
@@ -72,6 +81,7 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
                 products[i.ProductId],
                 locations[i.LocationId],
                 i.LotId.HasValue ? lots[i.LotId.Value] : null,
+                i.LotId.HasValue ? lots[i.LotId.Value].ExpirationDate : null,
                 i.OnHand,
                 i.Reserved,
                 i.OnHand - i.Reserved))

@@ -8,6 +8,7 @@ import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import AvailabilityPanel from '@/features/inventory/AvailabilityPanel.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useProductOptions } from '@/features/products/useProducts'
 import { formatDate } from '@/lib/date'
@@ -33,6 +34,14 @@ const productLabel = computed(() => {
 
 function onEdit() {
   router.push({ name: 'lot-edit', params: { id: id.value } })
+}
+
+function checkInventory() {
+  if (!lot.value) return
+  router.push({
+    name: 'inventory',
+    query: { productId: lot.value.productId, lotId: lot.value.id },
+  })
 }
 
 function onDelete() {
@@ -114,5 +123,16 @@ function onDelete() {
       <dt class="text-surface-500">Status</dt>
       <dd><StatusBadge :value="lotStatus(lot).label" :severity="lotStatus(lot).severity" /></dd>
     </dl>
+
+    <template v-if="lot">
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold text-surface-900">Availability</h2>
+        <AvailabilityPanel :product-id="lot.productId" :lot-id="lot.id" />
+      </section>
+
+      <div class="flex justify-center">
+        <Button label="Check inventory" icon="pi pi-database" @click="checkInventory" />
+      </div>
+    </template>
   </section>
 </template>

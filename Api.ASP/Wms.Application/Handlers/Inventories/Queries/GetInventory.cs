@@ -12,6 +12,7 @@ public sealed record InventoryDto(
     ProductRef Product,
     LocationRef Location,
     LotRef? Lot,
+    DateOnly? ExpirationDate,
     int OnHand,
     int Reserved,
     int Available);
@@ -57,6 +58,7 @@ public sealed class GetInventoryQueryHandler(IAppDbContext context)
             products[inventory.ProductId],
             locations[inventory.LocationId],
             inventory.LotId.HasValue ? lots[inventory.LotId.Value] : null,
+            inventory.LotId.HasValue ? lots[inventory.LotId.Value].ExpirationDate : null,
             inventory.OnHand,
             inventory.Reserved,
             inventory.OnHand - inventory.Reserved);

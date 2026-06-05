@@ -4,7 +4,6 @@ import type {
   AdjustInventoryRequest,
   AvailabilityDto,
   AvailabilityParams,
-  ExpiringInventoryLineDto,
   InventoryDto,
   InventoryFilters,
 } from '@/types/inventory'
@@ -17,6 +16,7 @@ export const inventoryApi = {
           productId: filters.productId || undefined,
           locationId: filters.locationId || undefined,
           lotId: filters.lotId || undefined,
+          expiringWithinDays: filters.expiringWithinDays ?? undefined,
           page: filters.page,
           pageSize: filters.pageSize,
         },
@@ -36,13 +36,6 @@ export const inventoryApi = {
           locationId: params.locationId || undefined,
           lotId: params.lotId || undefined,
         },
-      })
-      .then((r) => r.data),
-
-  expiring: (withinDays: number) =>
-    http
-      .get<ExpiringInventoryLineDto[]>('/inventories/expiring', {
-        params: { withinDays },
       })
       .then((r) => r.data),
 }

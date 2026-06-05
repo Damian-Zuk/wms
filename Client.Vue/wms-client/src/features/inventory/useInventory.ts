@@ -45,14 +45,6 @@ export function useAvailability(params: Ref<AvailabilityParams>) {
   })
 }
 
-export function useExpiringInventory(withinDays: Ref<number>) {
-  return useQuery({
-    queryKey: computed(() => qk.inventories.expiring(withinDays.value)),
-    queryFn: () => inventoryApi.expiring(withinDays.value),
-    staleTime: 0,
-  })
-}
-
 export function useAdjustInventory() {
   const qc = useQueryClient()
   return useMutation({

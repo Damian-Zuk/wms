@@ -8,7 +8,9 @@ import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import AvailabilityPanel from '@/features/inventory/AvailabilityPanel.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useLocationOptions } from '@/features/locations/useLocations'
 import { temperatureZoneSeverity } from '@/lib/enum-display'
 import { useDeleteProduct, useProduct } from './useProducts'
 
@@ -21,6 +23,18 @@ const toast = useToast()
 const id = computed(() => route.params.id as string)
 const { data: product, isLoading, isError, error } = useProduct(id)
 const del = useDeleteProduct()
+const { byId: locationsById } = useLocationOptions()
+
+/** Preferred locations resolved to their code/address for display as links. */
+const preferredLocations = computed(() =>
+  (product.value?.preferredLocationIds ?? [])
+    .map((locationId) => locationsById.value.get(locationId))
+    .filter((l): l is NonNullable<typeof l> => l != null),
+)
+
+function checkInventory() {
+  router.push({ name: 'inventory', query: { productId: id.value } })
+}
 
 function onEdit() {
   router.push({ name: 'product-edit', params: { id: id.value } })
@@ -114,7 +128,31 @@ function onDelete() {
       </dd>
 
       <dt class="text-surface-500">Preferred Locations</dt>
-      <dd class="text-surface-900">{{ product.preferredLocationIds.length }} configured</dd>
+      <dd class="text-surface-900">
+        <ul v-if="preferredLocations.length" class="flex flex-col gap-1">
+          <li v-for="loc in preferredLocations" :key="loc.id">
+            <RouterLink
+              :to="{ name: 'location-detail', params: { id: loc.id } }"
+              class="text-primary-600 hover:underline"
+            >
+              {{ loc.code }}
+            </RouterLink>
+            <span class="text-surface-500"> — {{ loc.display }}</span>
+          </li>
+        </ul>
+        <span v-else class="text-surface-500">None configured</span>
+      </dd>
     </dl>
+
+    <template v-if="product">
+      <section class="flex flex-col gap-3">
+        <h2 class="text-lg font-semibold text-surface-900">Availability</h2>
+        <AvailabilityPanel :product-id="product.id" />
+      </section>
+
+      <div class="flex justify-center">
+        <Button label="Check inventory" icon="pi pi-database" @click="checkInventory" />
+      </div>
+    </template>
   </section>
 </template>

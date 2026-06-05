@@ -31,7 +31,6 @@ export const qk = {
     detail: (id: string) => ['inventories', 'detail', id] as const,
     availability: (params: AvailabilityParams) =>
       ['inventories', 'availability', params] as const,
-    expiring: (withinDays: number) => ['inventories', 'expiring', withinDays] as const,
   },
   stockIns: {
     all: ['stock-ins'] as const,

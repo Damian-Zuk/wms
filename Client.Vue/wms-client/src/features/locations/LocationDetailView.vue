@@ -9,6 +9,7 @@ import ProgressSpinner from 'primevue/progressspinner'
 import PageHeader from '@/components/common/PageHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useAuthStore } from '@/stores/auth'
+import { useProductOptions } from '@/features/products/useProducts'
 import { locationTypeSeverity, temperatureZoneSeverity } from '@/lib/enum-display'
 import { useDeleteLocation, useLocation } from './useLocations'
 
@@ -21,6 +22,16 @@ const toast = useToast()
 const id = computed(() => route.params.id as string)
 const { data: location, isLoading, isError, error } = useLocation(id)
 const del = useDeleteLocation()
+const { data: products } = useProductOptions()
+
+/** Products that list this location as a preferred location. */
+const preferredProducts = computed(() =>
+  (products.value?.items ?? []).filter((p) => p.preferredLocationIds.includes(id.value)),
+)
+
+function checkInventory() {
+  router.push({ name: 'inventory', query: { locationId: id.value } })
+}
 
 /** Occupancy utilisation as a 0–100 percentage, or null when that dimension is unlimited. */
 function utilisationPercent(used: number, limit: number | null): number | null {
@@ -172,6 +183,26 @@ function onDelete() {
 
       <dt class="text-surface-500">Description</dt>
       <dd class="text-surface-900">{{ location.description || '—' }}</dd>
+
+      <dt class="text-surface-500">Preferred Products</dt>
+      <dd class="text-surface-900">
+        <ul v-if="preferredProducts.length" class="flex flex-col gap-1">
+          <li v-for="p in preferredProducts" :key="p.id">
+            <RouterLink
+              :to="{ name: 'product-detail', params: { id: p.id } }"
+              class="text-primary-600 hover:underline"
+            >
+              {{ p.sku }}
+            </RouterLink>
+            <span class="text-surface-500"> — {{ p.name }}</span>
+          </li>
+        </ul>
+        <span v-else class="text-surface-500">None</span>
+      </dd>
     </dl>
+
+    <div v-if="location" class="flex justify-center">
+      <Button label="Check inventory" icon="pi pi-database" @click="checkInventory" />
+    </div>
   </section>
 </template>

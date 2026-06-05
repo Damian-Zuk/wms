@@ -5,6 +5,7 @@ export interface InventoryDto {
   product: ProductRef
   location: LocationRef
   lot: LotRef | null
+  expirationDate: string | null
   onHand: number
   reserved: number
   available: number
@@ -14,6 +15,8 @@ export interface InventoryFilters {
   productId?: string
   locationId?: string
   lotId?: string
+  /** When set, only inventory whose lot expires within this many days is returned. */
+  expiringWithinDays?: number
   page: number
   pageSize: number
 }
@@ -38,17 +41,5 @@ export interface AvailabilityDto {
   lotId: string | null
   onHand: number
   reserved: number
-  available: number
-}
-
-export interface ExpiringInventoryLineDto {
-  inventoryId: string
-  productId: string
-  productSku: string
-  lotId: string
-  lotNumber: string
-  expirationDate: string
-  locationId: string
-  locationCode: string
   available: number
 }

@@ -9,9 +9,12 @@ public static class WarehouseCleaner
         await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
 
         await context.StockMovements.ExecuteDeleteAsync(cancellationToken);
+        await context.CapacityReservations.ExecuteDeleteAsync(cancellationToken);
         await context.StockInItems.ExecuteDeleteAsync(cancellationToken);
+        await context.StockInLines.ExecuteDeleteAsync(cancellationToken);
         await context.StockIns.ExecuteDeleteAsync(cancellationToken);
         await context.StockOutItems.ExecuteDeleteAsync(cancellationToken);
+        await context.StockOutLines.ExecuteDeleteAsync(cancellationToken);
         await context.StockOuts.ExecuteDeleteAsync(cancellationToken);
         await context.Inventories.ExecuteDeleteAsync(cancellationToken);
         await context.ProductPreferredLocations.ExecuteDeleteAsync(cancellationToken);
