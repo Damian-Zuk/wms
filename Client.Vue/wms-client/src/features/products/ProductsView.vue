@@ -8,6 +8,7 @@ import InputIcon from 'primevue/inputicon'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
+import RefreshButton from '@/components/common/RefreshButton.vue'
 import { useProducts } from './useProducts'
 import { useAuthStore } from '@/stores/auth'
 import type { ProductDto, ProductFilters } from '@/types/products'
@@ -19,7 +20,7 @@ const auth = useAuthStore()
 const filters = ref<ProductFilters>({ search: '', page: 1, pageSize: 20 })
 const search = ref('')
 
-const { data, isFetching } = useProducts(filters)
+const { data, isFetching, refetch } = useProducts(filters)
 
 function openProduct(product: ProductDto) {
   router.push({ name: 'product-detail', params: { id: product.id } })
@@ -49,7 +50,10 @@ const zoneSeverity: Record<TemperatureZone, TagSeverity> = {
 <template>
   <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
     <div class="flex items-center justify-between gap-4">
-      <h1 class="text-2xl font-semibold text-surface-900">Product Catalog</h1>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-semibold text-surface-900">Product Catalog</h1>
+        <RefreshButton :loading="isFetching" @click="() => refetch()" />
+      </div>
 
       <div class="flex items-center gap-2">
         <IconField>

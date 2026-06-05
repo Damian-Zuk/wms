@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import Column from 'primevue/column'
 import Select from 'primevue/select'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
+import RefreshButton from '@/components/common/RefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import ProductSelect from '@/components/pickers/ProductSelect.vue'
 import LocationSelect from '@/components/pickers/LocationSelect.vue'
@@ -22,7 +23,7 @@ const locationFilter = ref<string | null>(null)
 const typeFilter = ref<StockMovementType | null>(null)
 const sourceFilter = ref<StockMovementSource | null>(null)
 
-const { data, isFetching } = useStockMovements(filters)
+const { data, isFetching, refetch } = useStockMovements(filters)
 
 const typeOptions: { value: StockMovementType; label: string }[] = [
   { value: 'In', label: 'In' },
@@ -60,7 +61,10 @@ function setPageSize(pageSize: number) {
 
 <template>
   <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
-    <h1 class="text-2xl font-semibold text-surface-900">Stock Movements</h1>
+    <div class="flex items-center gap-3">
+      <h1 class="text-2xl font-semibold text-surface-900">Stock Movements</h1>
+      <RefreshButton :loading="isFetching" @click="() => refetch()" />
+    </div>
 
     <div class="flex items-center gap-2 flex-wrap">
       <div class="w-72">
@@ -140,9 +144,9 @@ function setPageSize(pageSize: number) {
         <template #body="{ data: row }: { data: StockMovementDto }">
           <span
             class="font-semibold"
-            :class="row.quantityChange < 0 ? 'text-red-600' : 'text-green-600'"
+            :class="row.type == 'Out' ? 'text-red-600' : 'text-green-600'"
           >
-            {{ row.quantityChange > 0 ? `+${row.quantityChange}` : row.quantityChange }}
+            {{ row.type == 'Out' ? `-${row.quantityChange}` : `+${row.quantityChange}` }}
           </span>
         </template>
       </Column>

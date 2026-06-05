@@ -29,5 +29,10 @@ export const locationsApi = {
   update: (id: string, body: UpdateLocationRequest) =>
     http.put<void>(`/locations/${id}`, body).then(() => undefined),
 
+  setPreferredProducts: (id: string, productIds: string[]) =>
+    http
+      .put<void>(`/locations/${id}/preferred-products`, { productIds })
+      .then(() => undefined),
+
   remove: (id: string) => http.delete<void>(`/locations/${id}`).then(() => undefined),
 }

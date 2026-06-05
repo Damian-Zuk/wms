@@ -7,6 +7,7 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import PageHeader from '@/components/common/PageHeader.vue'
+import RefreshButton from '@/components/common/RefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import AvailabilityPanel from '@/features/inventory/AvailabilityPanel.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -21,7 +22,7 @@ const confirm = useConfirm()
 const toast = useToast()
 
 const id = computed(() => route.params.id as string)
-const { data: product, isLoading, isError, error } = useProduct(id)
+const { data: product, isLoading, isFetching, isError, error, refetch } = useProduct(id)
 const del = useDeleteProduct()
 const { byId: locationsById } = useLocationOptions()
 
@@ -70,6 +71,9 @@ function onDelete() {
 <template>
   <section class="p-6 flex flex-col gap-6" style="max-width: 900px">
     <PageHeader :title="product?.name ?? 'Product'" :subtitle="product?.sku">
+      <template #title-actions>
+        <RefreshButton :loading="isFetching" @click="() => refetch()" />
+      </template>
       <template #actions>
         <Button
           label="Back"
@@ -150,9 +154,7 @@ function onDelete() {
         <AvailabilityPanel :product-id="product.id" />
       </section>
 
-      <div class="flex justify-center">
-        <Button label="Check inventory" icon="pi pi-database" @click="checkInventory" />
-      </div>
+      <Button label="Check inventory" icon="pi pi-database" outlined fluid @click="checkInventory" />
     </template>
   </section>
 </template>

@@ -5,6 +5,7 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
+import RefreshButton from '@/components/common/RefreshButton.vue'
 import ProductSelect from '@/components/pickers/ProductSelect.vue'
 import LocationSelect from '@/components/pickers/LocationSelect.vue'
 import LotSelect from '@/components/pickers/LotSelect.vue'
@@ -37,7 +38,7 @@ const filters = ref<InventoryFilters>({
   pageSize: 20,
 })
 
-const { data, isFetching } = useInventories(filters)
+const { data, isFetching, refetch } = useInventories(filters)
 
 const adjustVisible = ref(false)
 const adjustTarget = ref<InventoryDto | null>(null)
@@ -93,7 +94,10 @@ function openTransfer(row: InventoryDto) {
 
 <template>
   <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
-    <h1 class="text-2xl font-semibold text-surface-900">Inventory</h1>
+    <div class="flex items-center gap-3">
+      <h1 class="text-2xl font-semibold text-surface-900">Inventory</h1>
+      <RefreshButton :loading="isFetching" @click="() => refetch()" />
+    </div>
 
     <div class="flex flex-wrap items-end gap-2">
       <div class="w-72">

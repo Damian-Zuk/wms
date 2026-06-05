@@ -19,8 +19,8 @@ export type TagSeverity =
 
 export const temperatureZoneSeverity: Record<TemperatureZone, TagSeverity> = {
   Ambient: 'success',
-  Chilled: 'info',
-  Frozen: 'contrast',
+  Chilled: 'secondary',
+  Frozen: 'info',
 }
 
 export const locationTypeSeverity: Record<LocationType, TagSeverity> = {
@@ -37,11 +37,11 @@ export const stockInStatusSeverity: Record<StockInStatus, TagSeverity> = {
 }
 
 export const putawayStrategyLabel: Record<PutawayStrategyType, string> = {
-  PreferredLocation: 'Preferred location',
+  PreferredLocation: 'Preferred Location',
   ConsolidateSameSku: 'Consolidate SKU',
-  ConsolidateSameLot: 'Consolidate lot',
-  NearestEmpty: 'Nearest empty',
-  NearestAvailable: 'Nearest available',
+  ConsolidateSameLot: 'Consolidate Lot',
+  NearestEmpty: 'Nearest Empty',
+  NearestAvailable: 'Nearest Available',
   Proximity: 'Proximity',
   Manual: 'Manual',
 }

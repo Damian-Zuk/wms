@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
+import RefreshButton from '@/components/common/RefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useStockOuts } from './useStockOuts'
 import { useAuthStore } from '@/stores/auth'
@@ -15,7 +16,7 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const filters = ref<StockOutFilters>({ page: 1, pageSize: 20 })
-const { data, isFetching } = useStockOuts(filters)
+const { data, isFetching, refetch } = useStockOuts(filters)
 
 function setPage(page: number) {
   filters.value = { ...filters.value, page }
@@ -33,7 +34,10 @@ function openStockOut(stockOut: StockOutDto) {
 <template>
   <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
     <div class="flex items-center justify-between gap-4">
-      <h1 class="text-2xl font-semibold text-surface-900">Stock-Outs</h1>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-semibold text-surface-900">Stock-Outs</h1>
+        <RefreshButton :loading="isFetching" @click="() => refetch()" />
+      </div>
       <Button
         v-if="auth.canMutate"
         label="New Stock-Out"

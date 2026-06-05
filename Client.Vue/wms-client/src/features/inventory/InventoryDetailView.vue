@@ -5,6 +5,7 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import PageHeader from '@/components/common/PageHeader.vue'
+import RefreshButton from '@/components/common/RefreshButton.vue'
 import AdjustInventoryDialog from './AdjustInventoryDialog.vue'
 import TransferStockDialog from './TransferStockDialog.vue'
 import { useInventory } from './useInventory'
@@ -15,7 +16,7 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const id = computed(() => route.params.id as string)
-const { data: inventory, isLoading, isError, error } = useInventory(id)
+const { data: inventory, isLoading, isFetching, isError, error, refetch } = useInventory(id)
 
 const adjustVisible = ref(false)
 const transferVisible = ref(false)
@@ -27,6 +28,9 @@ const transferVisible = ref(false)
       :title="inventory ? inventory.product.sku : 'Inventory'"
       :subtitle="inventory?.product.name"
     >
+      <template #title-actions>
+        <RefreshButton :loading="isFetching" @click="() => refetch()" />
+      </template>
       <template #actions>
         <Button
           label="Back"

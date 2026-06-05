@@ -7,6 +7,7 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import PageHeader from '@/components/common/PageHeader.vue'
+import RefreshButton from '@/components/common/RefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useProductOptions } from '@/features/products/useProducts'
@@ -20,7 +21,7 @@ const confirm = useConfirm()
 const toast = useToast()
 
 const id = computed(() => route.params.id as string)
-const { data: location, isLoading, isError, error } = useLocation(id)
+const { data: location, isLoading, isFetching, isError, error, refetch } = useLocation(id)
 const del = useDeleteLocation()
 const { data: products } = useProductOptions()
 
@@ -73,6 +74,9 @@ function onDelete() {
 <template>
   <section class="p-6 flex flex-col gap-6" style="max-width: 900px">
     <PageHeader :title="location?.code ?? 'Location'" :subtitle="location?.display">
+      <template #title-actions>
+        <RefreshButton :loading="isFetching" @click="() => refetch()" />
+      </template>
       <template #actions>
         <Button
           label="Back"
@@ -133,7 +137,7 @@ function onDelete() {
           >
         </template>
         <template v-else>
-          {{ location.occupancy }} units · <span class="text-surface-500">Unlimited</span>
+          {{ location.occupancy }} units · <span class="text-surface-500">No limit</span>
         </template>
       </dd>
 
@@ -146,7 +150,7 @@ function onDelete() {
           >
         </template>
         <template v-else>
-          {{ location.weightOccupancy }} kg · <span class="text-surface-500">Unlimited</span>
+          {{ location.weightOccupancy }} kg · <span class="text-surface-500">No limit</span>
         </template>
       </dd>
 
@@ -159,7 +163,7 @@ function onDelete() {
           >
         </template>
         <template v-else>
-          {{ location.volumeOccupancy }} dm³ · <span class="text-surface-500">Unlimited</span>
+          {{ location.volumeOccupancy }} dm³ · <span class="text-surface-500">No limit</span>
         </template>
       </dd>
 
@@ -201,8 +205,13 @@ function onDelete() {
       </dd>
     </dl>
 
-    <div v-if="location" class="flex justify-center">
-      <Button label="Check inventory" icon="pi pi-database" @click="checkInventory" />
-    </div>
+    <Button
+      v-if="location"
+      label="Check inventory"
+      icon="pi pi-database"
+      outlined
+      fluid
+      @click="checkInventory"
+    />
   </section>
 </template>

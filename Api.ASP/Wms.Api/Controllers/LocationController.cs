@@ -90,6 +90,21 @@ public class LocationController : ControllerBase
     }
 
     [Authorize(Roles = "Admin,Manager")]
+    [HttpPut("{id:guid}/preferred-products")]
+    public async Task<IResult> SetPreferredProducts(
+        [FromRoute] Guid id,
+        [FromBody] SetLocationPreferredProductsRequest request,
+        [FromServices] ICommandHandler<SetLocationPreferredProductsCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new SetLocationPreferredProductsCommand(id, request.ProductIds ?? []),
+            cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [Authorize(Roles = "Admin,Manager")]
     [HttpDelete("{id:guid}")]
     public async Task<IResult> DeleteLocation(
         [FromRoute] Guid id,
@@ -118,3 +133,5 @@ public sealed record UpdateLocationRequest(
     decimal? VolumeCapacity,
     bool IsMixedSkuAllowed,
     bool IsMixedLotAllowed);
+
+public sealed record SetLocationPreferredProductsRequest(IReadOnlyList<Guid>? ProductIds);

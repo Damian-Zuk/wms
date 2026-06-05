@@ -6,6 +6,7 @@ import Column from 'primevue/column'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
+import RefreshButton from '@/components/common/RefreshButton.vue'
 import CreateUserDialog from './CreateUserDialog.vue'
 import ChangePasswordDialog from './ChangePasswordDialog.vue'
 import { useUsers, useDeleteUser } from './useUsers'
@@ -17,7 +18,7 @@ const auth = useAuthStore()
 const confirm = useConfirm()
 const toast = useToast()
 
-const { data, isFetching } = useUsers()
+const { data, isFetching, refetch } = useUsers()
 const deleteUser = useDeleteUser()
 
 const createVisible = ref(false)
@@ -72,7 +73,10 @@ const roleSeverity: Record<string, TagSeverity> = {
   <section class="p-6 flex flex-col gap-4" style="max-width: 1400px">
     <div class="flex items-center justify-between gap-4">
       <div>
-        <h1 class="text-2xl font-semibold text-surface-900">Admin Panel</h1>
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-semibold text-surface-900">Admin Panel</h1>
+          <RefreshButton :loading="isFetching" @click="() => refetch()" />
+        </div>
         <p class="text-sm text-surface-500 mt-1">Manage user accounts and access.</p>
       </div>
 

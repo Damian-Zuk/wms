@@ -9,6 +9,7 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import PageHeader from '@/components/common/PageHeader.vue'
+import RefreshButton from '@/components/common/RefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import WorkflowStepper from '@/components/common/WorkflowStepper.vue'
 import ModifyPlacementsDialog from './ModifyPlacementsDialog.vue'
@@ -32,7 +33,7 @@ const confirm = useConfirm()
 const toast = useToast()
 
 const id = computed(() => route.params.id as string)
-const { data: stockIn, isLoading, isError, error } = useStockIn(id)
+const { data: stockIn, isLoading, isFetching, isError, error, refetch } = useStockIn(id)
 const transition = useStockInTransition()
 
 const steps = [
@@ -225,6 +226,9 @@ function cancel() {
 <template>
   <section class="p-6 flex flex-col gap-6" style="max-width: 1100px">
     <PageHeader title="Stock-In" :subtitle="stockIn ? formatDateTime(stockIn.createdAt) : ''">
+      <template #title-actions>
+        <RefreshButton :loading="isFetching" @click="() => refetch()" />
+      </template>
       <template #actions>
         <Button
           label="Back"

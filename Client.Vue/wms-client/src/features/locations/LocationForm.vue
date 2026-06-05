@@ -9,6 +9,7 @@ import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Button from 'primevue/button'
+import ProductMultiSelect from '@/components/pickers/ProductMultiSelect.vue'
 import { mapServerErrors } from '@/lib/form-errors'
 import type { LocationFormValues } from '@/types/locations'
 import type { LocationType, TemperatureZone } from '@/types/enums'
@@ -18,7 +19,14 @@ const props = defineProps<{
   initialValues: LocationFormValues
   submitting?: boolean
   serverErrors?: Record<string, string[]>
+  showPreferredProducts?: boolean
 }>()
+
+// Products that treat this location as preferred. Owned by the parent view and
+// persisted via a separate endpoint, so it's kept out of the form's schema.
+const preferredProductIds = defineModel<string[]>('preferredProductIds', {
+  default: () => [],
+})
 
 const emit = defineEmits<{
   submit: [values: LocationFormValues]
@@ -175,7 +183,7 @@ const onSubmit = handleSubmit((values) => emit('submit', values as LocationFormV
             v-model="capacity"
             :min="1"
             :use-grouping="false"
-            placeholder="Unlimited"
+            placeholder="No limit"
             fluid
             :invalid="!!errors.capacity"
           />
@@ -191,7 +199,7 @@ const onSubmit = handleSubmit((values) => emit('submit', values as LocationFormV
             :min-fraction-digits="0"
             :max-fraction-digits="3"
             :use-grouping="false"
-            placeholder="Unlimited"
+            placeholder="No limit"
             fluid
             :invalid="!!errors.weightCapacity"
           />
@@ -207,14 +215,14 @@ const onSubmit = handleSubmit((values) => emit('submit', values as LocationFormV
             :min-fraction-digits="0"
             :max-fraction-digits="3"
             :use-grouping="false"
-            placeholder="Unlimited"
+            placeholder="No limit"
             fluid
             :invalid="!!errors.volumeCapacity"
           />
           <small v-if="errors.volumeCapacity" class="text-red-500">{{ errors.volumeCapacity }}</small>
         </div>
       </div>
-      <small class="text-surface-400">Leave a field empty for unlimited on that dimension.</small>
+      <small class="text-surface-400">Leave a field empty for no limit on that dimension.</small>
     </fieldset>
 
     <div class="flex flex-col gap-1">
@@ -237,6 +245,14 @@ const onSubmit = handleSubmit((values) => emit('submit', values as LocationFormV
         <ToggleSwitch input-id="mixedLot" v-model="isMixedLotAllowed" />
         <label for="mixedLot" class="text-sm text-surface-700">Allow mixed lots</label>
       </div>
+    </div>
+
+    <div v-if="showPreferredProducts" class="flex flex-col gap-1">
+      <label class="text-sm font-medium text-surface-700">Preferred Products</label>
+      <ProductMultiSelect v-model="preferredProductIds" />
+      <small class="text-surface-400">
+        Products that treat this location as a preferred location.
+      </small>
     </div>
 
     <div class="flex gap-2 justify-end pt-2">

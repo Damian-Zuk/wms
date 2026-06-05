@@ -76,6 +76,18 @@ export function useUpdateLocation(id: string) {
   })
 }
 
+export function useSetLocationPreferredProducts(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (productIds: string[]) =>
+      locationsApi.setPreferredProducts(id, productIds),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.products.all })
+      void qc.invalidateQueries({ queryKey: qk.locations.detail(id) })
+    },
+  })
+}
+
 export function useDeleteLocation() {
   const qc = useQueryClient()
   return useMutation({

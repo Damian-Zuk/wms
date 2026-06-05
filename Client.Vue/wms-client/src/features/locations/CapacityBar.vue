@@ -127,7 +127,7 @@ function hide() {
                 {{ d.used }} / {{ d.limit }} {{ d.unit }}
                 <span class="ml-1 font-medium">({{ d.percent }}%)</span>
               </template>
-              <template v-else> {{ d.used }} {{ d.unit }} · Unlimited </template>
+              <template v-else> {{ d.used }} {{ d.unit }} · No limit </template>
             </dd>
           </div>
         </dl>
