@@ -59,7 +59,7 @@ function setPageSize(pageSize: number) {
 </script>
 
 <template>
-  <section class="p-6 flex flex-col gap-4" style="max-width: 1400px">
+  <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
     <h1 class="text-2xl font-semibold text-surface-900">Stock Movements</h1>
 
     <div class="flex items-center gap-2 flex-wrap">

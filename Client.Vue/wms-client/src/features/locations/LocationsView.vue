@@ -52,7 +52,7 @@ function openLocation(location: LocationDto) {
 </script>
 
 <template>
-  <section class="p-6 flex flex-col gap-4" style="max-width: 1400px">
+  <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
     <div class="flex items-center justify-between gap-4">
       <h1 class="text-2xl font-semibold text-surface-900">Locations</h1>
 

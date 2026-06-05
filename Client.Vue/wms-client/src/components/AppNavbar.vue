@@ -64,13 +64,6 @@ function onLogout() {
         />
         <Menu id="user-menu" ref="menu" :model="menuItems" popup />
       </template>
-
-      <Button
-        v-else
-        label="Login"
-        icon="pi pi-sign-in"
-        @click="router.push({ name: 'login' })"
-      />
     </div>
   </header>
 </template>

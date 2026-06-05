@@ -92,7 +92,7 @@ function openTransfer(row: InventoryDto) {
 </script>
 
 <template>
-  <section class="p-6 flex flex-col gap-4" style="max-width: 1400px">
+  <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
     <h1 class="text-2xl font-semibold text-surface-900">Inventory</h1>
 
     <div class="flex flex-wrap items-end gap-2">
