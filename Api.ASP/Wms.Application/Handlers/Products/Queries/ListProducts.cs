@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Models;
+using Wms.Application.Extensions;
 using Wms.Domain.Enums;
 using Wms.Shared.Common;
 
@@ -20,6 +21,8 @@ public record ProductDto(
 
 public sealed record ListProductsQuery(
     string? Search,
+    string? SortBy = null,
+    bool SortDescending = false,
     int Page = 1,
     int PageSize = 20) : IQuery<PagedResult<ProductDto>>;
 
@@ -51,8 +54,15 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
 
         var totalCount = await productsQuery.CountAsync(cancellationToken);
 
+        var desc = query.SortDescending;
+        productsQuery = query.SortBy?.Trim().ToLowerInvariant() switch
+        {
+            "sku" => productsQuery.OrderByDirection(p => p.Sku.Value, desc),
+            "name" => productsQuery.OrderByDirection(p => p.Name, desc),
+            _ => productsQuery.OrderBy(p => p.Name),
+        };
+
         var items = await productsQuery
-            .OrderBy(p => p.Name)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(p => new ProductDto(

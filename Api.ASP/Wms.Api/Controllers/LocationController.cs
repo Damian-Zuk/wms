@@ -19,6 +19,8 @@ public class LocationController : ControllerBase
         [FromQuery] string? search,
         [FromQuery] string? zone,
         [FromQuery] LocationType? type,
+        [FromQuery] string? sortBy,
+        [FromQuery] bool sortDescending,
         [FromQuery] int page,
         [FromQuery] int pageSize,
         [FromServices] IQueryHandler<ListLocationsQuery, PagedResult<LocationDto>> handler,
@@ -29,6 +31,8 @@ public class LocationController : ControllerBase
                 search,
                 zone,
                 type,
+                sortBy,
+                sortDescending,
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);

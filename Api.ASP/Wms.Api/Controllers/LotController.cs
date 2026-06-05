@@ -17,6 +17,8 @@ public class LotController : ControllerBase
     public async Task<IResult> ListLots(
         [FromQuery] Guid? productId,
         [FromQuery] string? search,
+        [FromQuery] string? sortBy,
+        [FromQuery] bool sortDescending,
         [FromQuery] int page,
         [FromQuery] int pageSize,
         [FromServices] IQueryHandler<ListLotsQuery, PagedResult<LotDto>> handler,
@@ -26,6 +28,8 @@ public class LotController : ControllerBase
             new ListLotsQuery(
                 productId,
                 search,
+                sortBy,
+                sortDescending,
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);

@@ -38,6 +38,8 @@ export interface LocationFilters {
   search?: string
   zone?: string
   type?: LocationType
+  sortBy?: string
+  sortDescending?: boolean
   page: number
   pageSize: number
 }

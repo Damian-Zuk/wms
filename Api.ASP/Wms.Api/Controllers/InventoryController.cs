@@ -19,6 +19,8 @@ public class InventoryController : ControllerBase
         [FromQuery] Guid? locationId,
         [FromQuery] Guid? lotId,
         [FromQuery] int? expiringWithinDays,
+        [FromQuery] string? sortBy,
+        [FromQuery] bool sortDescending,
         [FromQuery] int page,
         [FromQuery] int pageSize,
         [FromServices] IQueryHandler<ListInventoriesQuery, PagedResult<InventoryDto>> handler,
@@ -30,6 +32,8 @@ public class InventoryController : ControllerBase
                 locationId,
                 lotId,
                 expiringWithinDays,
+                sortBy,
+                sortDescending,
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);

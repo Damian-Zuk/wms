@@ -15,6 +15,7 @@ import { lotStatus } from './lot-status'
 import { useProductOptions } from '@/features/products/useProducts'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/lib/date'
+import { sortOrderOf, toSortFilters, type SortChange } from '@/lib/sort'
 import type { LotDto, LotFilters } from '@/types/lots'
 
 const router = useRouter()
@@ -45,6 +46,10 @@ function setPage(page: number) {
 
 function setPageSize(pageSize: number) {
   filters.value = { ...filters.value, pageSize, page: 1 }
+}
+
+function onSort(change: SortChange) {
+  filters.value = { ...filters.value, ...toSortFilters(change), page: 1 }
 }
 
 function openLot(lot: LotDto) {
@@ -92,23 +97,26 @@ function openLot(lot: LotDto) {
       :page="filters.page"
       :page-size="filters.pageSize"
       :loading="isFetching"
+      :sort-field="filters.sortBy ?? null"
+      :sort-order="sortOrderOf(filters)"
       class="cursor-pointer"
       @update:page="setPage"
       @update:page-size="setPageSize"
+      @update:sort="onSort"
       @row-click="openLot"
     >
-      <Column field="number" header="Lot Number" style="width: 16rem" />
-      <Column header="Product">
+      <Column field="number" header="Lot Number" sortable sort-field="number" style="width: 16rem" />
+      <Column header="Product" sortable sort-field="product">
         <template #body="{ data: row }: { data: LotDto }">
           {{ productSku(row.productId) }}
         </template>
       </Column>
-      <Column header="Manufactured" style="width: 12rem">
+      <Column header="Manufactured" sortable sort-field="manufactureDate" style="width: 12rem">
         <template #body="{ data: row }: { data: LotDto }">
           {{ formatDate(row.manufactureDate) }}
         </template>
       </Column>
-      <Column header="Expires" style="width: 12rem">
+      <Column header="Expires" sortable sort-field="expirationDate" style="width: 12rem">
         <template #body="{ data: row }: { data: LotDto }">
           {{ formatDate(row.expirationDate) }}
         </template>

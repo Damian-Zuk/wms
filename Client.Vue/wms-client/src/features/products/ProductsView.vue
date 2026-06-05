@@ -11,6 +11,7 @@ import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
 import RefreshButton from '@/components/common/RefreshButton.vue'
 import { useProducts } from './useProducts'
 import { useAuthStore } from '@/stores/auth'
+import { sortOrderOf, toSortFilters, type SortChange } from '@/lib/sort'
 import type { ProductDto, ProductFilters } from '@/types/products'
 import type { TemperatureZone } from '@/types/enums'
 
@@ -36,6 +37,10 @@ function setPage(page: number) {
 
 function setPageSize(pageSize: number) {
   filters.value = { ...filters.value, pageSize, page: 1 }
+}
+
+function onSort(change: SortChange) {
+  filters.value = { ...filters.value, ...toSortFilters(change), page: 1 }
 }
 
 type TagSeverity = 'success' | 'info' | 'warn' | 'secondary' | 'danger' | 'contrast'
@@ -79,13 +84,16 @@ const zoneSeverity: Record<TemperatureZone, TagSeverity> = {
       :page="filters.page"
       :page-size="filters.pageSize"
       :loading="isFetching"
+      :sort-field="filters.sortBy ?? null"
+      :sort-order="sortOrderOf(filters)"
       class="cursor-pointer"
       @update:page="setPage"
       @update:page-size="setPageSize"
+      @update:sort="onSort"
       @row-click="openProduct"
     >
-      <Column field="sku" header="SKU" style="width: 14rem" />
-      <Column field="name" header="Name" />
+      <Column field="sku" header="SKU" sortable sort-field="sku" style="width: 14rem" />
+      <Column field="name" header="Name" sortable sort-field="name" />
       <Column field="description" header="Description" />
       <Column header="Temperature Zone" style="width: 12rem">
         <template #body="{ data: row }: { data: ProductDto }">

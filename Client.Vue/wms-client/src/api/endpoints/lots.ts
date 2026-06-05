@@ -14,6 +14,8 @@ export const lotsApi = {
         params: {
           productId: filters.productId || undefined,
           search: filters.search || undefined,
+          sortBy: filters.sortBy || undefined,
+          sortDescending: filters.sortDescending || undefined,
           page: filters.page,
           pageSize: filters.pageSize,
         },

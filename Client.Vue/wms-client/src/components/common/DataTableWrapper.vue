@@ -11,6 +11,8 @@ withDefaults(
     dataKey?: string
     rowsPerPageOptions?: number[]
     paginate?: boolean
+    sortField?: string | null
+    sortOrder?: number | null
   }>(),
   {
     totalCount: 0,
@@ -20,18 +22,28 @@ withDefaults(
     dataKey: 'id',
     rowsPerPageOptions: () => [10, 20, 50],
     paginate: true,
+    sortField: null,
+    sortOrder: null,
   },
 )
 
 const emit = defineEmits<{
   'update:page': [page: number]
   'update:pageSize': [pageSize: number]
+  'update:sort': [sort: { field: string | null; order: number | null }]
   'row-click': [row: T]
 }>()
 
 function onPage(event: { page: number; rows: number; first: number }) {
   emit('update:pageSize', event.rows)
   emit('update:page', event.page + 1)
+}
+
+function onSort(event: { sortField?: string | ((item: unknown) => string) | null; sortOrder?: number | null }) {
+  // removableSort cycles a column asc -> desc -> unsorted; the unsorted step
+  // clears both field and order. Custom sortFields are always plain strings here.
+  const field = typeof event.sortField === 'string' ? event.sortField : null
+  emit('update:sort', { field, order: field ? (event.sortOrder ?? null) : null })
 }
 
 function onRowClick(event: { data: T }) {
@@ -53,7 +65,12 @@ function onRowClick(event: { data: T }) {
     paginator-template="FirstPageLink PrevPageLink CurrentPageReport NextPageLink LastPageLink RowsPerPageDropdown"
     current-page-report-template="{first}–{last} of {totalRecords}"
     :row-hover="true"
+    sort-mode="single"
+    removable-sort
+    :sort-field="sortField ?? undefined"
+    :sort-order="sortOrder ?? undefined"
     @page="onPage"
+    @sort="onSort"
     @row-click="onRowClick"
   >
     <slot />

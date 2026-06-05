@@ -13,6 +13,8 @@ export const productsApi = {
       .get<PagedResult<ProductDto>>('/products', {
         params: {
           search: filters.search || undefined,
+          sortBy: filters.sortBy || undefined,
+          sortDescending: filters.sortDescending || undefined,
           page: filters.page,
           pageSize: filters.pageSize,
         },

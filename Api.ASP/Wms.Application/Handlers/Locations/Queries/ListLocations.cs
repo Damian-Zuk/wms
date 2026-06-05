@@ -1,8 +1,11 @@
+using System.Linq.Expressions;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Models;
+using Wms.Application.Extensions;
+using Wms.Domain.Entities;
 using Wms.Domain.Enums;
 using Wms.Shared.Common;
 
@@ -12,6 +15,8 @@ public sealed record ListLocationsQuery(
     string? Search,
     string? Zone,
     LocationType? Type,
+    string? SortBy = null,
+    bool SortDescending = false,
     int Page = 1,
     int PageSize = 20) : IQuery<PagedResult<LocationDto>>;
 
@@ -57,12 +62,18 @@ public sealed class ListLocationsQueryHandler(IAppDbContext context)
 
         var totalCount = await locationsQuery.CountAsync(cancellationToken);
 
+        var desc = query.SortDescending;
+        locationsQuery = query.SortBy?.Trim().ToLowerInvariant() switch
+        {
+            "code" => locationsQuery.OrderByDirection(l => l.Code.Value, desc),
+            "type" => locationsQuery.OrderByDirection(l => l.Type, desc),
+            "temperaturezone" => locationsQuery.OrderByDirection(l => l.TemperatureZone, desc),
+            "capacity" => locationsQuery.OrderByDirection(CapacityFillRatio(), desc),
+            "address" => OrderByAddress(locationsQuery, desc),
+            _ => OrderByAddress(locationsQuery, false),
+        };
+
         var items = await locationsQuery
-            .OrderBy(l => l.Address.Zone)
-                .ThenBy(l => l.Address.Aisle)
-                .ThenBy(l => l.Address.Rack)
-                .ThenBy(l => l.Address.Shelf)
-                .ThenBy(l => l.Address.Bin)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(l => new LocationDto(
@@ -101,4 +112,39 @@ public sealed class ListLocationsQueryHandler(IAppDbContext context)
 
         return new PagedResult<LocationDto>(items, query.Page, query.PageSize, totalCount);
     }
+
+    private static IOrderedQueryable<Location> OrderByAddress(IQueryable<Location> source, bool descending)
+        => source
+            .OrderByDirection(l => l.Address.Zone, descending)
+            .ThenByDirection(l => l.Address.Aisle, descending)
+            .ThenByDirection(l => l.Address.Rack, descending)
+            .ThenByDirection(l => l.Address.Shelf, descending)
+            .ThenByDirection(l => l.Address.Bin, descending);
+
+    /// <summary>
+    /// Sort key for "capacity": the location's overall fullness, taken as the
+    /// occupancy ratio (occupied / limit) of the most restrictive configured
+    /// dimension. Dimensions with no limit contribute 0, so a fully unlimited 
+    /// location sorts as 0% (least full).
+    /// </summary>
+    private Expression<Func<Location, decimal>> CapacityFillRatio()
+        => l => Math.Max(
+            l.Capacity.MaxUnits != null && l.Capacity.MaxUnits > 0
+                ? (decimal)context.Inventories
+                    .Where(i => i.LocationId == l.Id)
+                    .Sum(i => i.OnHand.Value) / l.Capacity.MaxUnits.Value
+                : 0m,
+            Math.Max(
+                l.Capacity.MaxWeight != null && l.Capacity.MaxWeight > 0
+                    ? context.Inventories
+                        .Where(i => i.LocationId == l.Id)
+                        .Join(context.Products, i => i.ProductId, p => p.Id, (i, p) => i.OnHand.Value * p.Weight)
+                        .Sum() / l.Capacity.MaxWeight.Value
+                    : 0m,
+                l.Capacity.MaxVolume != null && l.Capacity.MaxVolume > 0
+                    ? context.Inventories
+                        .Where(i => i.LocationId == l.Id)
+                        .Join(context.Products, i => i.ProductId, p => p.Id, (i, p) => i.OnHand.Value * p.Volume)
+                        .Sum() / l.Capacity.MaxVolume.Value
+                    : 0m));
 }

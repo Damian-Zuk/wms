@@ -15,8 +15,9 @@ export interface InventoryFilters {
   productId?: string
   locationId?: string
   lotId?: string
-  /** When set, only inventory whose lot expires within this many days is returned. */
   expiringWithinDays?: number
+  sortBy?: string
+  sortDescending?: boolean
   page: number
   pageSize: number
 }

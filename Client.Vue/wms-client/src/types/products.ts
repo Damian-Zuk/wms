@@ -15,6 +15,8 @@ export interface ProductDto {
 
 export interface ProductFilters {
   search?: string
+  sortBy?: string
+  sortDescending?: boolean
   page: number
   pageSize: number
 }

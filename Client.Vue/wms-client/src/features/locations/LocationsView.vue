@@ -14,6 +14,7 @@ import CapacityBar from './CapacityBar.vue'
 import { useLocations } from './useLocations'
 import { useAuthStore } from '@/stores/auth'
 import { locationTypeSeverity, temperatureZoneSeverity } from '@/lib/enum-display'
+import { sortOrderOf, toSortFilters, type SortChange } from '@/lib/sort'
 import type { LocationDto, LocationFilters } from '@/types/locations'
 import type { LocationType } from '@/types/enums'
 
@@ -45,6 +46,10 @@ function setPage(page: number) {
 
 function setPageSize(pageSize: number) {
   filters.value = { ...filters.value, pageSize, page: 1 }
+}
+
+function onSort(change: SortChange) {
+  filters.value = { ...filters.value, ...toSortFilters(change), page: 1 }
 }
 
 function openLocation(location: LocationDto) {
@@ -92,19 +97,22 @@ function openLocation(location: LocationDto) {
       :page="filters.page"
       :page-size="filters.pageSize"
       :loading="isFetching"
+      :sort-field="filters.sortBy ?? null"
+      :sort-order="sortOrderOf(filters)"
       class="cursor-pointer"
       @update:page="setPage"
       @update:page-size="setPageSize"
+      @update:sort="onSort"
       @row-click="openLocation"
     >
-      <Column field="code" header="Code" style="width: 12rem" />
-      <Column field="display" header="Address" />
-      <Column header="Type" style="width: 10rem">
+      <Column field="code" header="Code" sortable sort-field="code" style="width: 12rem" />
+      <Column field="display" header="Address" sortable sort-field="address" />
+      <Column header="Type" sortable sort-field="type" style="width: 10rem">
         <template #body="{ data: row }: { data: LocationDto }">
           <StatusBadge :value="row.type" :severity="locationTypeSeverity[row.type]" />
         </template>
       </Column>
-      <Column header="Temp. Zone" style="width: 10rem">
+      <Column header="Temp. Zone" sortable sort-field="temperatureZone" style="width: 10rem">
         <template #body="{ data: row }: { data: LocationDto }">
           <StatusBadge
             :value="row.temperatureZone"
@@ -119,7 +127,7 @@ function openLocation(location: LocationDto) {
           <StatusBadge v-else value="Inactive" severity="secondary" />
         </template>
       </Column>
-      <Column header="Capacity" style="width: 12rem">
+      <Column header="Capacity" sortable sort-field="capacity" style="width: 12rem">
         <template #body="{ data: row }: { data: LocationDto }">
           <CapacityBar :location="row" />
         </template>

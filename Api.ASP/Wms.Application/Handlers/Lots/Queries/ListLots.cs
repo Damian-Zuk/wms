@@ -11,6 +11,8 @@ namespace Wms.Application.Handlers.Lots.Queries;
 public sealed record ListLotsQuery(
     Guid? ProductId,
     string? Search,
+    string? SortBy = null,
+    bool SortDescending = false,
     int Page = 1,
     int PageSize = 20) : IQuery<PagedResult<LotDto>>;
 
@@ -46,8 +48,22 @@ public sealed class ListLotsQueryHandler(IAppDbContext context)
 
         var totalCount = await lotsQuery.CountAsync(cancellationToken);
 
+        var desc = query.SortDescending;
+        lotsQuery = query.SortBy?.Trim().ToLowerInvariant() switch
+        {
+            "number" => lotsQuery.OrderByDirection(l => l.Number.Value, desc),
+            "product" => lotsQuery.OrderByDirection(
+                l => context.Products
+                    .Where(p => p.Id == l.ProductId)
+                    .Select(p => p.Sku.Value)
+                    .FirstOrDefault(),
+                desc),
+            "manufacturedate" => lotsQuery.OrderByDirection(l => l.ManufactureDate, desc),
+            "expirationdate" => lotsQuery.OrderByDirection(l => l.ExpirationDate, desc),
+            _ => lotsQuery.OrderBy(l => l.Number.Value),
+        };
+
         var items = await lotsQuery
-            .OrderBy(l => l.Number.Value)
             .Skip((query.Page - 1) * query.PageSize)
             .Take(query.PageSize)
             .Select(l => new LotDto(

@@ -14,6 +14,7 @@ import TransferStockDialog from './TransferStockDialog.vue'
 import { useInventories } from './useInventory'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/lib/date'
+import { sortOrderOf, toSortFilters, type SortChange } from '@/lib/sort'
 import type { InventoryDto, InventoryFilters } from '@/types/inventory'
 
 const route = useRoute()
@@ -75,6 +76,10 @@ function setPage(page: number) {
 
 function setPageSize(pageSize: number) {
   filters.value = { ...filters.value, pageSize, page: 1 }
+}
+
+function onSort(change: SortChange) {
+  filters.value = { ...filters.value, ...toSortFilters(change), page: 1 }
 }
 
 function openDetail(row: InventoryDto) {
@@ -151,36 +156,39 @@ function openTransfer(row: InventoryDto) {
       :page="filters.page"
       :page-size="filters.pageSize"
       :loading="isFetching"
+      :sort-field="filters.sortBy ?? null"
+      :sort-order="sortOrderOf(filters)"
       class="cursor-pointer"
       @update:page="setPage"
       @update:page-size="setPageSize"
+      @update:sort="onSort"
       @row-click="openDetail"
     >
-      <Column header="Product">
+      <Column header="Product" sortable sort-field="product">
         <template #body="{ data: row }: { data: InventoryDto }">
           <div class="font-medium text-surface-900">{{ row.product.sku }}</div>
           <div class="text-xs text-surface-500">{{ row.product.name }}</div>
         </template>
       </Column>
-      <Column header="Location">
+      <Column header="Location" sortable sort-field="location">
         <template #body="{ data: row }: { data: InventoryDto }">
           <div>{{ row.location.code }}</div>
           <div class="text-xs text-surface-500">{{ row.location.address }}</div>
         </template>
       </Column>
-      <Column header="Lot" style="width: 12rem">
+      <Column header="Lot" sortable sort-field="lot" style="width: 12rem">
         <template #body="{ data: row }: { data: InventoryDto }">
           {{ row.lot?.number ?? '—' }}
         </template>
       </Column>
-      <Column header="Expires" style="width: 9rem">
+      <Column header="Expires" sortable sort-field="expirationDate" style="width: 9rem">
         <template #body="{ data: row }: { data: InventoryDto }">
           {{ formatDate(row.expirationDate) }}
         </template>
       </Column>
-      <Column field="onHand" header="On Hand" style="width: 8rem" />
-      <Column field="reserved" header="Reserved" style="width: 8rem" />
-      <Column header="Available" style="width: 8rem">
+      <Column field="onHand" header="On Hand" sortable sort-field="onHand" style="width: 8rem" />
+      <Column field="reserved" header="Reserved" sortable sort-field="reserved" style="width: 8rem" />
+      <Column header="Available" sortable sort-field="available" style="width: 8rem">
         <template #body="{ data: row }: { data: InventoryDto }">
           <span class="font-semibold">{{ row.available }}</span>
         </template>

@@ -17,6 +17,8 @@ public class ProductController : ControllerBase
     [HttpGet]
     public async Task<IResult> ListProducts(
         [FromQuery] string? search,
+        [FromQuery] string? sortBy,
+        [FromQuery] bool sortDescending,
         [FromQuery] int page,
         [FromQuery] int pageSize,
         [FromServices] IQueryHandler<ListProductsQuery, PagedResult<ProductDto>> handler,
@@ -25,6 +27,8 @@ public class ProductController : ControllerBase
         var result = await handler.Handle(
             new ListProductsQuery(
                 search,
+                sortBy,
+                sortDescending,
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);
