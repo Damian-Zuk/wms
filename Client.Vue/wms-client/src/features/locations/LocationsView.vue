@@ -9,6 +9,7 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
+import CapacityBar from './CapacityBar.vue'
 import { useLocations } from './useLocations'
 import { useAuthStore } from '@/stores/auth'
 import { locationTypeSeverity, temperatureZoneSeverity } from '@/lib/enum-display'
@@ -107,16 +108,16 @@ function openLocation(location: LocationDto) {
           />
         </template>
       </Column>
-      <Column header="Capacity" style="width: 8rem">
-        <template #body="{ data: row }: { data: LocationDto }">
-          {{ row.capacity ?? '∞' }}
-        </template>
-      </Column>
       <Column header="Status" style="width: 9rem">
         <template #body="{ data: row }: { data: LocationDto }">
           <StatusBadge v-if="row.isBlocked" value="Blocked" severity="danger" />
           <StatusBadge v-else-if="row.isActive" value="Active" severity="success" />
           <StatusBadge v-else value="Inactive" severity="secondary" />
+        </template>
+      </Column>
+      <Column header="Capacity" style="width: 12rem">
+        <template #body="{ data: row }: { data: LocationDto }">
+          <CapacityBar :location="row" />
         </template>
       </Column>
     </DataTableWrapper>
