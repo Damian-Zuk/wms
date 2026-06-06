@@ -57,5 +57,7 @@ export const qk = {
     overview: (days: number) => ['dashboard', 'overview', days] as const,
     inbound: (days: number) => ['dashboard', 'inbound', days] as const,
     outbound: (days: number) => ['dashboard', 'outbound', days] as const,
+    inventory: () => ['dashboard', 'inventory'] as const,
+    capacity: () => ['dashboard', 'capacity'] as const,
   },
 }

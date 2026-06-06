@@ -59,6 +59,45 @@ export function areaOptions(categories: string[], color: string): ApexOptions {
   }
 }
 
+/** Radial gauge options for a single 0-100 percentage with a centred label. */
+export function radialBarOptions(label: string, color: string): ApexOptions {
+  return {
+    chart: { type: 'radialBar', fontFamily: 'inherit', sparkline: { enabled: false } },
+    colors: [color],
+    plotOptions: {
+      radialBar: {
+        hollow: { size: '56%' },
+        track: { background: GRID_COLOR, strokeWidth: '100%' },
+        dataLabels: {
+          name: { offsetY: 24, color: '#64748b', fontSize: '12px' },
+          value: {
+            offsetY: -10,
+            fontSize: '22px',
+            fontWeight: 600,
+            color: '#0f172a',
+            formatter: (v: number) => `${Math.round(v)}%`,
+          },
+        },
+      },
+    },
+    stroke: { lineCap: 'round' },
+    labels: [label],
+  }
+}
+
+/** Doughnut options for a categorical composition. */
+export function donutOptions(labels: string[], colors: string[]): ApexOptions {
+  return {
+    chart: { type: 'donut', fontFamily: 'inherit' },
+    labels,
+    colors,
+    dataLabels: { enabled: false },
+    legend: { position: 'bottom' },
+    plotOptions: { pie: { donut: { size: '65%' } } },
+    stroke: { width: 0 },
+  }
+}
+
 /** Horizontal bar chart options for a categorical breakdown. */
 export function horizontalBarOptions(categories: string[], color: string): ApexOptions {
   return {

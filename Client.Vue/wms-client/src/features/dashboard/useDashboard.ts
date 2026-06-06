@@ -23,3 +23,17 @@ export function useOutboundOverview(days: Ref<number>) {
     queryFn: () => dashboardApi.outbound(days.value),
   })
 }
+
+export function useInventoryOverview() {
+  return useQuery({
+    queryKey: qk.dashboard.inventory(),
+    queryFn: () => dashboardApi.inventory(),
+  })
+}
+
+export function useCapacityOverview() {
+  return useQuery({
+    queryKey: qk.dashboard.capacity(),
+    queryFn: () => dashboardApi.capacity(),
+  })
+}

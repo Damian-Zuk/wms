@@ -1,7 +1,9 @@
 import { http } from '../http'
 import type {
+  CapacityOverviewDto,
   DashboardOverviewDto,
   InboundOverviewDto,
+  InventoryOverviewDto,
   OutboundOverviewDto,
 } from '@/types/dashboard'
 
@@ -20,4 +22,10 @@ export const dashboardApi = {
     http
       .get<OutboundOverviewDto>('/dashboard/outbound', { params: { days } })
       .then((r) => r.data),
+
+  inventory: () =>
+    http.get<InventoryOverviewDto>('/dashboard/inventory').then((r) => r.data),
+
+  capacity: () =>
+    http.get<CapacityOverviewDto>('/dashboard/capacity').then((r) => r.data),
 }

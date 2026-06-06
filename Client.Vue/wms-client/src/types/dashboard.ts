@@ -115,3 +115,91 @@ export interface OutboundOverviewDto {
   topPickedProducts: TopProduct[]
   shippedSeries: DailyUnits[]
 }
+
+// --- Inventory ---
+
+export interface InventoryStockSummary {
+  onHandUnits: number
+  reservedUnits: number
+  availableUnits: number
+  distinctSkus: number
+  totalWeightKg: number
+  totalVolume: number
+}
+
+/** A slice of an on-hand composition breakdown. `key` is the enum name. */
+export interface CompositionSlice {
+  key: string
+  units: number
+}
+
+export interface ExpiryBuckets {
+  expired: number
+  within7: number
+  within30: number
+  within60: number
+  within90: number
+  beyond90: number
+  noExpiry: number
+}
+
+export interface InventoryOverviewDto {
+  summary: InventoryStockSummary
+  byTemperatureZone: CompositionSlice[]
+  byLocationType: CompositionSlice[]
+  topProducts: TopProduct[]
+  expiryBuckets: ExpiryBuckets
+}
+
+// --- Capacity ---
+
+export interface LocationsSummary {
+  total: number
+  active: number
+  inactive: number
+  blocked: number
+  occupied: number
+  empty: number
+}
+
+export interface CapacityUtilization {
+  unitsPercent: number
+  weightPercent: number
+  volumePercent: number
+  usedUnits: number
+  unitsCapacity: number
+  usedWeight: number
+  weightCapacity: number
+  usedVolume: number
+  volumeCapacity: number
+}
+
+export interface LocationFill {
+  locationId: string
+  code: string
+  address: string
+  fillPercent: number
+  onHandUnits: number
+  isBlocked: boolean
+}
+
+export interface ZoneFill {
+  zone: string
+  fillPercent: number
+  locationCount: number
+}
+
+export interface BlockedLocation {
+  locationId: string
+  code: string
+  address: string
+  reason: string | null
+}
+
+export interface CapacityOverviewDto {
+  summary: LocationsSummary
+  utilization: CapacityUtilization
+  fullestLocations: LocationFill[]
+  byZone: ZoneFill[]
+  blockedLocations: BlockedLocation[]
+}

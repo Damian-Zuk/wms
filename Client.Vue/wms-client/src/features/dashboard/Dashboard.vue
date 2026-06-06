@@ -8,6 +8,8 @@ import PageHeader from '@/components/common/PageHeader.vue'
 import OverviewTab from './OverviewTab.vue'
 import InboundTab from './InboundTab.vue'
 import OutboundTab from './OutboundTab.vue'
+import InventoryTab from './InventoryTab.vue'
+import CapacityTab from './CapacityTab.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -25,7 +27,8 @@ const auth = useAuthStore()
         <Tab value="overview">Overview</Tab>
         <Tab value="inbound">Inbound</Tab>
         <Tab value="outbound">Outbound</Tab>
-        <!-- Future tabs slot in here: Inventory, Capacity -->
+        <Tab value="inventory">Inventory</Tab>
+        <Tab value="capacity">Capacity</Tab>
       </TabList>
       <TabPanels class="!px-0">
         <TabPanel value="overview">
@@ -36,6 +39,12 @@ const auth = useAuthStore()
         </TabPanel>
         <TabPanel value="outbound">
           <OutboundTab />
+        </TabPanel>
+        <TabPanel value="inventory">
+          <InventoryTab />
+        </TabPanel>
+        <TabPanel value="capacity">
+          <CapacityTab />
         </TabPanel>
       </TabPanels>
     </Tabs>

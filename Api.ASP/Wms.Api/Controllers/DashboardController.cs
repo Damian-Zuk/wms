@@ -48,4 +48,22 @@ public class DashboardController : ControllerBase
 
         return result.Match(Results.Ok, CustomResults.Problem);
     }
+
+    [HttpGet("inventory")]
+    public async Task<IResult> GetInventory(
+        [FromServices] IQueryHandler<GetInventoryOverviewQuery, InventoryOverviewDto> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new GetInventoryOverviewQuery(), cancellationToken);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
+
+    [HttpGet("capacity")]
+    public async Task<IResult> GetCapacity(
+        [FromServices] IQueryHandler<GetCapacityOverviewQuery, CapacityOverviewDto> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(new GetCapacityOverviewQuery(), cancellationToken);
+        return result.Match(Results.Ok, CustomResults.Problem);
+    }
 }
