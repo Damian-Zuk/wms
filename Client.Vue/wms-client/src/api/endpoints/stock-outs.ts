@@ -2,6 +2,7 @@ import { http } from '../http'
 import type { PagedResult } from '@/types/common'
 import type {
   CreateStockOutCommand,
+  ModifyPickLocationsRequest,
   StockOutDto,
   StockOutFilters,
 } from '@/types/stock-outs'
@@ -18,6 +19,16 @@ export const stockOutsApi = {
 
   create: (body: CreateStockOutCommand) =>
     http.post<string>('/stock-outs', body).then((r) => r.data),
+
+  // Re-plan a single line's pick allocations (Draft only, Admin/Manager).
+  modifyPickLocations: (
+    stockOutId: string,
+    lineId: string,
+    body: ModifyPickLocationsRequest,
+  ) =>
+    http
+      .put<void>(`/stock-outs/${stockOutId}/lines/${lineId}/pick-locations`, body)
+      .then(() => undefined),
 
   // Pick a single item (whole or partial); removes stock immediately.
   pickItem: (stockOutId: string, itemId: string, body: { quantity: number }) =>

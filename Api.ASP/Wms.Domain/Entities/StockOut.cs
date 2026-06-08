@@ -47,6 +47,26 @@ public class StockOut : Entity
     }
 
     /// <summary>
+    /// Replaces a line's pick allocations with a user-supplied set (Draft only). The new
+    /// allocations must still sum to the line's requested quantity; they are stamped
+    /// <see cref="PickingStrategyType.Manual"/>. Inventory reservations are moved by the
+    /// handler — this method only re-shapes the document.
+    /// </summary>
+    public Result ModifyLineAllocations(
+        Guid lineId,
+        IEnumerable<(Guid LocationId, Guid? LotId, int Quantity)> allocations)
+    {
+        if (Status != StockOutStatus.Draft)
+            return StockOutErrors.CannotModifyItems(Status);
+
+        var line = _lines.FirstOrDefault(l => l.Id == lineId);
+        if (line is null)
+            return StockOutErrors.LineNotFound(lineId);
+
+        return line.ReplaceAllocationsManual(allocations);
+    }
+
+    /// <summary>
     /// Worker has started walking the floor. Items remain reserved (the reservation
     /// was made by CreateStockOut); picking each item then removes stock
     /// incrementally. Pure status transition, no inventory mutation, no events.

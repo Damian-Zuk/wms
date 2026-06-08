@@ -7,10 +7,14 @@ const model = defineModel<PickingStrategyType>({ default: 'Fefo' })
 
 withDefaults(defineProps<{ disabled?: boolean }>(), { disabled: false })
 
-const options = (Object.keys(pickingStrategyLabel) as PickingStrategyType[]).map((value) => ({
-  value,
-  label: pickingStrategyLabel[value],
-}))
+// 'Manual' is not a plannable strategy — it's stamped only when a user hand-edits
+// pick locations, so it must never appear as a choice when creating a stock-out.
+const options = (Object.keys(pickingStrategyLabel) as PickingStrategyType[])
+  .filter((value) => value !== 'Manual')
+  .map((value) => ({
+    value,
+    label: pickingStrategyLabel[value],
+  }))
 </script>
 
 <template>

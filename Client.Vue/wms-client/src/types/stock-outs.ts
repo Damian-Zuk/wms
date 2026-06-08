@@ -45,3 +45,15 @@ export interface CreateStockOutLine {
 export interface CreateStockOutCommand {
   lines: CreateStockOutLine[]
 }
+
+/** One hand-picked allocation when manually re-planning a line's picks. */
+export interface PickAllocationInput {
+  locationId: string
+  lotId: string | null
+  quantity: number
+}
+
+/** PUT /api/stock-outs/{id}/lines/{lineId}/pick-locations body. */
+export interface ModifyPickLocationsRequest {
+  allocations: PickAllocationInput[]
+}

@@ -68,6 +68,7 @@ export const pickingStrategyLabel: Record<PickingStrategyType, string> = {
   Fifo: 'FIFO (oldest first)',
   Lifo: 'LIFO (newest first)',
   LeastQuantity: 'Least Quantity (smallest first)',
+  Manual: 'Manual',
 }
 
 export const pickingStrategySeverity: Record<PickingStrategyType, TagSeverity> = {
@@ -75,6 +76,7 @@ export const pickingStrategySeverity: Record<PickingStrategyType, TagSeverity> =
   Fifo: 'warn',
   Lifo: 'secondary',
   LeastQuantity: 'contrast',
+  Manual: 'contrast',
 }
 
 export const stockMovementTypeSeverity: Record<StockMovementType, TagSeverity> = {

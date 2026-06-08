@@ -57,6 +57,29 @@ public class StockOutLine : Entity
         return Result.Success();
     }
 
+    /// <summary>
+    /// Replaces the allocations with a user-supplied set (location + optional lot +
+    /// quantity). Enforces the same sum-equals-requested invariant and stamps both the
+    /// line and every item as <see cref="PickingStrategyType.Manual"/>.
+    /// </summary>
+    public Result ReplaceAllocationsManual(IEnumerable<(Guid LocationId, Guid? LotId, int Quantity)> allocations)
+    {
+        var list = allocations
+            .Select(a => new PickAllocation(a.LocationId, a.LotId, a.Quantity, PickingStrategyType.Manual))
+            .ToList();
+
+        var validation = ValidateAllocations(list);
+        if (validation.IsFailure)
+            return validation;
+
+        Strategy = PickingStrategyType.Manual;
+        _items.Clear();
+        foreach (var a in list)
+            _items.Add(new StockOutItem(a.LocationId, a.LotId, new Quantity(a.Quantity), PickingStrategyType.Manual));
+
+        return Result.Success();
+    }
+
     private Result ValidateAllocations(IReadOnlyList<PickAllocation> allocations)
     {
         if (allocations.Count == 0)

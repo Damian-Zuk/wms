@@ -52,6 +52,22 @@ public class StockOutController : ControllerBase
         return result.Match(Results.Ok, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
+    [HttpPut("{id:guid}/lines/{lineId:guid}/pick-locations")]
+    public async Task<IResult> ModifyPickLocations(
+        [FromRoute] Guid id,
+        [FromRoute] Guid lineId,
+        [FromBody] ModifyPickLocationsRequest request,
+        [FromServices] ICommandHandler<ModifyPickLocationsCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new ModifyPickLocationsCommand(id, lineId, request.Allocations),
+            cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpPost("{id:guid}/start-picking")]
     public async Task<IResult> StartPicking(
         [FromRoute] Guid id,

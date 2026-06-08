@@ -13,6 +13,7 @@ import RefreshButton from '@/components/common/RefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import WorkflowStepper from '@/components/common/WorkflowStepper.vue'
 import PickItemDialog, { type PickItem } from './PickItemDialog.vue'
+import EditPickLocationsDialog from './EditPickLocationsDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/lib/date'
 import {
@@ -21,7 +22,7 @@ import {
   stockOutStatusSeverity,
 } from '@/lib/enum-display'
 import { useStockOut, useStockOutTransition, type StockOutAction } from './useStockOuts'
-import type { StockOutItemDto } from '@/types/stock-outs'
+import type { StockOutItemDto, StockOutLineDto } from '@/types/stock-outs'
 import type { LocationRef, LotRef, ProductRef } from '@/types/refs'
 import type { PickingStrategyType } from '@/types/enums'
 
@@ -48,6 +49,10 @@ const canCancel = computed(
   () =>
     auth.canMutate &&
     (stockOut.value?.status === 'Draft' || stockOut.value?.status === 'Picking'),
+)
+// Pick allocations can only be re-planned while the document is a Draft.
+const canEditLocations = computed(
+  () => auth.canMutate && stockOut.value?.status === 'Draft',
 )
 
 // Show the location-ordered pick path while picking, and also for a stock-out
@@ -135,6 +140,14 @@ function pickProgress(item: PickPathItem) {
   if (item.pickedQuantity > 0)
     return { icon: 'pi pi-exclamation-circle', class: 'text-yellow-500' }
   return { icon: 'pi pi-circle', class: 'text-surface-300' }
+}
+
+const editLocationsVisible = ref(false)
+const editLocationsLine = ref<StockOutLineDto | null>(null)
+
+function openEditLocations(line: StockOutLineDto) {
+  editLocationsLine.value = line
+  editLocationsVisible.value = true
 }
 
 const pickVisible = ref(false)
@@ -385,10 +398,20 @@ function cancel() {
               <span class="text-surface-700"> — {{ line.product.name }}</span>
               <div class="text-xs text-surface-500 mt-0.5">Quantity: {{ line.quantity }}</div>
             </div>
-            <StatusBadge
-              :value="pickingStrategyLabel[line.strategy]"
-              :severity="pickingStrategySeverity[line.strategy]"
-            />
+            <div class="flex items-center gap-2">
+              <Button
+                v-if="canEditLocations"
+                label="Edit locations"
+                icon="pi pi-pencil"
+                size="small"
+                outlined
+                @click="openEditLocations(line)"
+              />
+              <StatusBadge
+                :value="pickingStrategyLabel[line.strategy]"
+                :severity="pickingStrategySeverity[line.strategy]"
+              />
+            </div>
           </div>
 
           <DataTable :value="line.items" data-key="id">
@@ -425,6 +448,12 @@ function cancel() {
         </div>
       </div>
     </template>
+
+    <EditPickLocationsDialog
+      v-model:visible="editLocationsVisible"
+      :stock-out-id="id"
+      :line="editLocationsLine"
+    />
 
     <PickItemDialog v-model:visible="pickVisible" :stock-out-id="id" :item="pickTarget" />
   </section>

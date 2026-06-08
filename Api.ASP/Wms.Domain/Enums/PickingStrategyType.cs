@@ -16,5 +16,8 @@ public enum PickingStrategyType
     Lifo = 3,
 
     /// <summary>Draw from the sources holding the fewest available units first, clearing out small/fragmented stock.</summary>
-    LeastQuantity = 4
+    LeastQuantity = 4,
+
+    /// <summary>A user hand-picked the location/lot allocations, overriding any strategy suggestion.</summary>
+    Manual = 5
 }

@@ -7,7 +7,11 @@ import {
 } from '@tanstack/vue-query'
 import { stockOutsApi } from '@/api/endpoints/stock-outs'
 import { qk } from '@/api/query-keys'
-import type { CreateStockOutCommand, StockOutFilters } from '@/types/stock-outs'
+import type {
+  CreateStockOutCommand,
+  PickAllocationInput,
+  StockOutFilters,
+} from '@/types/stock-outs'
 
 // Workflow statuses change over time, so never serve stale documents.
 
@@ -36,6 +40,22 @@ export function useCreateStockOut() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.stockOuts.all })
       // Creating reserves stock; keep inventory views truthful.
+      void qc.invalidateQueries({ queryKey: qk.inventories.all })
+    },
+  })
+}
+
+export function useModifyPickLocations(stockOutId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { lineId: string; allocations: PickAllocationInput[] }) =>
+      stockOutsApi.modifyPickLocations(stockOutId, vars.lineId, {
+        allocations: vars.allocations,
+      }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.stockOuts.detail(stockOutId) })
+      void qc.invalidateQueries({ queryKey: qk.stockOuts.all })
+      // Re-planning moves reservations between sources; keep inventory views truthful.
       void qc.invalidateQueries({ queryKey: qk.inventories.all })
     },
   })
