@@ -19,7 +19,9 @@ public class PickingPlannerTests
     private static PickingPlanner NewPlanner() => new(
     [
         new FefoAllocationStrategy(),
-        new FifoAllocationStrategy()
+        new FifoAllocationStrategy(),
+        new LifoAllocationStrategy(),
+        new LeastQuantityAllocationStrategy()
     ]);
 
     [Fact]
@@ -96,6 +98,61 @@ public class PickingPlannerTests
         result.Value[1].LocationId.Should().Be(newLoc.Id);
         result.Value[1].Quantity.Should().Be(5);
         result.Value.Should().OnlyContain(a => a.Strategy == PickingStrategyType.Fifo);
+    }
+
+    [Fact]
+    public void Lifo_allocates_from_most_recently_received_stock_first()
+    {
+        var product = TestData.Product("LIFO-1");
+        // Two locations so each holds its own lotless row with a distinct received
+        // date; LIFO must drain the newest receipt first.
+        var oldLoc = TestData.Location("LIFO-OLD");
+        var newLoc = TestData.Location("LIFO-NEW");
+
+        var oldInv = TestData.Inventory(product.Id, oldLoc.Id, lotId: null, onHand: 10,
+            receivedAt: new DateTime(2026, 01, 01, 0, 0, 0, DateTimeKind.Utc));
+        var newInv = TestData.Inventory(product.Id, newLoc.Id, lotId: null, onHand: 10,
+            receivedAt: new DateTime(2026, 03, 01, 0, 0, 0, DateTimeKind.Utc));
+
+        var context = new PickingContext([oldInv, newInv], [], [oldLoc, newLoc]);
+
+        var result = NewPlanner().Plan(product.Id, PickingStrategyType.Lifo, new Quantity(15), context);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().HaveCount(2);
+        result.Value[0].LocationId.Should().Be(newLoc.Id);
+        result.Value[0].Quantity.Should().Be(10);
+        result.Value[1].LocationId.Should().Be(oldLoc.Id);
+        result.Value[1].Quantity.Should().Be(5);
+        result.Value.Should().OnlyContain(a => a.Strategy == PickingStrategyType.Lifo);
+    }
+
+    [Fact]
+    public void LeastQuantity_allocates_from_the_smallest_holding_first()
+    {
+        var product = TestData.Product("LQ-1");
+        var location = TestData.Location("LQ-LOC");
+
+        var small = TestData.Lot(product.Id, "SMALL", new DateOnly(2026, 06, 01));
+        var medium = TestData.Lot(product.Id, "MEDIUM", new DateOnly(2026, 06, 01));
+        var large = TestData.Lot(product.Id, "LARGE", new DateOnly(2026, 06, 01));
+
+        var invSmall = TestData.Inventory(product.Id, location.Id, small.Id, onHand: 2);
+        var invMedium = TestData.Inventory(product.Id, location.Id, medium.Id, onHand: 5);
+        var invLarge = TestData.Inventory(product.Id, location.Id, large.Id, onHand: 10);
+
+        var context = new PickingContext([invLarge, invMedium, invSmall], [small, medium, large], [location]);
+
+        // Request 6: drain the smallest holding (2) then take 4 from the next-smallest.
+        var result = NewPlanner().Plan(product.Id, PickingStrategyType.LeastQuantity, new Quantity(6), context);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().HaveCount(2);
+        result.Value[0].LotId.Should().Be(small.Id);
+        result.Value[0].Quantity.Should().Be(2);
+        result.Value[1].LotId.Should().Be(medium.Id);
+        result.Value[1].Quantity.Should().Be(4);
+        result.Value.Should().OnlyContain(a => a.Strategy == PickingStrategyType.LeastQuantity);
     }
 
     [Fact]

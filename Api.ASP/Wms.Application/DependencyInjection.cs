@@ -57,6 +57,8 @@ public static class DependencyInjection
         // Picking planner
         services.AddScoped<IPickingAllocationStrategy, FefoAllocationStrategy>();
         services.AddScoped<IPickingAllocationStrategy, FifoAllocationStrategy>();
+        services.AddScoped<IPickingAllocationStrategy, LifoAllocationStrategy>();
+        services.AddScoped<IPickingAllocationStrategy, LeastQuantityAllocationStrategy>();
         services.AddScoped<IPickingPlanner, PickingPlanner>();
 
         return services;

@@ -15,7 +15,7 @@ export type PutawayStrategyType =
   | 'Proximity'
   | 'Manual'
 
-export type PickingStrategyType = 'Fefo' | 'Fifo'
+export type PickingStrategyType = 'Fefo' | 'Fifo' | 'Lifo' | 'LeastQuantity'
 
 export type StockMovementType = 'In' | 'Out'
 

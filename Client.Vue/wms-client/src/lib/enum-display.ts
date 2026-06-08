@@ -66,11 +66,15 @@ export const stockOutStatusSeverity: Record<StockOutStatus, TagSeverity> = {
 export const pickingStrategyLabel: Record<PickingStrategyType, string> = {
   Fefo: 'FEFO (earliest expiry)',
   Fifo: 'FIFO (oldest first)',
+  Lifo: 'LIFO (newest first)',
+  LeastQuantity: 'Least Quantity (smallest first)',
 }
 
 export const pickingStrategySeverity: Record<PickingStrategyType, TagSeverity> = {
   Fefo: 'info',
   Fifo: 'warn',
+  Lifo: 'secondary',
+  LeastQuantity: 'contrast',
 }
 
 export const stockMovementTypeSeverity: Record<StockMovementType, TagSeverity> = {

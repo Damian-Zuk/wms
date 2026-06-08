@@ -10,5 +10,11 @@ public enum PickingStrategyType
     Fefo = 1,
 
     /// <summary>First-In-First-Out: draw from the earliest-received stock first.</summary>
-    Fifo = 2
+    Fifo = 2,
+
+    /// <summary>Last-In-First-Out: draw from the most-recently-received stock first.</summary>
+    Lifo = 3,
+
+    /// <summary>Draw from the sources holding the fewest available units first, clearing out small/fragmented stock.</summary>
+    LeastQuantity = 4
 }
