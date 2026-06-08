@@ -96,6 +96,33 @@ public class InventoryTests
         }
     }
 
+    public class Decrease
+    {
+        [Fact]
+        public void Subtracts_on_hand_and_leaves_reserved_untouched()
+        {
+            var inv = NewInventory(onHand: 10, reserve: 4);
+
+            var result = inv.Decrease(new Quantity(6));
+
+            result.IsSuccess.Should().BeTrue();
+            inv.OnHand.Value.Should().Be(4);
+            inv.Reserved.Value.Should().Be(4);
+        }
+
+        [Fact]
+        public void Fails_when_amount_exceeds_on_hand()
+        {
+            var inv = NewInventory(onHand: 5);
+
+            var result = inv.Decrease(new Quantity(6));
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Inventory.InsufficientQuantity");
+            inv.OnHand.Value.Should().Be(5);
+        }
+    }
+
     public class ReleaseReservation
     {
         [Fact]

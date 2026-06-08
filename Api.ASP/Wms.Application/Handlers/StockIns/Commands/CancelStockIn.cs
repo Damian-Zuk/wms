@@ -1,39 +1,74 @@
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
-using Wms.Domain.Enums;
+using Wms.Application.Extensions;
 using Wms.Domain.Errors;
+using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Handlers.StockIns.Commands;
 
 public sealed record CancelStockInCommand(Guid Id) : ICommand;
 
+/// <summary>
+/// Cancels a stock-in (Draft or Putaway only). It releases the still-held capacity
+/// reservations, and — when cancelling from Putaway — removes the already-placed
+/// units from inventory (the domain raises the removed-from-stock event that writes
+/// the StockMovement(Out) audit row).
+/// </summary>
 public sealed class CancelStockInCommandHandler(IAppDbContext context)
     : ICommandHandler<CancelStockInCommand>
 {
     public async Task<Result> Handle(CancelStockInCommand command, CancellationToken cancellationToken)
     {
         var stockIn = await context.StockIns
+            .Include(s => s.Lines)
+            .ThenInclude(l => l.Items)
             .FirstOrDefaultAsync(s => s.Id == command.Id, cancellationToken);
 
         if (stockIn is null)
             return StockInErrors.NotFound(command.Id);
 
-        var result = stockIn.Cancel();
-        if (result.IsFailure)
-            return result;
+        var transition = stockIn.Cancel();
+        if (transition.IsFailure)
+            return transition;
 
-        // Release the remaining capacity holds. Anything already put away is on hand
-        // and stays there; only the not-yet-placed holds are freed. A Draft cancel has
-        // no holds at all.
+        // Release the remaining capacity holds. Only the not-yet-placed holds survive
+        // to cancel time (putaway drops a hold as it places); a Draft cancel has none.
         var reservations = await context.CapacityReservations
             .Where(r => r.StockInId == stockIn.Id)
             .ToListAsync(cancellationToken);
 
         context.CapacityReservations.RemoveRange(reservations);
 
-        await context.SaveChangesAsync(cancellationToken);
-        return Result.Success();
+        // Pull the already-placed units back out of inventory.
+        var productIds = stockIn.Lines.Select(l => l.ProductId).Distinct().ToList();
+        var locationIds = stockIn.Lines.SelectMany(l => l.Items).Select(i => i.LocationId).Distinct().ToList();
+
+        var inventories = await context.Inventories
+            .Where(i => productIds.Contains(i.ProductId) && locationIds.Contains(i.LocationId))
+            .ToListAsync(cancellationToken);
+
+        foreach (var line in stockIn.Lines)
+        {
+            foreach (var item in line.Items.Where(i => i.PlacedQuantity.Value > 0))
+            {
+                var inventory = inventories.FirstOrDefault(i =>
+                    i.ProductId == line.ProductId
+                    && i.LocationId == item.LocationId
+                    && i.LotId == line.LotId);
+
+                // The putaway created this row, so it should exist; treat a missing or
+                // short row as the units no longer being on hand to remove.
+                if (inventory is null)
+                    return InventoryErrors.InsufficientQuantity(0, item.PlacedQuantity.Value);
+
+                var decrease = inventory.Decrease(new Quantity(item.PlacedQuantity.Value));
+                if (decrease.IsFailure)
+                    return decrease;
+            }
+        }
+
+        return await context.SaveChangesWithConcurrencyCheckAsync(cancellationToken);
     }
 }

@@ -25,3 +25,4 @@ export type StockMovementSource =
   | 'Adjustment'
   | 'Transfer'
   | 'StockOutCancellation'
+  | 'StockInCancellation'

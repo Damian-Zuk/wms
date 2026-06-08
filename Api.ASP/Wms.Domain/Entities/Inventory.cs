@@ -45,6 +45,20 @@ public class Inventory : Entity
     }
 
     /// <summary>
+    /// Removes physical stock. Used by cancel-after-putaway to pull the
+    /// already-placed units back out — the mirror of <see cref="Increase"/>.
+    /// Fails when there isn't enough OnHand. Does not touch Reserved.
+    /// </summary>
+    public Result Decrease(Quantity qty)
+    {
+        if (qty.Value > OnHand.Value)
+            return InventoryErrors.InsufficientQuantity(OnHand.Value, qty.Value);
+
+        OnHand = OnHand.Subtract(qty);
+        return Result.Success();
+    }
+
+    /// <summary>
     /// Receives physical stock from a putaway. Adds to OnHand and stamps
     /// <see cref="ReceivedAt"/> on the first receipt into this location+lot bucket
     /// (later top-ups keep the original date so FIFO ages by the oldest units).

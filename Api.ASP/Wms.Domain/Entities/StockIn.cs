@@ -128,13 +128,40 @@ public class StockIn : Entity
         return Result.Success();
     }
 
+    /// <summary>
+    /// Cancels the stock-in (allowed from Draft or Putaway only) and records the
+    /// phase it was cancelled from.
+    /// - Draft — only capacity holds exist; the handler releases them.
+    /// - Putaway — already-placed units must be removed from stock (a per-item event
+    ///   drives the StockMovement(Out) audit row) and the not-yet-placed holds are
+    ///   released by the handler.
+    /// </summary>
     public Result Cancel()
     {
-        if (Status is not (StockInStatus.Draft or StockInStatus.Putaway))
-            return StockInErrors.InvalidStatusTransition(Status, StockInStatus.Cancelled);
+        var statusBeforeCancel = Status;
 
-        CancelledFrom = Status;
+        if (statusBeforeCancel is not (StockInStatus.Draft or StockInStatus.Putaway))
+            return StockInErrors.InvalidStatusTransition(statusBeforeCancel, StockInStatus.Cancelled);
+
+        CancelledFrom = statusBeforeCancel;
         Status = StockInStatus.Cancelled;
+
+        if (statusBeforeCancel == StockInStatus.Putaway)
+        {
+            foreach (var line in _lines)
+            {
+                foreach (var item in line.Items.Where(i => i.PlacedQuantity.Value > 0))
+                {
+                    Raise(new StockInItemRemovedFromStockDomainEvent(
+                        Id,
+                        line.ProductId,
+                        item.LocationId,
+                        line.LotId,
+                        item.PlacedQuantity.Value));
+                }
+            }
+        }
+
         return Result.Success();
     }
 }

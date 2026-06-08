@@ -321,6 +321,79 @@ public class StockInStateMachineTests
             stockIn.CancelledFrom.Should().Be(startStatus);
         }
 
+        [Fact]
+        public void From_draft_does_not_raise_removal_events()
+        {
+            var stockIn = NewStockInWithLine();
+
+            var result = stockIn.Cancel();
+
+            result.IsSuccess.Should().BeTrue();
+            stockIn.DomainEvents.OfType<StockInItemRemovedFromStockDomainEvent>().Should().BeEmpty();
+        }
+
+        [Fact]
+        public void From_putaway_with_no_placements_does_not_raise_removal_events()
+        {
+            var stockIn = NewStockInWithLine();
+            stockIn.StartPutaway();
+            stockIn.ClearDomainEvents();
+
+            var result = stockIn.Cancel();
+
+            result.IsSuccess.Should().BeTrue();
+            stockIn.DomainEvents.OfType<StockInItemRemovedFromStockDomainEvent>().Should().BeEmpty();
+        }
+
+        [Fact]
+        public void From_putaway_raises_removal_event_for_each_placed_item()
+        {
+            var stockIn = new StockIn(Guid.NewGuid());
+            stockIn.AddLineWithPlacements(Guid.NewGuid(), null, new Quantity(2),
+                [new(Guid.NewGuid(), 2, PutawayStrategyType.NearestEmpty)]);
+            stockIn.AddLineWithPlacements(Guid.NewGuid(), null, new Quantity(5),
+                [new(Guid.NewGuid(), 5, PutawayStrategyType.NearestEmpty)]);
+            stockIn.StartPutaway();
+            foreach (var line in stockIn.Lines)
+            {
+                var item = line.Items.Single();
+                stockIn.PutawayItem(item.Id, item.Quantity);
+            }
+            stockIn.ClearDomainEvents();
+
+            var result = stockIn.Cancel();
+
+            result.IsSuccess.Should().BeTrue();
+            stockIn.Status.Should().Be(StockInStatus.Cancelled);
+            stockIn.DomainEvents
+                .OfType<StockInItemRemovedFromStockDomainEvent>()
+                .Should().HaveCount(2);
+        }
+
+        [Fact]
+        public void From_putaway_uses_placed_quantity_and_skips_unplaced_items()
+        {
+            // Two lines but only one is partially put away; the cancel removes only
+            // those placed units and skips the line that never started.
+            var stockIn = new StockIn(Guid.NewGuid());
+            stockIn.AddLineWithPlacements(Guid.NewGuid(), null, new Quantity(5),
+                [new(Guid.NewGuid(), 5, PutawayStrategyType.NearestEmpty)]);
+            stockIn.AddLineWithPlacements(Guid.NewGuid(), null, new Quantity(2),
+                [new(Guid.NewGuid(), 2, PutawayStrategyType.NearestEmpty)]);
+            stockIn.StartPutaway();
+            var placedItem = stockIn.Lines.First().Items.Single();
+            stockIn.PutawayItem(placedItem.Id, new Quantity(3));
+            stockIn.ClearDomainEvents();
+
+            var result = stockIn.Cancel();
+
+            result.IsSuccess.Should().BeTrue();
+            stockIn.DomainEvents
+                .OfType<StockInItemRemovedFromStockDomainEvent>()
+                .Should().ContainSingle()
+                .Which.Quantity.Should().Be(3);
+        }
+
         [Theory]
         [InlineData(StockInStatus.Completed)]
         [InlineData(StockInStatus.Cancelled)]

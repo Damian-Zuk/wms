@@ -84,6 +84,7 @@ export const stockMovementSourceLabel: Record<StockMovementSource, string> = {
   Adjustment: 'Adjustment',
   Transfer: 'Transfer',
   StockOutCancellation: 'Stock-Out Cancellation',
+  StockInCancellation: 'Stock-In Cancellation',
 }
 
 export const stockMovementSourceSeverity: Record<StockMovementSource, TagSeverity> = {
@@ -92,4 +93,5 @@ export const stockMovementSourceSeverity: Record<StockMovementSource, TagSeverit
   Adjustment: 'warn',
   Transfer: 'secondary',
   StockOutCancellation: 'contrast',
+  StockInCancellation: 'danger',
 }
