@@ -38,6 +38,11 @@ const router = createRouter({
       meta: { requiresMutate: true },
     },
     {
+      path: '/categories',
+      name: 'categories',
+      component: () => import('@/features/categories/CategoriesView.vue'),
+    },
+    {
       path: '/locations',
       name: 'locations',
       component: () => import('@/features/locations/LocationsView.vue'),

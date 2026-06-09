@@ -10,6 +10,7 @@ import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
 import RefreshButton from '@/components/common/RefreshButton.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import ProductSelect from '@/components/pickers/ProductSelect.vue'
+import CategorySelect from '@/components/pickers/CategorySelect.vue'
 import { useLots } from './useLots'
 import { lotStatus } from './lot-status'
 import { useProductOptions } from '@/features/products/useProducts'
@@ -24,6 +25,7 @@ const auth = useAuthStore()
 const filters = ref<LotFilters>({ search: '', page: 1, pageSize: 20 })
 const search = ref('')
 const productFilter = ref<string | null>(null)
+const categoryFilter = ref<string | null>(null)
 
 const { data, isFetching, refetch } = useLots(filters)
 const { byId } = useProductOptions()
@@ -32,12 +34,20 @@ function productSku(id: string) {
   return byId.value.get(id)?.sku ?? '—'
 }
 
+function productCategory(id: string) {
+  return byId.value.get(id)?.categoryName ?? '—'
+}
+
 function applySearch() {
   filters.value = { ...filters.value, search: search.value.trim(), page: 1 }
 }
 
 function onProductChange(value: string | null) {
   filters.value = { ...filters.value, productId: value ?? undefined, page: 1 }
+}
+
+function onCategoryChange(value: string | null) {
+  filters.value = { ...filters.value, categoryId: value ?? undefined, page: 1 }
 }
 
 function setPage(page: number) {
@@ -66,6 +76,14 @@ function openLot(lot: LotDto) {
       </div>
 
       <div class="flex items-center gap-2">
+        <div class="w-56">
+          <CategorySelect
+            v-model="categoryFilter"
+            show-clear
+            placeholder="All categories"
+            @update:model-value="onCategoryChange"
+          />
+        </div>
         <div class="w-64">
           <ProductSelect
             v-model="productFilter"
@@ -109,6 +127,11 @@ function openLot(lot: LotDto) {
       <Column header="Product" sortable sort-field="product">
         <template #body="{ data: row }: { data: LotDto }">
           {{ productSku(row.productId) }}
+        </template>
+      </Column>
+      <Column header="Category" style="width: 13rem">
+        <template #body="{ data: row }: { data: LotDto }">
+          {{ productCategory(row.productId) }}
         </template>
       </Column>
       <Column header="Manufactured" sortable sort-field="manufactureDate" style="width: 12rem">

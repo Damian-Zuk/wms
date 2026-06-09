@@ -4,6 +4,7 @@ using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Extensions;
+using Wms.Application.Handlers.ProductCategories;
 using Wms.Domain.Enums;
 using Wms.Shared.Common;
 
@@ -17,14 +18,17 @@ public record ProductDto(
     decimal Weight,
     decimal Volume,
     TemperatureZone RequiredTemperatureZone,
-    IReadOnlyList<Guid> PreferredLocationIds);
+    IReadOnlyList<Guid> PreferredLocationIds,
+    Guid? CategoryId,
+    string? CategoryName);
 
 public sealed record ListProductsQuery(
     string? Search,
     string? SortBy = null,
     bool SortDescending = false,
     int Page = 1,
-    int PageSize = 20) : IQuery<PagedResult<ProductDto>>;
+    int PageSize = 20,
+    Guid? CategoryId = null) : IQuery<PagedResult<ProductDto>>;
 
 public sealed class ListProductsValidator : AbstractValidator<ListProductsQuery>
 {
@@ -52,6 +56,16 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
                 p.Name.Contains(term));
         }
 
+        if (query.CategoryId.HasValue)
+        {
+            // Include the whole subtree so filtering a parent surfaces products
+            // assigned to any descendant category.
+            var hierarchy = await CategoryHierarchy.LoadAsync(context, cancellationToken);
+            var subtree = hierarchy.DescendantIdsInclusive(query.CategoryId.Value).ToArray();
+            productsQuery = productsQuery.Where(p =>
+                p.ProductCategoryId.HasValue && subtree.Contains(p.ProductCategoryId.Value));
+        }
+
         var totalCount = await productsQuery.CountAsync(cancellationToken);
 
         var desc = query.SortDescending;
@@ -59,6 +73,12 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
         {
             "sku" => productsQuery.OrderByDirection(p => p.Sku.Value, desc),
             "name" => productsQuery.OrderByDirection(p => p.Name, desc),
+            "category" => productsQuery.OrderByDirection(
+                p => context.ProductCategories
+                    .Where(c => c.Id == p.ProductCategoryId)
+                    .Select(c => c.Name)
+                    .FirstOrDefault(),
+                desc),
             _ => productsQuery.OrderBy(p => p.Name),
         };
 
@@ -76,7 +96,14 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
                 p.PreferredLocations
                     .OrderBy(pl => pl.Sequence)
                     .Select(pl => pl.LocationId)
-                    .ToList()))
+                    .ToList(),
+                p.ProductCategoryId,
+                p.ProductCategoryId == null
+                    ? null
+                    : context.ProductCategories
+                        .Where(c => c.Id == p.ProductCategoryId)
+                        .Select(c => c.Name)
+                        .FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ProductDto>(items, query.Page, query.PageSize, totalCount);

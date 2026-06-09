@@ -13,6 +13,8 @@ public class Product : Entity
     public string Description { get; private set; } = string.Empty;
     public TemperatureZone RequiredTemperatureZone { get; private set; } = TemperatureZone.Ambient;
 
+    public Guid? ProductCategoryId { get; private set; }
+
     /// <summary>Weight of one unit in kilograms.</summary>
     public decimal Weight { get; private set; }
 
@@ -29,7 +31,8 @@ public class Product : Entity
         decimal weight,
         decimal volume,
         string description = "",
-        TemperatureZone requiredTemperatureZone = TemperatureZone.Ambient)
+        TemperatureZone requiredTemperatureZone = TemperatureZone.Ambient,
+        Guid? categoryId = null)
     {
         Id = Guid.NewGuid();
         Name = name;
@@ -38,7 +41,10 @@ public class Product : Entity
         Volume = volume;
         Description = description;
         RequiredTemperatureZone = requiredTemperatureZone;
+        ProductCategoryId = categoryId;
     }
+
+    public void SetCategory(Guid? categoryId) => ProductCategoryId = categoryId;
 
     public void Update(
         string name,

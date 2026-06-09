@@ -13,6 +13,7 @@ export const lotsApi = {
       .get<PagedResult<LotDto>>('/lots', {
         params: {
           productId: filters.productId || undefined,
+          categoryId: filters.categoryId || undefined,
           search: filters.search || undefined,
           sortBy: filters.sortBy || undefined,
           sortDescending: filters.sortDescending || undefined,

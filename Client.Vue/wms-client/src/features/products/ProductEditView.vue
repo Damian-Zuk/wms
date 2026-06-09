@@ -32,6 +32,7 @@ watch(
         volume: p.volume,
         requiredTemperatureZone: p.requiredTemperatureZone,
         preferredLocationIds: [...p.preferredLocationIds],
+        categoryId: p.categoryId,
       }
     }
   },
@@ -47,6 +48,7 @@ function onSubmit(values: ProductFormValues) {
     volume: values.volume,
     requiredTemperatureZone: values.requiredTemperatureZone,
     preferredLocationIds: values.preferredLocationIds,
+    categoryId: values.categoryId,
   }
   update.mutate(body, {
     onSuccess: () => {

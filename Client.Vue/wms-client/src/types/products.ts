@@ -11,10 +11,13 @@ export interface ProductDto {
   volume: number
   requiredTemperatureZone: TemperatureZone
   preferredLocationIds: string[]
+  categoryId: string | null
+  categoryName: string | null
 }
 
 export interface ProductFilters {
   search?: string
+  categoryId?: string
   sortBy?: string
   sortDescending?: boolean
   page: number
@@ -29,6 +32,7 @@ export interface ProductFormValues {
   volume: number
   requiredTemperatureZone: TemperatureZone
   preferredLocationIds: string[]
+  categoryId: string | null
 }
 
 /** POST /api/products body (SKU is set on creation). */
@@ -42,4 +46,5 @@ export interface UpdateProductRequest {
   volume: number
   requiredTemperatureZone: TemperatureZone
   preferredLocationIds: string[]
+  categoryId: string | null
 }

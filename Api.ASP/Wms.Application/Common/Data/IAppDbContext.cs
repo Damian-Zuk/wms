@@ -6,6 +6,7 @@ namespace Wms.Application.Common.Data;
 public interface IAppDbContext
 {
     DbSet<Product> Products { get; }
+    DbSet<ProductCategory> ProductCategories { get; }
     DbSet<ProductPreferredLocation> ProductPreferredLocations { get; }
     DbSet<Location> Locations { get; }
     DbSet<Inventory> Inventories { get; }

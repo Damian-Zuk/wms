@@ -11,6 +11,7 @@ export interface LotDto {
 
 export interface LotFilters {
   productId?: string
+  categoryId?: string
   search?: string
   sortBy?: string
   sortDescending?: boolean

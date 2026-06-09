@@ -13,6 +13,7 @@ export const productsApi = {
       .get<PagedResult<ProductDto>>('/products', {
         params: {
           search: filters.search || undefined,
+          categoryId: filters.categoryId || undefined,
           sortBy: filters.sortBy || undefined,
           sortDescending: filters.sortDescending || undefined,
           page: filters.page,

@@ -17,7 +17,8 @@ public sealed record CreateProductCommand(
     decimal Weight,
     decimal Volume,
     TemperatureZone RequiredTemperatureZone = TemperatureZone.Ambient,
-    IReadOnlyList<Guid>? PreferredLocationIds = null) : ICommand<Guid>;
+    IReadOnlyList<Guid>? PreferredLocationIds = null,
+    Guid? CategoryId = null) : ICommand<Guid>;
 
 public sealed class CreateProductValidator: AbstractValidator<CreateProductCommand>
 {
@@ -67,13 +68,24 @@ public sealed class CreateProductCommandHandler(IAppDbContext context)
                 return LocationErrors.NotFound(missing);
         }
 
+        if (request.CategoryId is { } categoryId)
+        {
+            var categoryExists = await context.ProductCategories
+                .AsNoTracking()
+                .AnyAsync(c => c.Id == categoryId, cancellationToken);
+
+            if (!categoryExists)
+                return ProductCategoryErrors.NotFound(categoryId);
+        }
+
         var product = new Product(
             new Sku(request.Sku),
             request.Name,
             request.Weight,
             request.Volume,
             request.Description,
-            request.RequiredTemperatureZone);
+            request.RequiredTemperatureZone,
+            request.CategoryId);
 
         product.SetPreferredLocations(distinctPreferred);
 

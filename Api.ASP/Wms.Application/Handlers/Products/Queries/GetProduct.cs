@@ -27,7 +27,14 @@ public sealed class GetProductQueryHandler(IAppDbContext context)
                 p.PreferredLocations
                     .OrderBy(pl => pl.Sequence)
                     .Select(pl => pl.LocationId)
-                    .ToList()))
+                    .ToList(),
+                p.ProductCategoryId,
+                p.ProductCategoryId == null
+                    ? null
+                    : context.ProductCategories
+                        .Where(c => c.Id == p.ProductCategoryId)
+                        .Select(c => c.Name)
+                        .FirstOrDefault()))
             .FirstOrDefaultAsync(cancellationToken);
 
         return product is null ? ProductErrors.NotFound(query.Id) : product;

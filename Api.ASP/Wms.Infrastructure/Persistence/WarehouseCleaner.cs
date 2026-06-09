@@ -20,6 +20,13 @@ public static class WarehouseCleaner
         await context.ProductPreferredLocations.ExecuteDeleteAsync(cancellationToken);
         await context.Lots.ExecuteDeleteAsync(cancellationToken);
         await context.Products.ExecuteDeleteAsync(cancellationToken);
+
+        // Break the self-references before bulk-deleting the tree (the ParentId
+        // FK is Restrict, which is checked per-row within a single DELETE).
+        await context.ProductCategories
+            .ExecuteUpdateAsync(s => s.SetProperty(c => c.ParentId, (Guid?)null), cancellationToken);
+        await context.ProductCategories.ExecuteDeleteAsync(cancellationToken);
+
         await context.Locations.ExecuteDeleteAsync(cancellationToken);
 
         await transaction.CommitAsync(cancellationToken);

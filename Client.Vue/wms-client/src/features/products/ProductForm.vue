@@ -9,6 +9,7 @@ import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import LocationMultiSelect from '@/components/pickers/LocationMultiSelect.vue'
+import CategorySelect from '@/components/pickers/CategorySelect.vue'
 import { mapServerErrors } from '@/lib/form-errors'
 import type { ProductFormValues } from '@/types/products'
 import type { TemperatureZone } from '@/types/enums'
@@ -43,6 +44,7 @@ const schema = toTypedSchema(
     volume: z.number({ message: 'Volume is required' }).positive('Volume must be greater than 0'),
     requiredTemperatureZone: z.enum(['Ambient', 'Chilled', 'Frozen']),
     preferredLocationIds: z.array(z.string()),
+    categoryId: z.string().nullable(),
   }),
 )
 
@@ -58,6 +60,7 @@ const [weight] = defineField('weight')
 const [volume] = defineField('volume')
 const [requiredTemperatureZone] = defineField('requiredTemperatureZone')
 const [preferredLocationIds] = defineField('preferredLocationIds')
+const [categoryId] = defineField('categoryId')
 
 // Map server-side (PascalCase) field errors onto the form fields (camelCase).
 watch(
@@ -162,6 +165,11 @@ const onSubmit = handleSubmit((values) => emit('submit', values as ProductFormVa
         option-value="value"
         fluid
       />
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label class="text-sm font-medium text-surface-700">Category</label>
+      <CategorySelect v-model="categoryId" show-clear placeholder="Uncategorized" />
     </div>
 
     <div class="flex flex-col gap-1">

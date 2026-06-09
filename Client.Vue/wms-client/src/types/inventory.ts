@@ -15,6 +15,7 @@ export interface InventoryFilters {
   productId?: string
   locationId?: string
   lotId?: string
+  categoryId?: string
   expiringWithinDays?: number
   sortBy?: string
   sortDescending?: boolean

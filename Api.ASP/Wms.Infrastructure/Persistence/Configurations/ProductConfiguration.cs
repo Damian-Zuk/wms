@@ -43,6 +43,13 @@ public class ProductConfiguration : EntityConfiguration<Product>
             .HasConversion<int>()
             .IsRequired();
 
+        builder.HasOne<ProductCategory>()
+            .WithMany()
+            .HasForeignKey(p => p.ProductCategoryId)
+            .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasIndex(p => p.ProductCategoryId);
+
         builder.HasMany(p => p.PreferredLocations)
             .WithOne()
             .HasForeignKey(pl => pl.ProductId)

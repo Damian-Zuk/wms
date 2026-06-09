@@ -8,6 +8,7 @@ interface NavItem {
 const items: NavItem[] = [
   { label: 'Dashboard', icon: 'pi pi-home', to: '/' },
   { label: 'Product Catalog', icon: 'pi pi-box', to: '/products' },
+  { label: 'Product Categories', icon: 'pi pi-sitemap', to: '/categories' },
   { label: 'Locations', icon: 'pi pi-map-marker', to: '/locations' },
   { label: 'Lots', icon: 'pi pi-tags', to: '/lots' },
   { label: 'Inventory', icon: 'pi pi-database', to: '/inventory' },

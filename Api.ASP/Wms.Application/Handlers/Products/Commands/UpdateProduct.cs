@@ -15,7 +15,8 @@ public sealed record UpdateProductCommand(
     decimal Weight,
     decimal Volume,
     TemperatureZone RequiredTemperatureZone,
-    IReadOnlyList<Guid>? PreferredLocationIds) : ICommand;
+    IReadOnlyList<Guid>? PreferredLocationIds,
+    Guid? CategoryId = null) : ICommand;
 
 public sealed class UpdateProductValidator : AbstractValidator<UpdateProductCommand>
 {
@@ -63,8 +64,19 @@ public sealed class UpdateProductCommandHandler(IAppDbContext context)
                 return LocationErrors.NotFound(missing);
         }
 
+        if (request.CategoryId is { } categoryId)
+        {
+            var categoryExists = await context.ProductCategories
+                .AsNoTracking()
+                .AnyAsync(c => c.Id == categoryId, cancellationToken);
+
+            if (!categoryExists)
+                return ProductCategoryErrors.NotFound(categoryId);
+        }
+
         product.Update(request.Name, request.Description, request.Weight, request.Volume, request.RequiredTemperatureZone);
         product.SetPreferredLocations(distinctPreferred);
+        product.SetCategory(request.CategoryId);
 
         await context.SaveChangesAsync(cancellationToken);
 

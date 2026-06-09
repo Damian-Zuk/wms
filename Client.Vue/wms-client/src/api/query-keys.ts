@@ -13,6 +13,11 @@ export const qk = {
     detail: (id: string) => ['products', 'detail', id] as const,
     options: () => ['products', 'options'] as const,
   },
+  productCategories: {
+    all: ['product-categories'] as const,
+    tree: () => ['product-categories', 'tree'] as const,
+    list: () => ['product-categories', 'list'] as const,
+  },
   lots: {
     all: ['lots'] as const,
     list: (filters: LotFilters) => ['lots', 'list', filters] as const,

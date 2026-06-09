@@ -4,6 +4,7 @@ using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Extensions;
+using Wms.Application.Handlers.ProductCategories;
 using Wms.Application.Refs;
 using Wms.Shared.Common;
 
@@ -17,7 +18,8 @@ public sealed record ListInventoriesQuery(
     string? SortBy = null,
     bool SortDescending = false,
     int Page = 1,
-    int PageSize = 20) : IQuery<PagedResult<InventoryDto>>;
+    int PageSize = 20,
+    Guid? CategoryId = null) : IQuery<PagedResult<InventoryDto>>;
 
 public sealed class ListInventoriesValidator : AbstractValidator<ListInventoriesQuery>
 {
@@ -52,6 +54,16 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
             inventoriesQuery = inventoriesQuery.Where(i =>
                 context.Lots.Any(l =>
                     l.Id == i.LotId && l.ExpirationDate != null && l.ExpirationDate.Value <= threshold));
+        }
+
+        if (query.CategoryId.HasValue)
+        {
+            var hierarchy = await CategoryHierarchy.LoadAsync(context, cancellationToken);
+            var subtree = hierarchy.DescendantIdsInclusive(query.CategoryId.Value).ToArray();
+            inventoriesQuery = inventoriesQuery.Where(i => context.Products.Any(p =>
+                p.Id == i.ProductId &&
+                p.ProductCategoryId.HasValue &&
+                subtree.Contains(p.ProductCategoryId.Value)));
         }
 
         var totalCount = await inventoriesQuery.CountAsync(cancellationToken);

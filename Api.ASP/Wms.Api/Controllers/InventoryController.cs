@@ -23,6 +23,7 @@ public class InventoryController : ControllerBase
         [FromQuery] bool sortDescending,
         [FromQuery] int page,
         [FromQuery] int pageSize,
+        [FromQuery] Guid? categoryId,
         [FromServices] IQueryHandler<ListInventoriesQuery, PagedResult<InventoryDto>> handler,
         CancellationToken cancellationToken)
     {
@@ -35,7 +36,8 @@ public class InventoryController : ControllerBase
                 sortBy,
                 sortDescending,
                 page == 0 ? 1 : page,
-                pageSize == 0 ? 20 : pageSize),
+                pageSize == 0 ? 20 : pageSize,
+                categoryId),
             cancellationToken);
 
         return result.Match(Results.Ok, CustomResults.Problem);

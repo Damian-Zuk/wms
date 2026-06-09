@@ -22,6 +22,7 @@ const initialValues: ProductFormValues = {
   volume: 0,
   requiredTemperatureZone: 'Ambient',
   preferredLocationIds: [],
+  categoryId: null,
 }
 
 function onSubmit(values: ProductFormValues) {

@@ -9,9 +9,11 @@ import RefreshButton from '@/components/common/RefreshButton.vue'
 import ProductSelect from '@/components/pickers/ProductSelect.vue'
 import LocationSelect from '@/components/pickers/LocationSelect.vue'
 import LotSelect from '@/components/pickers/LotSelect.vue'
+import CategorySelect from '@/components/pickers/CategorySelect.vue'
 import AdjustInventoryDialog from './AdjustInventoryDialog.vue'
 import TransferStockDialog from './TransferStockDialog.vue'
 import { useInventories } from './useInventory'
+import { useProductOptions } from '@/features/products/useProducts'
 import { useAuthStore } from '@/stores/auth'
 import { formatDate } from '@/lib/date'
 import { sortOrderOf, toSortFilters, type SortChange } from '@/lib/sort'
@@ -26,6 +28,7 @@ const auth = useAuthStore()
 const productFilter = ref<string | null>((route.query.productId as string) ?? null)
 const locationFilter = ref<string | null>((route.query.locationId as string) ?? null)
 const lotFilter = ref<string | null>((route.query.lotId as string) ?? null)
+const categoryFilter = ref<string | null>((route.query.categoryId as string) ?? null)
 const expiringWithinDays = ref<number | null>(
   route.query.expiringWithinDays != null ? Number(route.query.expiringWithinDays) : null,
 )
@@ -34,12 +37,18 @@ const filters = ref<InventoryFilters>({
   productId: productFilter.value ?? undefined,
   locationId: locationFilter.value ?? undefined,
   lotId: lotFilter.value ?? undefined,
+  categoryId: categoryFilter.value ?? undefined,
   expiringWithinDays: expiringWithinDays.value ?? undefined,
   page: 1,
   pageSize: 20,
 })
 
 const { data, isFetching, refetch } = useInventories(filters)
+const { byId: productsById } = useProductOptions()
+
+function productCategory(id: string) {
+  return productsById.value.get(id)?.categoryName ?? '—'
+}
 
 const adjustVisible = ref(false)
 const adjustTarget = ref<InventoryDto | null>(null)
@@ -64,6 +73,10 @@ function onLocationChange(value: string | null) {
 
 function onLotChange(value: string | null) {
   filters.value = { ...filters.value, lotId: value ?? undefined, page: 1 }
+}
+
+function onCategoryChange(value: string | null) {
+  filters.value = { ...filters.value, categoryId: value ?? undefined, page: 1 }
 }
 
 function onExpiringChange(value: number | null) {
@@ -124,6 +137,15 @@ function openTransfer(row: InventoryDto) {
         />
       </div>
       <div class="w-56">
+        <label class="text-sm font-medium text-surface-700">Category</label>
+        <CategorySelect
+          v-model="categoryFilter"
+          show-clear
+          placeholder="All categories"
+          @update:model-value="onCategoryChange"
+        />
+      </div>
+      <div class="w-56">
         <label class="text-sm font-medium text-surface-700">Lot</label>
         <LotSelect
           v-model="lotFilter"
@@ -168,6 +190,11 @@ function openTransfer(row: InventoryDto) {
         <template #body="{ data: row }: { data: InventoryDto }">
           <div class="font-medium text-surface-900">{{ row.product.sku }}</div>
           <div class="text-xs text-surface-500">{{ row.product.name }}</div>
+        </template>
+      </Column>
+      <Column header="Category" style="width: 12rem">
+        <template #body="{ data: row }: { data: InventoryDto }">
+          {{ productCategory(row.product.id) }}
         </template>
       </Column>
       <Column header="Location" sortable sort-field="location">

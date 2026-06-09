@@ -4,6 +4,7 @@ using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Models;
 using Wms.Application.Extensions;
+using Wms.Application.Handlers.ProductCategories;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Handlers.Lots.Queries;
@@ -14,7 +15,8 @@ public sealed record ListLotsQuery(
     string? SortBy = null,
     bool SortDescending = false,
     int Page = 1,
-    int PageSize = 20) : IQuery<PagedResult<LotDto>>;
+    int PageSize = 20,
+    Guid? CategoryId = null) : IQuery<PagedResult<LotDto>>;
 
 public sealed class ListLotsValidator : AbstractValidator<ListLotsQuery>
 {
@@ -44,6 +46,16 @@ public sealed class ListLotsQueryHandler(IAppDbContext context)
         {
             var term = query.Search.Trim();
             lotsQuery = lotsQuery.Where(l => l.Number.Value.Contains(term));
+        }
+
+        if (query.CategoryId.HasValue)
+        {
+            var hierarchy = await CategoryHierarchy.LoadAsync(context, cancellationToken);
+            var subtree = hierarchy.DescendantIdsInclusive(query.CategoryId.Value).ToArray();
+            lotsQuery = lotsQuery.Where(l => context.Products.Any(p =>
+                p.Id == l.ProductId &&
+                p.ProductCategoryId.HasValue &&
+                subtree.Contains(p.ProductCategoryId.Value)));
         }
 
         var totalCount = await lotsQuery.CountAsync(cancellationToken);

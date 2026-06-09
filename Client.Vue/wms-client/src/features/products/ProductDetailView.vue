@@ -131,6 +131,18 @@ function onDelete() {
         />
       </dd>
 
+      <dt class="text-surface-500">Category</dt>
+      <dd class="text-surface-900">
+        <RouterLink
+          v-if="product.categoryId"
+          :to="{ name: 'products', query: { categoryId: product.categoryId } }"
+          class="text-primary-600 hover:underline"
+        >
+          {{ product.categoryName }}
+        </RouterLink>
+        <span v-else class="text-surface-500">Uncategorized</span>
+      </dd>
+
       <dt class="text-surface-500">Preferred Locations</dt>
       <dd class="text-surface-900">
         <ul v-if="preferredLocations.length" class="flex flex-col gap-1">
