@@ -77,6 +77,24 @@ public class StockIn : Entity
         return Result.Success();
     }
 
+    /// <summary>
+    /// Replaces a line's placements with a freshly computed putaway plan, each carrying
+    /// the strategy that produced it (Draft only). Unlike <see cref="ModifyLinePlacements"/>
+    /// this is the system re-running the planner, not a manual override, so it does not
+    /// stamp the placements Manual nor record a modifier.
+    /// </summary>
+    public Result ReplanLinePlacements(Guid lineId, IReadOnlyList<PlacementAllocation> placements)
+    {
+        if (Status != StockInStatus.Draft)
+            return StockInErrors.CannotModifyItems(Status);
+
+        var line = _lines.FirstOrDefault(l => l.Id == lineId);
+        if (line is null)
+            return StockInErrors.LineNotFound(lineId);
+
+        return line.SetPlacements(placements);
+    }
+
     public Result StartPutaway()
     {
         if (Status != StockInStatus.Draft)

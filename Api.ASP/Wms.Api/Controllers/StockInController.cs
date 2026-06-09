@@ -68,6 +68,21 @@ public class StockInController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
+    [HttpPost("{id:guid}/lines/{lineId:guid}/replan")]
+    public async Task<IResult> ReplanLine(
+        [FromRoute] Guid id,
+        [FromRoute] Guid lineId,
+        [FromServices] ICommandHandler<ReplanStockInLineCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new ReplanStockInLineCommand(id, lineId),
+            cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpPost("{id:guid}/start-putaway")]
     public async Task<IResult> StartPutaway(
         [FromRoute] Guid id,

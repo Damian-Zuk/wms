@@ -30,6 +30,12 @@ export const stockInsApi = {
       .put<void>(`/stock-ins/${stockInId}/lines/${lineId}/placements`, body)
       .then(() => undefined),
 
+  // Re-run the putaway planner for a single line (Draft only, Admin/Manager).
+  replanLine: (stockInId: string, lineId: string) =>
+    http
+      .post<void>(`/stock-ins/${stockInId}/lines/${lineId}/replan`)
+      .then(() => undefined),
+
   // Put away a single placement (whole or partial); books stock immediately.
   putawayItem: (stockInId: string, itemId: string, body: { quantity: number }) =>
     http

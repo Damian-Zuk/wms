@@ -14,6 +14,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import WorkflowStepper from '@/components/common/WorkflowStepper.vue'
 import PickItemDialog, { type PickItem } from './PickItemDialog.vue'
 import EditPickLocationsDialog from './EditPickLocationsDialog.vue'
+import RunPlannerDialog from './RunPlannerDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/lib/date'
 import {
@@ -148,6 +149,14 @@ const editLocationsLine = ref<StockOutLineDto | null>(null)
 function openEditLocations(line: StockOutLineDto) {
   editLocationsLine.value = line
   editLocationsVisible.value = true
+}
+
+const runPlannerVisible = ref(false)
+const runPlannerLine = ref<StockOutLineDto | null>(null)
+
+function openRunPlanner(line: StockOutLineDto) {
+  runPlannerLine.value = line
+  runPlannerVisible.value = true
 }
 
 const pickVisible = ref(false)
@@ -407,6 +416,15 @@ function cancel() {
                 outlined
                 @click="openEditLocations(line)"
               />
+              <Button
+                v-if="canEditLocations"
+                label="Run planner"
+                icon="pi pi-bolt"
+                size="small"
+                outlined
+                severity="secondary"
+                @click="openRunPlanner(line)"
+              />
               <StatusBadge
                 :value="pickingStrategyLabel[line.strategy]"
                 :severity="pickingStrategySeverity[line.strategy]"
@@ -453,6 +471,12 @@ function cancel() {
       v-model:visible="editLocationsVisible"
       :stock-out-id="id"
       :line="editLocationsLine"
+    />
+
+    <RunPlannerDialog
+      v-model:visible="runPlannerVisible"
+      :stock-out-id="id"
+      :line="runPlannerLine"
     />
 
     <PickItemDialog v-model:visible="pickVisible" :stock-out-id="id" :item="pickTarget" />

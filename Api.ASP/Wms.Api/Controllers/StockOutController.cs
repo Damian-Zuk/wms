@@ -68,6 +68,22 @@ public class StockOutController : ControllerBase
         return result.Match(Results.NoContent, CustomResults.Problem);
     }
 
+    [Authorize(Roles = "Admin,Manager")]
+    [HttpPost("{id:guid}/lines/{lineId:guid}/replan")]
+    public async Task<IResult> ReplanLine(
+        [FromRoute] Guid id,
+        [FromRoute] Guid lineId,
+        [FromBody] ReplanStockOutLineRequest request,
+        [FromServices] ICommandHandler<ReplanStockOutLineCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new ReplanStockOutLineCommand(id, lineId, request.Strategy),
+            cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
     [HttpPost("{id:guid}/start-picking")]
     public async Task<IResult> StartPicking(
         [FromRoute] Guid id,

@@ -3,6 +3,7 @@ import type { PagedResult } from '@/types/common'
 import type {
   CreateStockOutCommand,
   ModifyPickLocationsRequest,
+  ReplanLineRequest,
   StockOutDto,
   StockOutFilters,
 } from '@/types/stock-outs'
@@ -28,6 +29,12 @@ export const stockOutsApi = {
   ) =>
     http
       .put<void>(`/stock-outs/${stockOutId}/lines/${lineId}/pick-locations`, body)
+      .then(() => undefined),
+
+  // Re-run the picking planner for a single line with a chosen strategy (Draft only, Admin/Manager).
+  replanLine: (stockOutId: string, lineId: string, body: ReplanLineRequest) =>
+    http
+      .post<void>(`/stock-outs/${stockOutId}/lines/${lineId}/replan`, body)
       .then(() => undefined),
 
   // Pick a single item (whole or partial); removes stock immediately.

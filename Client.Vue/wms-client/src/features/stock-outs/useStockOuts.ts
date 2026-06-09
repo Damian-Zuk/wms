@@ -12,6 +12,7 @@ import type {
   PickAllocationInput,
   StockOutFilters,
 } from '@/types/stock-outs'
+import type { PickingStrategyType } from '@/types/enums'
 
 // Workflow statuses change over time, so never serve stale documents.
 
@@ -52,6 +53,20 @@ export function useModifyPickLocations(stockOutId: string) {
       stockOutsApi.modifyPickLocations(stockOutId, vars.lineId, {
         allocations: vars.allocations,
       }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.stockOuts.detail(stockOutId) })
+      void qc.invalidateQueries({ queryKey: qk.stockOuts.all })
+      // Re-planning moves reservations between sources; keep inventory views truthful.
+      void qc.invalidateQueries({ queryKey: qk.inventories.all })
+    },
+  })
+}
+
+export function useReplanLine(stockOutId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { lineId: string; strategy: PickingStrategyType }) =>
+      stockOutsApi.replanLine(stockOutId, vars.lineId, { strategy: vars.strategy }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: qk.stockOuts.detail(stockOutId) })
       void qc.invalidateQueries({ queryKey: qk.stockOuts.all })

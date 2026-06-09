@@ -57,3 +57,8 @@ export interface PickAllocationInput {
 export interface ModifyPickLocationsRequest {
   allocations: PickAllocationInput[]
 }
+
+/** POST /api/stock-outs/{id}/lines/{lineId}/replan body. */
+export interface ReplanLineRequest {
+  strategy: PickingStrategyType
+}

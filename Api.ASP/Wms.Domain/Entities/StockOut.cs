@@ -67,6 +67,28 @@ public class StockOut : Entity
     }
 
     /// <summary>
+    /// Replaces a line's pick allocations with a freshly computed plan and stamps the
+    /// line with the <paramref name="strategy"/> that produced it (Draft only). Unlike
+    /// <see cref="ModifyLineAllocations"/> this is the system re-running the planner, so
+    /// each item keeps the strategy on its allocation rather than being marked Manual.
+    /// Inventory reservations are moved by the handler — this only re-shapes the document.
+    /// </summary>
+    public Result ReplanLineAllocations(
+        Guid lineId,
+        PickingStrategyType strategy,
+        IReadOnlyList<PickAllocation> allocations)
+    {
+        if (Status != StockOutStatus.Draft)
+            return StockOutErrors.CannotModifyItems(Status);
+
+        var line = _lines.FirstOrDefault(l => l.Id == lineId);
+        if (line is null)
+            return StockOutErrors.LineNotFound(lineId);
+
+        return line.ReplacePlannedAllocations(strategy, allocations);
+    }
+
+    /// <summary>
     /// Worker has started walking the floor. Items remain reserved (the reservation
     /// was made by CreateStockOut); picking each item then removes stock
     /// incrementally. Pure status transition, no inventory mutation, no events.

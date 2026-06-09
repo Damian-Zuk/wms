@@ -80,6 +80,27 @@ public class StockOutLine : Entity
         return Result.Success();
     }
 
+    /// <summary>
+    /// Replaces the allocations with a freshly planned set (each item keeping the
+    /// strategy stamped on its allocation) and records the <paramref name="strategy"/>
+    /// the planner used on the line. Enforces the same sum-equals-requested invariant.
+    /// </summary>
+    public Result ReplacePlannedAllocations(
+        PickingStrategyType strategy,
+        IReadOnlyList<PickAllocation> allocations)
+    {
+        var validation = ValidateAllocations(allocations);
+        if (validation.IsFailure)
+            return validation;
+
+        Strategy = strategy;
+        _items.Clear();
+        foreach (var a in allocations)
+            _items.Add(new StockOutItem(a.LocationId, a.LotId, new Quantity(a.Quantity), a.Strategy));
+
+        return Result.Success();
+    }
+
     private Result ValidateAllocations(IReadOnlyList<PickAllocation> allocations)
     {
         if (allocations.Count == 0)

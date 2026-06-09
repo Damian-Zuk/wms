@@ -21,7 +21,7 @@ import {
   putawayStrategySeverity,
   stockInStatusSeverity,
 } from '@/lib/enum-display'
-import { useStockIn, useStockInTransition, type StockInAction } from './useStockIns'
+import { useReplanLine, useStockIn, useStockInTransition, type StockInAction } from './useStockIns'
 import type { StockInLineDto, StockInPlacementDto } from '@/types/stock-ins'
 import type { LocationRef, LotRef, ProductRef } from '@/types/refs'
 import type { PutawayStrategyType } from '@/types/enums'
@@ -35,6 +35,7 @@ const toast = useToast()
 const id = computed(() => route.params.id as string)
 const { data: stockIn, isLoading, isFetching, isError, error, refetch } = useStockIn(id)
 const transition = useStockInTransition()
+const replan = useReplanLine(id.value)
 
 const steps = [
   { value: 'Draft', label: 'Draft' },
@@ -148,6 +149,38 @@ const editLine = ref<StockInLineDto | null>(null)
 function openEdit(line: StockInLineDto) {
   editLine.value = line
   editVisible.value = true
+}
+
+// Re-run the putaway planner for one line, replacing its placements with a fresh plan.
+function confirmReplan(line: StockInLineDto) {
+  confirm.require({
+    header: 'Run planner',
+    message: `Re-run the putaway planner for ${line.product.sku}? This discards the current placements and recomputes them from available capacity.`,
+    icon: 'pi pi-bolt',
+    rejectProps: { label: 'Cancel', severity: 'secondary', text: true },
+    acceptProps: { label: 'Run planner' },
+    accept: () => {
+      replan.mutate(
+        { lineId: line.id },
+        {
+          onSuccess: () =>
+            toast.add({
+              severity: 'success',
+              summary: 'Planner re-run',
+              detail: 'Placements recomputed',
+              life: 3000,
+            }),
+          onError: (err) =>
+            toast.add({
+              severity: 'error',
+              summary: 'Run planner failed',
+              detail: err.message,
+              life: 6000,
+            }),
+        },
+      )
+    },
+  })
 }
 
 const putawayVisible = ref(false)
@@ -413,14 +446,23 @@ function cancel() {
                 · Quantity: {{ line.quantity }}
               </div>
             </div>
-            <Button
-              v-if="canEditPlacements"
-              label="Edit placements"
-              icon="pi pi-pencil"
-              size="small"
-              outlined
-              @click="openEdit(line)"
-            />
+            <div v-if="canEditPlacements" class="flex items-center gap-2">
+              <Button
+                label="Edit placements"
+                icon="pi pi-pencil"
+                size="small"
+                outlined
+                @click="openEdit(line)"
+              />
+              <Button
+                label="Run planner"
+                icon="pi pi-bolt"
+                size="small"
+                outlined
+                severity="secondary"
+                @click="confirmReplan(line)"
+              />
+            </div>
           </div>
 
           <DataTable :value="line.placements" data-key="id">

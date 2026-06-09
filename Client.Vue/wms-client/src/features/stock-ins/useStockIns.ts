@@ -57,6 +57,17 @@ export function useModifyLinePlacements(stockInId: string) {
   })
 }
 
+export function useReplanLine(stockInId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (vars: { lineId: string }) => stockInsApi.replanLine(stockInId, vars.lineId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.stockIns.detail(stockInId) })
+      void qc.invalidateQueries({ queryKey: qk.stockIns.all })
+    },
+  })
+}
+
 export type StockInAction = 'startPutaway' | 'complete' | 'cancel'
 
 export function useStockInTransition() {
