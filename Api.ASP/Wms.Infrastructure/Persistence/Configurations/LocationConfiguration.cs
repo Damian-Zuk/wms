@@ -21,7 +21,7 @@ public class LocationConfiguration : EntityConfiguration<Location>
                 .IsRequired();
 
             codeBuilder.HasIndex(c => c.Value)
-                .IsUnique();
+                .IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         builder.OwnsOne(l => l.Address, addressBuilder =>

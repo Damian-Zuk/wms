@@ -20,7 +20,7 @@ public class ProductConfiguration : EntityConfiguration<Product>
                 .IsRequired();
 
             skuBuilder.HasIndex(s => s.Value)
-                .IsUnique();
+                .IsUnique().HasFilter("\"IsDeleted\" = false");
         });
 
         builder.Property(p => p.Name)
