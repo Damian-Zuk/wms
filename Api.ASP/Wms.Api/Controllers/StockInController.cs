@@ -53,6 +53,21 @@ public class StockInController : ControllerBase
     }
 
     [Authorize(Roles = "Admin,Manager")]
+    [HttpPatch("{id:guid}/description")]
+    public async Task<IResult> UpdateDescription(
+        [FromRoute] Guid id,
+        [FromBody] UpdateStockInDescriptionRequest request,
+        [FromServices] ICommandHandler<UpdateStockInDescriptionCommand> handler,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.Handle(
+            new UpdateStockInDescriptionCommand(id, request.Description),
+            cancellationToken);
+
+        return result.Match(Results.NoContent, CustomResults.Problem);
+    }
+
+    [Authorize(Roles = "Admin,Manager")]
     [HttpPut("{id:guid}/lines/{lineId:guid}/placements")]
     public async Task<IResult> ModifyLinePlacements(
         [FromRoute] Guid id,

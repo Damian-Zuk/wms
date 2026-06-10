@@ -19,6 +19,9 @@ public class StockOutConfiguration : EntityConfiguration<StockOut>
         builder.Property(s => s.CancelledFrom)
             .HasConversion<int?>();
 
+        builder.Property(s => s.Description)
+            .HasMaxLength(500);
+
         builder.HasMany(s => s.Lines)
             .WithOne()
             .HasForeignKey("StockOutId")

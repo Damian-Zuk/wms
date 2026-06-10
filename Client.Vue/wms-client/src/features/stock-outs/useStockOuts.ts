@@ -46,6 +46,18 @@ export function useCreateStockOut() {
   })
 }
 
+export function useUpdateStockOutDescription(stockOutId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (description: string | null) =>
+      stockOutsApi.updateDescription(stockOutId, { description }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.stockOuts.detail(stockOutId) })
+      void qc.invalidateQueries({ queryKey: qk.stockOuts.all })
+    },
+  })
+}
+
 export function useModifyPickLocations(stockOutId: string) {
   const qc = useQueryClient()
   return useMutation({

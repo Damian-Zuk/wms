@@ -23,6 +23,7 @@ export interface StockInDto {
   id: string
   status: StockInStatus
   cancelledFrom: StockInStatus | null
+  description: string | null
   createdAt: string
   createdBy: string | null
   modifiedBy: string | null
@@ -45,6 +46,12 @@ export interface CreateStockInLine {
 /** POST /api/stock-ins body. */
 export interface CreateStockInCommand {
   lines: CreateStockInLine[]
+  description: string | null
+}
+
+/** PATCH /api/stock-ins/{id}/description body. */
+export interface UpdateStockInDescriptionRequest {
+  description: string | null
 }
 
 /** One placement when manually re-planning a line. */

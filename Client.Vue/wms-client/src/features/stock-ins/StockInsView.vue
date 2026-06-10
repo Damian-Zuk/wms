@@ -67,6 +67,13 @@ function openStockIn(stockIn: StockInDto) {
           {{ row.createdBy ?? '—' }}
         </template>
       </Column>
+      <Column header="Description">
+        <template #body="{ data: row }: { data: StockInDto }">
+          <span class="text-surface-600">
+            {{ row.description ? row.description.slice(0, 100) + (row.description.length > 100 ? '…' : '') : '—' }}
+          </span>
+        </template>
+      </Column>
       <Column header="Lines" style="width: 8rem">
         <template #body="{ data: row }: { data: StockInDto }">
           {{ row.lines.length }}

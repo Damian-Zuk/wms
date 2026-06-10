@@ -41,6 +41,7 @@ public sealed class ListStockOutsQueryHandler(IAppDbContext context)
                 s.Id,
                 s.Status,
                 s.CancelledFrom,
+                s.Description,
                 s.CreatedAt,
                 s.CreatedBy,
                 Lines = s.Lines.Select(l => new
@@ -75,6 +76,7 @@ public sealed class ListStockOutsQueryHandler(IAppDbContext context)
                 s.Id,
                 s.Status,
                 s.CancelledFrom,
+                s.Description,
                 s.CreatedAt,
                 s.CreatedBy,
                 s.Lines.Select(l => new StockOutLineDto(

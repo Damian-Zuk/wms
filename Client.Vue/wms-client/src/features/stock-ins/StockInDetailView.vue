@@ -6,6 +6,7 @@ import { useToast } from 'primevue/usetoast'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
+import Textarea from 'primevue/textarea'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -21,7 +22,7 @@ import {
   putawayStrategySeverity,
   stockInStatusSeverity,
 } from '@/lib/enum-display'
-import { useReplanLine, useStockIn, useStockInTransition, type StockInAction } from './useStockIns'
+import { useReplanLine, useStockIn, useStockInTransition, useUpdateStockInDescription, type StockInAction } from './useStockIns'
 import type { StockInLineDto, StockInPlacementDto } from '@/types/stock-ins'
 import type { LocationRef, LotRef, ProductRef } from '@/types/refs'
 import type { PutawayStrategyType } from '@/types/enums'
@@ -36,6 +37,23 @@ const id = computed(() => route.params.id as string)
 const { data: stockIn, isLoading, isFetching, isError, error, refetch } = useStockIn(id)
 const transition = useStockInTransition()
 const replan = useReplanLine(id.value)
+const updateDescription = useUpdateStockInDescription(id.value)
+
+const editingDescription = ref(false)
+const descriptionDraft = ref('')
+
+function openDescriptionEdit() {
+  descriptionDraft.value = stockIn.value?.description ?? ''
+  editingDescription.value = true
+}
+
+function saveDescription() {
+  updateDescription.mutate(descriptionDraft.value.trim() || null, {
+    onSuccess: () => { editingDescription.value = false },
+    onError: (err) =>
+      toast.add({ severity: 'error', summary: 'Save failed', detail: err.message, life: 6000 }),
+  })
+}
 
 const steps = [
   { value: 'Draft', label: 'Draft' },
@@ -327,6 +345,50 @@ function cancel() {
           Placements last edited by {{ stockIn.modifiedBy }}
           <span v-if="stockIn.modifiedAt"> on {{ formatDateTime(stockIn.modifiedAt) }}</span>
         </p>
+
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-surface-500">Description</span>
+            <Button
+              v-if="auth.canMutate && !editingDescription"
+              icon="pi pi-pencil"
+              size="small"
+              text
+              rounded
+              aria-label="Edit description"
+              @click="openDescriptionEdit"
+            />
+          </div>
+          <template v-if="editingDescription">
+            <Textarea
+              v-model="descriptionDraft"
+              :maxlength="500"
+              rows="2"
+              autoResize
+              fluid
+              class="text-sm"
+            />
+            <div class="flex gap-2">
+              <Button
+                label="Save"
+                size="small"
+                icon="pi pi-check"
+                :loading="updateDescription.isPending.value"
+                @click="saveDescription"
+              />
+              <Button
+                label="Cancel"
+                size="small"
+                severity="secondary"
+                text
+                @click="editingDescription = false"
+              />
+            </div>
+          </template>
+          <p v-else class="text-sm text-surface-700 whitespace-pre-wrap">
+            {{ stockIn.description ?? '—' }}
+          </p>
+        </div>
       </div>
 
       <!-- Putaway: location-ordered path for the worker's walk, with per-row progress. -->

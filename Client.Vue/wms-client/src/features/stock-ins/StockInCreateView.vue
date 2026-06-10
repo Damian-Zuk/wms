@@ -3,6 +3,7 @@ import { computed, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useToast } from 'primevue/usetoast'
 import InputNumber from 'primevue/inputnumber'
+import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -22,6 +23,7 @@ const toast = useToast()
 const create = useCreateStockIn()
 
 const submitting = computed(() => create.isPending.value)
+const description = ref<string>('')
 const rows = reactive<Row[]>([{ productId: '', lotId: null, quantity: 1 }])
 const rowErrors = ref<Record<number, string>>({})
 const serverError = ref<string | null>(null)
@@ -61,6 +63,7 @@ function onSubmit() {
       lotId: row.lotId,
       quantity: row.quantity as number,
     })),
+    description: description.value.trim() || null,
   }
 
   create.mutate(body, {
@@ -83,6 +86,11 @@ function onSubmit() {
     />
 
     <Message v-if="serverError" severity="error" :closable="false">{{ serverError }}</Message>
+
+    <div class="flex flex-col gap-1">
+      <label class="text-xs text-surface-500">Description (optional)</label>
+      <Textarea v-model="description" :maxlength="500" rows="2" autoResize fluid placeholder="Add a note…" />
+    </div>
 
     <div class="flex flex-col gap-3">
       <div

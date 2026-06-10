@@ -6,6 +6,7 @@ import type {
   ReplanLineRequest,
   StockOutDto,
   StockOutFilters,
+  UpdateStockOutDescriptionRequest,
 } from '@/types/stock-outs'
 
 export const stockOutsApi = {
@@ -20,6 +21,10 @@ export const stockOutsApi = {
 
   create: (body: CreateStockOutCommand) =>
     http.post<string>('/stock-outs', body).then((r) => r.data),
+
+  // Update the description (any status, Admin/Manager).
+  updateDescription: (id: string, body: UpdateStockOutDescriptionRequest) =>
+    http.patch<void>(`/stock-outs/${id}/description`, body).then(() => undefined),
 
   // Re-plan a single line's pick allocations (Draft only, Admin/Manager).
   modifyPickLocations: (

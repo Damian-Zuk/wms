@@ -27,6 +27,7 @@ public sealed record StockOutDto(
     Guid Id,
     StockOutStatus Status,
     StockOutStatus? CancelledFrom,
+    string? Description,
     DateTime CreatedAt,
     string? CreatedBy,
     IReadOnlyList<StockOutLineDto> Lines);
@@ -46,6 +47,7 @@ public sealed class GetStockOutQueryHandler(IAppDbContext context)
                 s.Id,
                 s.Status,
                 s.CancelledFrom,
+                s.Description,
                 s.CreatedAt,
                 s.CreatedBy,
                 Lines = s.Lines.Select(l => new
@@ -100,6 +102,7 @@ public sealed class GetStockOutQueryHandler(IAppDbContext context)
             stockOut.Id,
             stockOut.Status,
             stockOut.CancelledFrom,
+            stockOut.Description,
             stockOut.CreatedAt,
             stockOut.CreatedBy,
             lines);

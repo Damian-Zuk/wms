@@ -17,12 +17,16 @@ public class StockOut : Entity
 
     public StockOutStatus? CancelledFrom { get; private set; }
 
+    public string? Description { get; private set; }
+
     private StockOut() { }
 
     public StockOut(Guid id)
         : base(id)
     {
     }
+
+    public void SetDescription(string? description) => Description = description;
 
     /// <summary>
     /// Adds a requested line together with its planned pick allocations. The

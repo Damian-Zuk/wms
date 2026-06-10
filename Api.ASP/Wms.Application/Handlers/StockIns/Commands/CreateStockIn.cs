@@ -14,7 +14,7 @@ namespace Wms.Application.Handlers.StockIns.Commands;
 /// <summary>One requested receipt line. The system plans the locations — the caller does not choose them.</summary>
 public sealed record StockInLineRequest(Guid ProductId, Guid? LotId, int Quantity);
 
-public sealed record CreateStockInCommand(List<StockInLineRequest> Lines) : ICommand<Guid>;
+public sealed record CreateStockInCommand(List<StockInLineRequest> Lines, string? Description) : ICommand<Guid>;
 
 public sealed class CreateStockInValidator : AbstractValidator<CreateStockInCommand>
 {
@@ -26,6 +26,7 @@ public sealed class CreateStockInValidator : AbstractValidator<CreateStockInComm
             line.RuleFor(x => x.ProductId).NotEmpty().WithMessage("Product ID is required");
             line.RuleFor(x => x.Quantity).GreaterThan(0).WithMessage("Quantity must be greater than 0");
         });
+        RuleFor(x => x.Description).MaximumLength(500).When(x => x.Description != null);
     }
 }
 
@@ -82,6 +83,7 @@ public sealed class CreateStockInCommandHandler(IAppDbContext context, IPutawayP
         }
 
         var stockIn = new StockIn(Guid.NewGuid());
+        stockIn.SetDescription(request.Description);
         foreach (var (line, allocations) in plannedLines)
         {
             var result = stockIn.AddLineWithPlacements(

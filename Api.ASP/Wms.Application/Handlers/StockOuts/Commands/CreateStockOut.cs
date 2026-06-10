@@ -15,7 +15,7 @@ namespace Wms.Application.Handlers.StockOuts.Commands;
 
 public sealed record StockOutLineRequest(Guid ProductId, PickingStrategyType Strategy, int Quantity);
 
-public sealed record CreateStockOutCommand(List<StockOutLineRequest> Lines) : ICommand<Guid>;
+public sealed record CreateStockOutCommand(List<StockOutLineRequest> Lines, string? Description) : ICommand<Guid>;
 
 public sealed class CreateStockOutValidator : AbstractValidator<CreateStockOutCommand>
 {
@@ -28,6 +28,7 @@ public sealed class CreateStockOutValidator : AbstractValidator<CreateStockOutCo
             line.RuleFor(x => x.Strategy).IsInEnum().WithMessage("A valid picking strategy is required");
             line.RuleFor(x => x.Quantity).GreaterThan(0).WithMessage("Quantity must be greater than 0");
         });
+        RuleFor(x => x.Description).MaximumLength(500).When(x => x.Description != null);
     }
 }
 
@@ -106,6 +107,7 @@ public sealed class CreateStockOutCommandHandler(IAppDbContext context, IPicking
 
         // Apply: build the aggregate, then reserve every allocation's units.
         var stockOut = new StockOut(Guid.NewGuid());
+        stockOut.SetDescription(request.Description);
         foreach (var (line, allocations) in plannedLines)
         {
             var add = stockOut.AddLineWithAllocations(

@@ -24,6 +24,7 @@ export interface StockOutDto {
   id: string
   status: StockOutStatus
   cancelledFrom: StockOutStatus | null
+  description: string | null
   createdAt: string
   createdBy: string | null
   lines: StockOutLineDto[]
@@ -44,6 +45,12 @@ export interface CreateStockOutLine {
 /** POST /api/stock-outs body. */
 export interface CreateStockOutCommand {
   lines: CreateStockOutLine[]
+  description: string | null
+}
+
+/** PATCH /api/stock-outs/{id}/description body. */
+export interface UpdateStockOutDescriptionRequest {
+  description: string | null
 }
 
 /** One hand-picked allocation when manually re-planning a line's picks. */

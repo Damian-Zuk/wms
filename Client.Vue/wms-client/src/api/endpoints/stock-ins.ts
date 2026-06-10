@@ -5,6 +5,7 @@ import type {
   ModifyLinePlacementsRequest,
   StockInDto,
   StockInFilters,
+  UpdateStockInDescriptionRequest,
 } from '@/types/stock-ins'
 
 export const stockInsApi = {
@@ -19,6 +20,10 @@ export const stockInsApi = {
 
   create: (body: CreateStockInCommand) =>
     http.post<string>('/stock-ins', body).then((r) => r.data),
+
+  // Update the description (any status, Admin/Manager).
+  updateDescription: (id: string, body: UpdateStockInDescriptionRequest) =>
+    http.patch<void>(`/stock-ins/${id}/description`, body).then(() => undefined),
 
   // Re-plan a single line's placements (Draft only, Admin/Manager).
   modifyLinePlacements: (

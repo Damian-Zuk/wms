@@ -43,6 +43,18 @@ export function useCreateStockIn() {
   })
 }
 
+export function useUpdateStockInDescription(stockInId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (description: string | null) =>
+      stockInsApi.updateDescription(stockInId, { description }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.stockIns.detail(stockInId) })
+      void qc.invalidateQueries({ queryKey: qk.stockIns.all })
+    },
+  })
+}
+
 export function useModifyLinePlacements(stockInId: string) {
   const qc = useQueryClient()
   return useMutation({

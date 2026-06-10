@@ -19,6 +19,9 @@ public class StockInConfiguration : EntityConfiguration<StockIn>
         builder.Property(s => s.CancelledFrom)
             .HasConversion<int?>();
 
+        builder.Property(s => s.Description)
+            .HasMaxLength(500);
+
         builder.Property(s => s.ModifiedBy)
             .HasMaxLength(256);
 

@@ -6,6 +6,7 @@ import { useToast } from 'primevue/usetoast'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
+import Textarea from 'primevue/textarea'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import PageHeader from '@/components/common/PageHeader.vue'
@@ -22,7 +23,7 @@ import {
   pickingStrategySeverity,
   stockOutStatusSeverity,
 } from '@/lib/enum-display'
-import { useStockOut, useStockOutTransition, type StockOutAction } from './useStockOuts'
+import { useStockOut, useStockOutTransition, useUpdateStockOutDescription, type StockOutAction } from './useStockOuts'
 import type { StockOutItemDto, StockOutLineDto } from '@/types/stock-outs'
 import type { LocationRef, LotRef, ProductRef } from '@/types/refs'
 import type { PickingStrategyType } from '@/types/enums'
@@ -36,6 +37,23 @@ const toast = useToast()
 const id = computed(() => route.params.id as string)
 const { data: stockOut, isLoading, isFetching, isError, error, refetch } = useStockOut(id)
 const transition = useStockOutTransition()
+const updateDescription = useUpdateStockOutDescription(id.value)
+
+const editingDescription = ref(false)
+const descriptionDraft = ref('')
+
+function openDescriptionEdit() {
+  descriptionDraft.value = stockOut.value?.description ?? ''
+  editingDescription.value = true
+}
+
+function saveDescription() {
+  updateDescription.mutate(descriptionDraft.value.trim() || null, {
+    onSuccess: () => { editingDescription.value = false },
+    onError: (err) =>
+      toast.add({ severity: 'error', summary: 'Save failed', detail: err.message, life: 6000 }),
+  })
+}
 
 const steps = [
   { value: 'Draft', label: 'Draft' },
@@ -299,6 +317,50 @@ function cancel() {
         <p v-if="stockOut.status === 'Picking' && !allPicked" class="text-xs text-surface-400">
           Pick every item to enable completing this stock-out.
         </p>
+
+        <div class="flex flex-col gap-1">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-surface-500">Description</span>
+            <Button
+              v-if="auth.canMutate && !editingDescription"
+              icon="pi pi-pencil"
+              size="small"
+              text
+              rounded
+              aria-label="Edit description"
+              @click="openDescriptionEdit"
+            />
+          </div>
+          <template v-if="editingDescription">
+            <Textarea
+              v-model="descriptionDraft"
+              :maxlength="500"
+              rows="2"
+              autoResize
+              fluid
+              class="text-sm"
+            />
+            <div class="flex gap-2">
+              <Button
+                label="Save"
+                size="small"
+                icon="pi pi-check"
+                :loading="updateDescription.isPending.value"
+                @click="saveDescription"
+              />
+              <Button
+                label="Cancel"
+                size="small"
+                severity="secondary"
+                text
+                @click="editingDescription = false"
+              />
+            </div>
+          </template>
+          <p v-else class="text-sm text-surface-700 whitespace-pre-wrap">
+            {{ stockOut.description ?? '—' }}
+          </p>
+        </div>
       </div>
 
       <!-- Picking: location-ordered path for the worker's walk, with per-row progress. -->

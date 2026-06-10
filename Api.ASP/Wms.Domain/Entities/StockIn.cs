@@ -18,6 +18,8 @@ public class StockIn : Entity
     /// <summary>The phase the stock-in was in when cancelled (null unless cancelled).</summary>
     public StockInStatus? CancelledFrom { get; private set; }
 
+    public string? Description { get; private set; }
+
     /// <summary>Who last modified the putaway placements (null until a user edits them).</summary>
     public string? ModifiedBy { get; private set; }
     public DateTime? ModifiedAt { get; private set; }
@@ -28,6 +30,8 @@ public class StockIn : Entity
         : base(id)
     {
     }
+
+    public void SetDescription(string? description) => Description = description;
 
     /// <summary>
     /// Adds a requested line together with its planned placements. The placements
