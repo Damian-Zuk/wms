@@ -170,7 +170,7 @@ function onDelete() {
         <AvailabilityPanel :product-id="product.id" />
       </section>
 
-      <Button label="Check inventory" icon="pi pi-database" outlined fluid @click="checkInventory" />
+      <Button label="Check inventory" icon="pi pi-database" severity="secondary" outlined fluid @click="checkInventory" />
     </template>
   </section>
 </template>

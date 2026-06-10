@@ -15,7 +15,7 @@ import { useAuthStore } from '@/stores/auth'
 import { formatCurrency } from '@/lib/money'
 import { sortOrderOf, toSortFilters, type SortChange } from '@/lib/sort'
 import type { ProductDto, ProductFilters } from '@/types/products'
-import type { TemperatureZone } from '@/types/enums'
+import { temperatureZoneSeverity } from '@/lib/enum-display'
 
 const route = useRoute()
 const router = useRouter()
@@ -71,13 +71,6 @@ function onSort(change: SortChange) {
   filters.value = { ...filters.value, ...toSortFilters(change), page: 1 }
 }
 
-type TagSeverity = 'success' | 'info' | 'warn' | 'secondary' | 'danger' | 'contrast'
-
-const zoneSeverity: Record<TemperatureZone, TagSeverity> = {
-  Ambient: 'success',
-  Chilled: 'info',
-  Frozen: 'contrast',
-}
 </script>
 
 <template>
@@ -150,7 +143,7 @@ const zoneSeverity: Record<TemperatureZone, TagSeverity> = {
         <template #body="{ data: row }: { data: ProductDto }">
           <Tag
             :value="row.requiredTemperatureZone"
-            :severity="zoneSeverity[row.requiredTemperatureZone]"
+            :severity="temperatureZoneSeverity[row.requiredTemperatureZone]"
           />
         </template>
       </Column>

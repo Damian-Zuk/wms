@@ -514,6 +514,7 @@ function cancel() {
                 icon="pi pi-pencil"
                 size="small"
                 outlined
+                severity="secondary"
                 @click="openEdit(line)"
               />
               <Button
@@ -521,7 +522,6 @@ function cancel() {
                 icon="pi pi-bolt"
                 size="small"
                 outlined
-                severity="secondary"
                 @click="confirmReplan(line)"
               />
             </div>

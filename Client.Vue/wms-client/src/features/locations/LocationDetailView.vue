@@ -211,6 +211,7 @@ function onDelete() {
       icon="pi pi-database"
       outlined
       fluid
+      severity="secondary"
       @click="checkInventory"
     />
   </section>

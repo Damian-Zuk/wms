@@ -476,6 +476,7 @@ function cancel() {
                 icon="pi pi-pencil"
                 size="small"
                 outlined
+                severity="secondary"
                 @click="openEditLocations(line)"
               />
               <Button
@@ -484,7 +485,6 @@ function cancel() {
                 icon="pi pi-bolt"
                 size="small"
                 outlined
-                severity="secondary"
                 @click="openRunPlanner(line)"
               />
               <StatusBadge
