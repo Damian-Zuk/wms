@@ -39,6 +39,10 @@ public class ProductConfiguration : EntityConfiguration<Product>
             .HasPrecision(18, 3)
             .IsRequired();
 
+        builder.Property(p => p.UnitPrice)
+            .HasPrecision(18, 2)
+            .IsRequired();
+
         builder.Property(p => p.RequiredTemperatureZone)
             .HasConversion<int>()
             .IsRequired();

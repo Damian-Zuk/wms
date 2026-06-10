@@ -16,6 +16,7 @@ public sealed record CreateProductCommand(
     string Description,
     decimal Weight,
     decimal Volume,
+    decimal UnitPrice,
     TemperatureZone RequiredTemperatureZone = TemperatureZone.Ambient,
     IReadOnlyList<Guid>? PreferredLocationIds = null,
     Guid? CategoryId = null) : ICommand<Guid>;
@@ -28,6 +29,7 @@ public sealed class CreateProductValidator: AbstractValidator<CreateProductComma
         RuleFor(x => x.Name).NotEmpty().WithMessage("Name is required");
         RuleFor(x => x.Weight).GreaterThan(0).WithMessage("Weight must be greater than 0");
         RuleFor(x => x.Volume).GreaterThan(0).WithMessage("Volume must be greater than 0");
+        RuleFor(x => x.UnitPrice).GreaterThanOrEqualTo(0).WithMessage("Unit price cannot be negative");
         RuleFor(x => x.RequiredTemperatureZone)
             .IsInEnum().WithMessage("RequiredTemperatureZone must be a valid value");
         RuleForEach(x => x.PreferredLocationIds!)
@@ -83,6 +85,7 @@ public sealed class CreateProductCommandHandler(IAppDbContext context)
             request.Name,
             request.Weight,
             request.Volume,
+            request.UnitPrice,
             request.Description,
             request.RequiredTemperatureZone,
             request.CategoryId);

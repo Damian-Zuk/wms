@@ -9,6 +9,8 @@ export interface ProductDto {
   weight: number
   /** Volume of one unit in cubic decimetres (litres). */
   volume: number
+  /** Cost of one unit, in the warehouse's base currency. */
+  unitPrice: number
   requiredTemperatureZone: TemperatureZone
   preferredLocationIds: string[]
   categoryId: string | null
@@ -30,6 +32,7 @@ export interface ProductFormValues {
   description: string
   weight: number
   volume: number
+  unitPrice: number
   requiredTemperatureZone: TemperatureZone
   preferredLocationIds: string[]
   categoryId: string | null
@@ -44,6 +47,7 @@ export interface UpdateProductRequest {
   description: string
   weight: number
   volume: number
+  unitPrice: number
   requiredTemperatureZone: TemperatureZone
   preferredLocationIds: string[]
   categoryId: string | null

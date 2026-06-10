@@ -31,8 +31,9 @@ public class LocationCanAcceptTests
     private static Product BuildProduct(
         TemperatureZone zone = TemperatureZone.Ambient,
         decimal weight = 1m,
-        decimal volume = 1m) =>
-        new(new Sku($"SKU-{Guid.NewGuid():N}"[..10]), "p", weight, volume, "", zone);
+        decimal volume = 1m,
+        decimal unitPrice = 1m) =>
+        new(new Sku($"SKU-{Guid.NewGuid():N}"[..10]), "p", weight, volume, unitPrice, "", zone);
 
     private static Inventory BuildInventory(Guid productId, Guid locationId, Guid? lotId, int onHand)
     {

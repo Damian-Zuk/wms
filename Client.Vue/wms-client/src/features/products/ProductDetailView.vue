@@ -12,6 +12,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import AvailabilityPanel from '@/features/inventory/AvailabilityPanel.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useLocationOptions } from '@/features/locations/useLocations'
+import { formatCurrency } from '@/lib/money'
 import { temperatureZoneSeverity } from '@/lib/enum-display'
 import { useDeleteProduct, useProduct } from './useProducts'
 
@@ -122,6 +123,9 @@ function onDelete() {
 
       <dt class="text-surface-500">Volume</dt>
       <dd class="text-surface-900">{{ product.volume }} dm³</dd>
+
+      <dt class="text-surface-500">Unit Price</dt>
+      <dd class="text-surface-900 font-medium">{{ formatCurrency(product.unitPrice) }}</dd>
 
       <dt class="text-surface-500">Temperature Zone</dt>
       <dd>

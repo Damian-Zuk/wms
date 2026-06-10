@@ -12,6 +12,7 @@ import RefreshButton from '@/components/common/RefreshButton.vue'
 import CategorySelect from '@/components/pickers/CategorySelect.vue'
 import { useProducts } from './useProducts'
 import { useAuthStore } from '@/stores/auth'
+import { formatCurrency } from '@/lib/money'
 import { sortOrderOf, toSortFilters, type SortChange } from '@/lib/sort'
 import type { ProductDto, ProductFilters } from '@/types/products'
 import type { TemperatureZone } from '@/types/enums'
@@ -129,11 +130,20 @@ const zoneSeverity: Record<TemperatureZone, TagSeverity> = {
     >
       <Column field="sku" header="SKU" sortable sort-field="sku" style="width: 14rem" />
       <Column field="name" header="Name" sortable sort-field="name" />
-      <Column field="description" header="Description" />
       <Column header="Category" sortable sort-field="category" style="width: 13rem">
         <template #body="{ data: row }: { data: ProductDto }">
           <span v-if="row.categoryName" class="text-surface-700">{{ row.categoryName }}</span>
           <span v-else class="text-surface-400">—</span>
+        </template>
+      </Column>
+      <Column header="Weight" sortable sort-field="weight" style="width: 9rem">
+        <template #body="{ data: row }: { data: ProductDto }">
+          <span class="text-surface-700">{{ row.weight }} kg</span>
+        </template>
+      </Column>
+      <Column header="Volume" sortable sort-field="volume" style="width: 9rem">
+        <template #body="{ data: row }: { data: ProductDto }">
+          <span class="text-surface-700">{{ row.volume }} dm³</span>
         </template>
       </Column>
       <Column header="Temperature Zone" style="width: 12rem">
@@ -142,6 +152,11 @@ const zoneSeverity: Record<TemperatureZone, TagSeverity> = {
             :value="row.requiredTemperatureZone"
             :severity="zoneSeverity[row.requiredTemperatureZone]"
           />
+        </template>
+      </Column>
+      <Column header="Unit Price" sortable sort-field="unitPrice" style="width: 10rem">
+        <template #body="{ data: row }: { data: ProductDto }">
+          <span class="text-surface-900 font-medium">{{ formatCurrency(row.unitPrice) }}</span>
         </template>
       </Column>
     </DataTableWrapper>

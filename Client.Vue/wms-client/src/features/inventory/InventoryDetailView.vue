@@ -10,6 +10,7 @@ import AdjustInventoryDialog from './AdjustInventoryDialog.vue'
 import TransferStockDialog from './TransferStockDialog.vue'
 import { useInventory } from './useInventory'
 import { useAuthStore } from '@/stores/auth'
+import { formatCurrency } from '@/lib/money'
 
 const route = useRoute()
 const router = useRouter()
@@ -64,7 +65,7 @@ const transferVisible = ref(false)
     </Message>
 
     <template v-else-if="inventory">
-      <div class="grid grid-cols-3 gap-4">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="rounded-xl border border-surface-200 bg-white p-5 text-center">
           <div class="text-sm text-surface-500">On Hand</div>
           <div class="text-3xl font-semibold text-surface-900">{{ inventory.onHand }}</div>
@@ -76,6 +77,10 @@ const transferVisible = ref(false)
         <div class="rounded-xl border border-surface-200 bg-white p-5 text-center">
           <div class="text-sm text-surface-500">Available</div>
           <div class="text-3xl font-semibold text-primary-600">{{ inventory.available }}</div>
+        </div>
+        <div class="rounded-xl border border-surface-200 bg-white p-5 text-center">
+          <div class="text-sm text-surface-500">On-hand Value</div>
+          <div class="text-3xl font-semibold text-surface-900">{{ formatCurrency(inventory.onHandValue) }}</div>
         </div>
       </div>
 

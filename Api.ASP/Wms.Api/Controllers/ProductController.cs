@@ -76,6 +76,7 @@ public class ProductController : ControllerBase
                 request.Description,
                 request.Weight,
                 request.Volume,
+                request.UnitPrice,
                 request.RequiredTemperatureZone,
                 request.PreferredLocationIds,
                 request.CategoryId),
@@ -103,6 +104,7 @@ public sealed record UpdateProductRequest(
     string Description,
     decimal Weight,
     decimal Volume,
+    decimal UnitPrice,
     TemperatureZone RequiredTemperatureZone,
     IReadOnlyList<Guid>? PreferredLocationIds,
     Guid? CategoryId);

@@ -125,6 +125,8 @@ export interface InventoryStockSummary {
   distinctSkus: number
   totalWeightKg: number
   totalVolume: number
+  /** On-hand stock valued at unit cost, in the warehouse's base currency. */
+  totalValue: number
 }
 
 /** A slice of an on-hand composition breakdown. `key` is the enum name. */
@@ -143,12 +145,24 @@ export interface ExpiryBuckets {
   noExpiry: number
 }
 
+/** On-hand value (units × unit cost) bucketed by days-to-expiry. */
+export interface ExpiryValueBuckets {
+  expired: number
+  within7: number
+  within30: number
+  within60: number
+  within90: number
+  beyond90: number
+  noExpiry: number
+}
+
 export interface InventoryOverviewDto {
   summary: InventoryStockSummary
   byTemperatureZone: CompositionSlice[]
   byLocationType: CompositionSlice[]
   topProducts: TopProduct[]
   expiryBuckets: ExpiryBuckets
+  expiryValueBuckets: ExpiryValueBuckets
 }
 
 // --- Capacity ---

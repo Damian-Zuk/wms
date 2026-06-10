@@ -15,7 +15,9 @@ public sealed record AvailabilityDto(
     Guid? LotId,
     int OnHand,
     int Reserved,
-    int Available);
+    int Available,
+    decimal UnitPrice,
+    decimal OnHandValue);
 
 public sealed record GetAvailabilityQuery(
     Guid ProductId,
@@ -40,7 +42,7 @@ public sealed class GetAvailabilityQueryHandler(IAppDbContext context)
         var product = await context.Products
             .AsNoTracking()
             .Where(p => p.Id == query.ProductId)
-            .Select(p => new { Sku = p.Sku.Value, p.Name })
+            .Select(p => new { Sku = p.Sku.Value, p.Name, p.UnitPrice })
             .FirstOrDefaultAsync(cancellationToken);
 
         if (product is null)
@@ -76,6 +78,8 @@ public sealed class GetAvailabilityQueryHandler(IAppDbContext context)
             query.LotId,
             onHand,
             reserved,
-            onHand - reserved);
+            onHand - reserved,
+            product.UnitPrice,
+            onHand * product.UnitPrice);
     }
 }

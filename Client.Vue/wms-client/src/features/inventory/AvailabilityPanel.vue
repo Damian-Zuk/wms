@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
 import { useAvailability } from './useInventory'
+import { formatCurrency } from '@/lib/money'
 import type { AvailabilityParams } from '@/types/inventory'
 
 const props = defineProps<{
@@ -35,7 +36,7 @@ const hasProduct = computed(() => !!props.productId)
     {{ error?.message ?? 'Failed to load availability.' }}
   </Message>
 
-  <div v-else-if="data" class="grid grid-cols-3 gap-4">
+  <div v-else-if="data" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
     <div class="rounded-xl border border-surface-200 bg-white p-5 text-center">
       <div class="text-sm text-surface-500">On Hand</div>
       <div class="text-3xl font-semibold text-surface-900">{{ data.onHand }}</div>
@@ -47,6 +48,10 @@ const hasProduct = computed(() => !!props.productId)
     <div class="rounded-xl border border-surface-200 bg-white p-5 text-center">
       <div class="text-sm text-surface-500">Available</div>
       <div class="text-3xl font-semibold text-primary-600">{{ data.available }}</div>
+    </div>
+    <div class="rounded-xl border border-surface-200 bg-white p-5 text-center">
+      <div class="text-sm text-surface-500">On-hand Value</div>
+      <div class="text-3xl font-semibold text-surface-900">{{ formatCurrency(data.onHandValue) }}</div>
     </div>
   </div>
 </template>

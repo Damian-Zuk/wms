@@ -42,6 +42,7 @@ const schema = toTypedSchema(
     description: z.string(),
     weight: z.number({ message: 'Weight is required' }).positive('Weight must be greater than 0'),
     volume: z.number({ message: 'Volume is required' }).positive('Volume must be greater than 0'),
+    unitPrice: z.number({ message: 'Unit price is required' }).nonnegative('Unit price cannot be negative'),
     requiredTemperatureZone: z.enum(['Ambient', 'Chilled', 'Frozen']),
     preferredLocationIds: z.array(z.string()),
     categoryId: z.string().nullable(),
@@ -58,6 +59,7 @@ const [name, nameAttrs] = defineField('name')
 const [description, descriptionAttrs] = defineField('description')
 const [weight] = defineField('weight')
 const [volume] = defineField('volume')
+const [unitPrice] = defineField('unitPrice')
 const [requiredTemperatureZone] = defineField('requiredTemperatureZone')
 const [preferredLocationIds] = defineField('preferredLocationIds')
 const [categoryId] = defineField('categoryId')
@@ -150,6 +152,21 @@ const onSubmit = handleSubmit((values) => emit('submit', values as ProductFormVa
           :invalid="!!errors.volume"
         />
         <small v-if="errors.volume" class="text-red-500">{{ errors.volume }}</small>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="unitPrice" class="text-sm font-medium text-surface-700">Unit Price</label>
+        <InputNumber
+          input-id="unitPrice"
+          v-model="unitPrice"
+          mode="decimal"
+          :min="0"
+          :min-fraction-digits="2"
+          :max-fraction-digits="2"
+          :use-grouping="false"
+          fluid
+          :invalid="!!errors.unitPrice"
+        />
+        <small v-if="errors.unitPrice" class="text-red-500">{{ errors.unitPrice }}</small>
       </div>
     </div>
 

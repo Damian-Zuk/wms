@@ -15,7 +15,8 @@ public sealed record InventoryDto(
     DateOnly? ExpirationDate,
     int OnHand,
     int Reserved,
-    int Available);
+    int Available,
+    decimal OnHandValue);
 
 public sealed record GetInventoryQuery(Guid Id) : IQuery<InventoryDto>;
 
@@ -36,7 +37,11 @@ public sealed class GetInventoryQueryHandler(IAppDbContext context)
                 i.LocationId,
                 i.LotId,
                 OnHand = i.OnHand.Value,
-                Reserved = i.Reserved.Value
+                Reserved = i.Reserved.Value,
+                UnitPrice = context.Products
+                    .Where(p => p.Id == i.ProductId)
+                    .Select(p => p.UnitPrice)
+                    .FirstOrDefault()
             })
             .FirstOrDefaultAsync(cancellationToken);
 
@@ -61,6 +66,7 @@ public sealed class GetInventoryQueryHandler(IAppDbContext context)
             inventory.LotId.HasValue ? lots[inventory.LotId.Value].ExpirationDate : null,
             inventory.OnHand,
             inventory.Reserved,
-            inventory.OnHand - inventory.Reserved);
+            inventory.OnHand - inventory.Reserved,
+            inventory.OnHand * inventory.UnitPrice);
     }
 }

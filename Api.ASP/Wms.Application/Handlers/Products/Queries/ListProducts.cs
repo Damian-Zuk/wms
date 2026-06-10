@@ -17,6 +17,7 @@ public record ProductDto(
     string Description,
     decimal Weight,
     decimal Volume,
+    decimal UnitPrice,
     TemperatureZone RequiredTemperatureZone,
     IReadOnlyList<Guid> PreferredLocationIds,
     Guid? CategoryId,
@@ -73,6 +74,9 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
         {
             "sku" => productsQuery.OrderByDirection(p => p.Sku.Value, desc),
             "name" => productsQuery.OrderByDirection(p => p.Name, desc),
+            "weight" => productsQuery.OrderByDirection(p => p.Weight, desc),
+            "volume" => productsQuery.OrderByDirection(p => p.Volume, desc),
+            "unitprice" => productsQuery.OrderByDirection(p => p.UnitPrice, desc),
             "category" => productsQuery.OrderByDirection(
                 p => context.ProductCategories
                     .Where(c => c.Id == p.ProductCategoryId)
@@ -92,6 +96,7 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
                 p.Description,
                 p.Weight,
                 p.Volume,
+                p.UnitPrice,
                 p.RequiredTemperatureZone,
                 p.PreferredLocations
                     .OrderBy(pl => pl.Sequence)

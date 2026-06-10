@@ -112,7 +112,11 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
                 i.LocationId,
                 i.LotId,
                 OnHand = i.OnHand.Value,
-                Reserved = i.Reserved.Value
+                Reserved = i.Reserved.Value,
+                UnitPrice = context.Products
+                    .Where(p => p.Id == i.ProductId)
+                    .Select(p => p.UnitPrice)
+                    .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
 
@@ -132,7 +136,8 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
                 i.LotId.HasValue ? lots[i.LotId.Value].ExpirationDate : null,
                 i.OnHand,
                 i.Reserved,
-                i.OnHand - i.Reserved))
+                i.OnHand - i.Reserved,
+                i.OnHand * i.UnitPrice))
             .ToList();
 
         return new PagedResult<InventoryDto>(items, query.Page, query.PageSize, totalCount);

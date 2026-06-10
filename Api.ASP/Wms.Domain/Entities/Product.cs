@@ -21,6 +21,9 @@ public class Product : Entity
     /// <summary>Volume of one unit in cubic decimetres.</summary>
     public decimal Volume { get; private set; }
 
+    /// <summary>Cost of one unit, in the warehouse's base currency.</summary>
+    public decimal UnitPrice { get; private set; }
+
     public IReadOnlyCollection<ProductPreferredLocation> PreferredLocations => _preferredLocations;
 
     private Product() { }
@@ -30,6 +33,7 @@ public class Product : Entity
         string name,
         decimal weight,
         decimal volume,
+        decimal unitPrice,
         string description = "",
         TemperatureZone requiredTemperatureZone = TemperatureZone.Ambient,
         Guid? categoryId = null)
@@ -39,6 +43,7 @@ public class Product : Entity
         Sku = sku;
         Weight = weight;
         Volume = volume;
+        UnitPrice = unitPrice;
         Description = description;
         RequiredTemperatureZone = requiredTemperatureZone;
         ProductCategoryId = categoryId;
@@ -51,12 +56,14 @@ public class Product : Entity
         string description,
         decimal weight,
         decimal volume,
+        decimal unitPrice,
         TemperatureZone requiredTemperatureZone)
     {
         Name = name;
         Description = description;
         Weight = weight;
         Volume = volume;
+        UnitPrice = unitPrice;
         RequiredTemperatureZone = requiredTemperatureZone;
     }
 

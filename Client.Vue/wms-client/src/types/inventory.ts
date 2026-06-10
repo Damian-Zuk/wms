@@ -9,6 +9,8 @@ export interface InventoryDto {
   onHand: number
   reserved: number
   available: number
+  /** On-hand units valued at the product's unit cost. */
+  onHandValue: number
 }
 
 export interface InventoryFilters {
@@ -44,4 +46,8 @@ export interface AvailabilityDto {
   onHand: number
   reserved: number
   available: number
+  /** Cost of one unit, in the warehouse's base currency. */
+  unitPrice: number
+  /** On-hand units valued at the unit cost. */
+  onHandValue: number
 }

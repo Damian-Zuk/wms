@@ -6,6 +6,7 @@ import RefreshButton from '@/components/common/RefreshButton.vue'
 import StatCard from './components/StatCard.vue'
 import { useInventoryOverview } from './useDashboard'
 import { donutOptions, horizontalBarOptions } from './dashboard-helpers'
+import { formatCurrency, formatCurrencyCompact } from '@/lib/money'
 
 const { data, isLoading, isFetching, isError, refetch } = useInventoryOverview()
 
@@ -14,11 +15,13 @@ const byZone = computed(() => data.value?.byTemperatureZone ?? [])
 const byType = computed(() => data.value?.byLocationType ?? [])
 const top = computed(() => data.value?.topProducts ?? [])
 const expiry = computed(() => data.value?.expiryBuckets)
+const expiryValue = computed(() => data.value?.expiryValueBuckets)
 
 const cards = computed(() => {
   const s = summary.value
   if (!s) return []
   return [
+    { title: 'Inventory value', value: formatCurrencyCompact(s.totalValue), icon: 'pi pi-wallet', tone: 'blue' as const },
     { title: 'On-hand units', value: s.onHandUnits, icon: 'pi pi-database', tone: 'default' as const },
     { title: 'Available units', value: s.availableUnits, icon: 'pi pi-check-circle', tone: 'green' as const },
     { title: 'Reserved units', value: s.reservedUnits, icon: 'pi pi-lock', tone: 'amber' as const },
@@ -69,6 +72,13 @@ const expiryOpts = computed<ApexOptions>(() => ({
 }))
 
 const expiringSoon = computed(() => (expiry.value ? expiry.value.within7 + expiry.value.within30 : 0))
+
+// Value at risk — on-hand stock value bucketed by time to expiry.
+const expiredValue = computed(() => expiryValue.value?.expired ?? 0)
+const expiringSoonValue = computed(() =>
+  expiryValue.value ? expiryValue.value.within7 + expiryValue.value.within30 : 0,
+)
+const noExpiryValue = computed(() => expiryValue.value?.noExpiry ?? 0)
 </script>
 
 <template>
@@ -81,13 +91,13 @@ const expiringSoon = computed(() => (expiry.value ? expiry.value.within7 + expir
       Failed to load inventory data.
     </div>
 
-    <div v-else-if="isLoading" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-      <div v-for="n in 4" :key="n" class="h-28 rounded-xl border border-surface-200 bg-surface-100 animate-pulse" />
+    <div v-else-if="isLoading" class="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div v-for="n in 5" :key="n" class="h-28 rounded-xl border border-surface-200 bg-surface-100 animate-pulse" />
     </div>
 
     <template v-else>
       <!-- KPIs -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
           v-for="card in cards"
           :key="card.title"
@@ -137,18 +147,27 @@ const expiringSoon = computed(() => (expiry.value ? expiry.value.within7 + expir
         </div>
 
         <div class="rounded-xl border border-surface-200 bg-white p-4 flex flex-col gap-3">
-          <h2 class="text-base font-semibold text-surface-900">Expiry risk</h2>
+          <h2 class="text-base font-semibold text-surface-900">Value at risk</h2>
           <div class="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 text-red-700 p-3">
-            <span class="text-sm">Expired on hand</span>
-            <span class="text-xl font-semibold">{{ (expiry?.expired ?? 0).toLocaleString() }}</span>
+            <span class="flex flex-col">
+              <span class="text-sm">Expired on hand</span>
+              <span class="text-xs opacity-75">{{ (expiry?.expired ?? 0).toLocaleString() }} units</span>
+            </span>
+            <span class="text-xl font-semibold">{{ formatCurrency(expiredValue) }}</span>
           </div>
           <div class="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 text-amber-700 p-3">
-            <span class="text-sm">Expiring ≤ 30 days</span>
-            <span class="text-xl font-semibold">{{ expiringSoon.toLocaleString() }}</span>
+            <span class="flex flex-col">
+              <span class="text-sm">Expiring ≤ 30 days</span>
+              <span class="text-xs opacity-75">{{ expiringSoon.toLocaleString() }} units</span>
+            </span>
+            <span class="text-xl font-semibold">{{ formatCurrency(expiringSoonValue) }}</span>
           </div>
           <div class="flex items-center justify-between rounded-lg border border-surface-200 bg-surface-50 text-surface-600 p-3">
-            <span class="text-sm">No expiry date</span>
-            <span class="text-xl font-semibold">{{ (expiry?.noExpiry ?? 0).toLocaleString() }}</span>
+            <span class="flex flex-col">
+              <span class="text-sm">No expiry date</span>
+              <span class="text-xs opacity-75">{{ (expiry?.noExpiry ?? 0).toLocaleString() }} units</span>
+            </span>
+            <span class="text-xl font-semibold">{{ formatCurrency(noExpiryValue) }}</span>
           </div>
         </div>
       </div>

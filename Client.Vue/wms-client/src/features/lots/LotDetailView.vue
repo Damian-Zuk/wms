@@ -116,7 +116,14 @@ function onDelete() {
       <dd class="text-surface-900 font-medium">{{ lot.number }}</dd>
 
       <dt class="text-surface-500">Product</dt>
-      <dd class="text-surface-900">{{ productLabel }}</dd>
+      <dd class="text-surface-900">
+        <RouterLink
+          :to="{ name: 'product-detail', params: { id: lot.productId } }"
+          class="text-primary-600 hover:underline"
+        >
+          {{ productLabel }}
+        </RouterLink>
+      </dd>
 
       <dt class="text-surface-500">Manufacture Date</dt>
       <dd class="text-surface-900">{{ formatDate(lot.manufactureDate) }}</dd>

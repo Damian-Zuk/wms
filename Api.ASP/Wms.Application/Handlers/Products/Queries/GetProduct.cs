@@ -23,6 +23,7 @@ public sealed class GetProductQueryHandler(IAppDbContext context)
                 p.Description,
                 p.Weight,
                 p.Volume,
+                p.UnitPrice,
                 p.RequiredTemperatureZone,
                 p.PreferredLocations
                     .OrderBy(pl => pl.Sequence)

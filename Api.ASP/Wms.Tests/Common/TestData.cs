@@ -19,8 +19,9 @@ public static class TestData
         string name = "Widget",
         TemperatureZone temperatureZone = TemperatureZone.Ambient,
         decimal weight = 1m,
-        decimal volume = 1m) =>
-        new(new Sku(sku), name, weight, volume, "test product", temperatureZone);
+        decimal volume = 1m,
+        decimal unitPrice = 1m) =>
+        new(new Sku(sku), name, weight, volume, unitPrice, "test product", temperatureZone);
 
     public static Location Location(
         string code = "LOC-1",
