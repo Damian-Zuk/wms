@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Models;
-using Wms.Application.Extensions;
+using Wms.Application.Common.Extensions;
 using Wms.Application.Handlers.ProductCategories;
 using Wms.Shared.Common;
 

@@ -1,6 +1,6 @@
 using System.Linq.Expressions;
 
-namespace Wms.Application.Extensions;
+namespace Wms.Application.Common.Extensions;
 
 public static class QueryableSortExtensions
 {

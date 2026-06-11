@@ -3,7 +3,7 @@ using Wms.Application.Common.Data;
 using Wms.Domain.Errors;
 using Wms.Shared.Common;
 
-namespace Wms.Application.Extensions;
+namespace Wms.Application.Common.Extensions;
 
 public static class AppDbContextExtensions
 {

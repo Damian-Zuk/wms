@@ -2,7 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
-using Wms.Application.Extensions;
+using Wms.Application.Common.Extensions;
 using Wms.Application.Picking;
 using Wms.Domain.Enums;
 using Wms.Domain.Errors;
