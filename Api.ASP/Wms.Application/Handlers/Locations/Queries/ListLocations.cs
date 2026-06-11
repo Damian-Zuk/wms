@@ -48,7 +48,7 @@ public sealed class ListLocationsQueryHandler(IAppDbContext context)
             var term = query.Search.Trim().ToLower();
             locationsQuery = locationsQuery.Where(l =>
                 l.Code.Value.ToLower().Contains(term) ||
-                l.Address.ToString().ToLower().Contains(term));
+                (l.Address.Zone + "-" + l.Address.Aisle + "-" + l.Address.Rack + "-" + l.Address.Shelf + "-" + l.Address.Bin).ToLower().Contains(term));
         }
 
         if (!string.IsNullOrWhiteSpace(query.Zone))
