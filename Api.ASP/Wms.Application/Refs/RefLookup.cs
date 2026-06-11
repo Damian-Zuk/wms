@@ -22,7 +22,7 @@ public static class RefLookup
         return await context.Products
             .AsNoTracking()
             .Where(p => ids.Contains(p.Id))
-            .Select(p => new ProductRef(p.Id, p.Sku.Value, p.Name))
+            .Select(p => new ProductRef(p.Id, p.Sku.Value, p.Name, p.UnitPrice))
             .ToDictionaryAsync(r => r.Id, cancellationToken);
     }
 

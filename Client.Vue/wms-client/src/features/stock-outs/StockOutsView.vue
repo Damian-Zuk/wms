@@ -9,6 +9,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useStockOuts } from './useStockOuts'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/lib/date'
+import { formatCurrency } from '@/lib/money'
 import { stockOutStatusSeverity } from '@/lib/enum-display'
 import type { StockOutDto, StockOutFilters } from '@/types/stock-outs'
 
@@ -74,6 +75,11 @@ function openStockOut(stockOut: StockOutDto) {
       <Column header="Lines" style="width: 8rem">
         <template #body="{ data: row }: { data: StockOutDto }">
           {{ row.lines.length }}
+        </template>
+      </Column>
+      <Column header="Value" style="width: 10rem">
+        <template #body="{ data: row }: { data: StockOutDto }">
+          {{ formatCurrency(row.lines.reduce((sum, l) => sum + l.quantity * l.product.unitPrice, 0)) }}
         </template>
       </Column>
       <Column header="Status" style="width: 11rem">

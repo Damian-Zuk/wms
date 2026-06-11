@@ -9,6 +9,7 @@ import ProductSelect from '@/components/pickers/ProductSelect.vue'
 import LocationSelect from '@/components/pickers/LocationSelect.vue'
 import { useStockMovements } from './useStockMovements'
 import { formatDateTime } from '@/lib/date'
+import { formatCurrency } from '@/lib/money'
 import {
   stockMovementSourceLabel,
   stockMovementSourceSeverity,
@@ -135,6 +136,11 @@ function setPageSize(pageSize: number) {
       <Column header="Lot" style="width: 10rem">
         <template #body="{ data: row }: { data: StockMovementDto }">
           {{ row.lot?.number ?? '—' }}
+        </template>
+      </Column>
+      <Column header="Value" style="width: 10rem">
+        <template #body="{ data: row }: { data: StockMovementDto }">
+          {{ formatCurrency(row.quantityChange * row.product.unitPrice) }}
         </template>
       </Column>
       <Column header="Qty Change" style="width: 9rem">

@@ -9,6 +9,7 @@ import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useStockIns } from './useStockIns'
 import { useAuthStore } from '@/stores/auth'
 import { formatDateTime } from '@/lib/date'
+import { formatCurrency } from '@/lib/money'
 import { stockInStatusSeverity } from '@/lib/enum-display'
 import type { StockInDto, StockInFilters } from '@/types/stock-ins'
 
@@ -74,6 +75,11 @@ function openStockIn(stockIn: StockInDto) {
       <Column header="Lines" style="width: 8rem">
         <template #body="{ data: row }: { data: StockInDto }">
           {{ row.lines.length }}
+        </template>
+      </Column>
+      <Column header="Value" style="width: 10rem">
+        <template #body="{ data: row }: { data: StockInDto }">
+          {{ formatCurrency(row.lines.reduce((sum, l) => sum + l.quantity * l.product.unitPrice, 0)) }}
         </template>
       </Column>
       <Column header="Status" style="width: 11rem">

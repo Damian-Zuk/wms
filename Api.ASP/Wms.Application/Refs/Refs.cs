@@ -1,6 +1,6 @@
 namespace Wms.Application.Refs;
 
-public sealed record ProductRef(Guid Id, string Sku, string Name);
+public sealed record ProductRef(Guid Id, string Sku, string Name, decimal UnitPrice);
 
 public sealed record LocationRef(Guid Id, string Code, string Address);
 
