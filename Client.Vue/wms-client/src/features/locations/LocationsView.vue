@@ -16,7 +16,7 @@ import { useAuthStore } from '@/stores/auth'
 import { locationTypeSeverity, temperatureZoneSeverity } from '@/lib/enum-display'
 import { sortOrderOf, toSortFilters, type SortChange } from '@/lib/sort'
 import type { LocationDto, LocationFilters } from '@/types/locations'
-import type { LocationType } from '@/types/enums'
+import type { LocationType, TemperatureZone } from '@/types/enums'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -30,6 +30,12 @@ const typeOptions: { label: string; value: LocationType }[] = [
   { label: 'Returns', value: 'Returns' },
 ]
 
+const temperatureZoneOptions: { label: string; value: TemperatureZone }[] = [
+  { label: 'Ambient', value: 'Ambient' },
+  { label: 'Chilled', value: 'Chilled' },
+  { label: 'Frozen', value: 'Frozen' },
+]
+
 const { data, isFetching, refetch } = useLocations(filters)
 
 function applySearch() {
@@ -38,6 +44,10 @@ function applySearch() {
 
 function onTypeChange(value: LocationType | null) {
   filters.value = { ...filters.value, type: value ?? undefined, page: 1 }
+}
+
+function onTempZoneChange(value: TemperatureZone | null) {
+  filters.value = { ...filters.value, temperatureZone: value ?? undefined, page: 1 }
 }
 
 function setPage(page: number) {
@@ -73,6 +83,14 @@ function openLocation(location: LocationDto) {
           placeholder="All types"
           show-clear
           @update:model-value="onTypeChange"
+        />
+        <Select
+          :options="temperatureZoneOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="All temp. zones"
+          show-clear
+          @update:model-value="onTempZoneChange"
         />
         <IconField>
           <InputIcon class="pi pi-search" />

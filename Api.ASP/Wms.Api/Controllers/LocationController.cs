@@ -19,6 +19,7 @@ public class LocationController : ControllerBase
         [FromQuery] string? search,
         [FromQuery] string? zone,
         [FromQuery] LocationType? type,
+        [FromQuery] TemperatureZone? temperatureZone,
         [FromQuery] string? sortBy,
         [FromQuery] bool sortDescending,
         [FromQuery] int page,
@@ -34,7 +35,8 @@ public class LocationController : ControllerBase
                 sortBy,
                 sortDescending,
                 page == 0 ? 1 : page,
-                pageSize == 0 ? 20 : pageSize),
+                pageSize == 0 ? 20 : pageSize,
+                temperatureZone),
             cancellationToken);
         
         return result.Match(Results.Ok, CustomResults.Problem);

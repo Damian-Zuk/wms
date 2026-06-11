@@ -7,6 +7,8 @@ export interface LotDto {
   expirationDate: string | null
   isExpired: boolean
   isExpiringSoon: boolean
+  /** Total units on hand across all locations for this lot. */
+  onHand: number
 }
 
 export interface LotFilters {

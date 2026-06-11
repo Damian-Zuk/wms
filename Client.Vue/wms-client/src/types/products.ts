@@ -12,6 +12,8 @@ export interface ProductDto {
   /** Cost of one unit, in the warehouse's base currency. */
   unitPrice: number
   requiredTemperatureZone: TemperatureZone
+  /** Total units on hand across all locations. */
+  onHand: number
   preferredLocationIds: string[]
   categoryId: string | null
   categoryName: string | null
@@ -20,6 +22,7 @@ export interface ProductDto {
 export interface ProductFilters {
   search?: string
   categoryId?: string
+  temperatureZone?: TemperatureZone
   sortBy?: string
   sortDescending?: boolean
   page: number

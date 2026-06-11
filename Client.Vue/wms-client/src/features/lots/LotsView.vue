@@ -129,7 +129,7 @@ function openLot(lot: LotDto) {
           {{ productSku(row.productId) }}
         </template>
       </Column>
-      <Column header="Category" style="width: 13rem">
+      <Column header="Category" sortable sort-field="category" style="width: 13rem">
         <template #body="{ data: row }: { data: LotDto }">
           {{ productCategory(row.productId) }}
         </template>
@@ -142,6 +142,11 @@ function openLot(lot: LotDto) {
       <Column header="Expires" sortable sort-field="expirationDate" style="width: 12rem">
         <template #body="{ data: row }: { data: LotDto }">
           {{ formatDate(row.expirationDate) }}
+        </template>
+      </Column>
+      <Column header="On Hand" sortable sort-field="onhand" style="width: 9rem">
+        <template #body="{ data: row }: { data: LotDto }">
+          <span class="text-surface-700">{{ row.onHand }}</span>
         </template>
       </Column>
       <Column header="Status" style="width: 11rem">

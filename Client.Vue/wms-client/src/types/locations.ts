@@ -38,6 +38,7 @@ export interface LocationFilters {
   search?: string
   zone?: string
   type?: LocationType
+  temperatureZone?: TemperatureZone
   sortBy?: string
   sortDescending?: boolean
   page: number

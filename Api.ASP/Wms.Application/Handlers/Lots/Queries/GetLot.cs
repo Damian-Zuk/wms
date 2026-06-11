@@ -14,7 +14,8 @@ public sealed record LotDto(
     DateOnly? ManufactureDate,
     DateOnly? ExpirationDate,
     bool IsExpired,
-    bool IsExpiringSoon);
+    bool IsExpiringSoon,
+    int OnHand);
 
 public sealed record GetLotQuery(Guid Id) : IQuery<LotDto>;
 
@@ -36,7 +37,8 @@ public sealed class GetLotQueryHandler(IAppDbContext context)
                 l.ManufactureDate,
                 l.ExpirationDate,
                 l.ExpirationDate != null && l.ExpirationDate.Value < today,
-                l.ExpirationDate != null && l.ExpirationDate.Value <= soonThreshold))
+                l.ExpirationDate != null && l.ExpirationDate.Value <= soonThreshold,
+                context.Inventories.Where(i => i.LotId == l.Id).Sum(i => i.OnHand.Value)))
             .FirstOrDefaultAsync(cancellationToken);
 
         return lot is null ? LotErrors.NotFound(query.Id) : lot;

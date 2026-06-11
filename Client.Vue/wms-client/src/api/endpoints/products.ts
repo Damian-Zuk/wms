@@ -14,6 +14,7 @@ export const productsApi = {
         params: {
           search: filters.search || undefined,
           categoryId: filters.categoryId || undefined,
+          temperatureZone: filters.temperatureZone || undefined,
           sortBy: filters.sortBy || undefined,
           sortDescending: filters.sortDescending || undefined,
           page: filters.page,

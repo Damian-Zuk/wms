@@ -70,6 +70,18 @@ public sealed class ListLotsQueryHandler(IAppDbContext context)
                     .Select(p => p.Sku.Value)
                     .FirstOrDefault(),
                 desc),
+            "category" => lotsQuery.OrderByDirection(
+                l => context.Products
+                    .Where(p => p.Id == l.ProductId)
+                    .Select(p => context.ProductCategories
+                        .Where(c => c.Id == p.ProductCategoryId)
+                        .Select(c => c.Name)
+                        .FirstOrDefault())
+                    .FirstOrDefault(),
+                desc),
+            "onhand" => lotsQuery.OrderByDirection(
+                l => context.Inventories.Where(i => i.LotId == l.Id).Sum(i => i.OnHand.Value),
+                desc),
             "manufacturedate" => lotsQuery.OrderByDirection(l => l.ManufactureDate, desc),
             "expirationdate" => lotsQuery.OrderByDirection(l => l.ExpirationDate, desc),
             _ => lotsQuery.OrderBy(l => l.Number.Value),
@@ -85,7 +97,8 @@ public sealed class ListLotsQueryHandler(IAppDbContext context)
                 l.ManufactureDate,
                 l.ExpirationDate,
                 l.ExpirationDate != null && l.ExpirationDate.Value < today,
-                l.ExpirationDate != null && l.ExpirationDate.Value <= soonThreshold))
+                l.ExpirationDate != null && l.ExpirationDate.Value <= soonThreshold,
+                context.Inventories.Where(i => i.LotId == l.Id).Sum(i => i.OnHand.Value)))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<LotDto>(items, query.Page, query.PageSize, totalCount);

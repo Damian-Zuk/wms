@@ -25,6 +25,7 @@ public sealed class GetProductQueryHandler(IAppDbContext context)
                 p.Volume,
                 p.UnitPrice,
                 p.RequiredTemperatureZone,
+                context.Inventories.Where(i => i.ProductId == p.Id).Sum(i => i.OnHand.Value),
                 p.PreferredLocations
                     .OrderBy(pl => pl.Sequence)
                     .Select(pl => pl.LocationId)

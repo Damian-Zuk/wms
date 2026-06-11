@@ -22,6 +22,7 @@ public class ProductController : ControllerBase
         [FromQuery] int page,
         [FromQuery] int pageSize,
         [FromQuery] Guid? categoryId,
+        [FromQuery] TemperatureZone? temperatureZone,
         [FromServices] IQueryHandler<ListProductsQuery, PagedResult<ProductDto>> handler,
         CancellationToken cancellationToken)
     {
@@ -32,7 +33,8 @@ public class ProductController : ControllerBase
                 sortDescending,
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize,
-                categoryId),
+                categoryId,
+                temperatureZone),
             cancellationToken);
 
         return result.Match(Results.Ok, CustomResults.Problem);

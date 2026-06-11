@@ -7,6 +7,7 @@ import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
+import Select from 'primevue/select'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
 import RefreshButton from '@/components/common/RefreshButton.vue'
 import CategorySelect from '@/components/pickers/CategorySelect.vue'
@@ -15,11 +16,18 @@ import { useAuthStore } from '@/stores/auth'
 import { formatCurrency } from '@/lib/money'
 import { sortOrderOf, toSortFilters, type SortChange } from '@/lib/sort'
 import type { ProductDto, ProductFilters } from '@/types/products'
+import type { TemperatureZone } from '@/types/enums'
 import { temperatureZoneSeverity } from '@/lib/enum-display'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+
+const temperatureZoneOptions: { label: string; value: TemperatureZone }[] = [
+  { label: 'Ambient', value: 'Ambient' },
+  { label: 'Chilled', value: 'Chilled' },
+  { label: 'Frozen', value: 'Frozen' },
+]
 
 // Seed the category filter from the query string so "View in catalog" links
 // from the category tree / product detail land pre-filtered.
@@ -59,6 +67,10 @@ function onCategoryChange(value: string | null) {
   filters.value = { ...filters.value, categoryId: value ?? undefined, page: 1 }
 }
 
+function onTempZoneChange(value: TemperatureZone | null) {
+  filters.value = { ...filters.value, temperatureZone: value ?? undefined, page: 1 }
+}
+
 function setPage(page: number) {
   filters.value = { ...filters.value, page }
 }
@@ -90,6 +102,14 @@ function onSort(change: SortChange) {
             @update:model-value="onCategoryChange"
           />
         </div>
+        <Select
+          :options="temperatureZoneOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="All temp. zones"
+          show-clear
+          @update:model-value="onTempZoneChange"
+        />
         <IconField>
           <InputIcon class="pi pi-search" />
           <InputText
@@ -139,12 +159,17 @@ function onSort(change: SortChange) {
           <span class="text-surface-700">{{ row.volume }} dm³</span>
         </template>
       </Column>
-      <Column header="Temperature Zone" style="width: 12rem">
+      <Column header="Temp. Zone" sortable sort-field="temperatureZone" style="width: 11rem">
         <template #body="{ data: row }: { data: ProductDto }">
           <Tag
             :value="row.requiredTemperatureZone"
             :severity="temperatureZoneSeverity[row.requiredTemperatureZone]"
           />
+        </template>
+      </Column>
+      <Column header="On Hand" sortable sort-field="onhand" style="width: 9rem">
+        <template #body="{ data: row }: { data: ProductDto }">
+          <span class="text-surface-700">{{ row.onHand }}</span>
         </template>
       </Column>
       <Column header="Unit Price" sortable sort-field="unitPrice" style="width: 10rem">

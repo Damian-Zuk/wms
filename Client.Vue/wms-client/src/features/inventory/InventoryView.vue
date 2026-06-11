@@ -127,15 +127,6 @@ function openTransfer(row: InventoryDto) {
           @update:model-value="onLocationChange"
         />
       </div>
-      <div class="w-72">
-        <label class="text-sm font-medium text-surface-700">Product</label>
-        <ProductSelect
-          v-model="productFilter"
-          show-clear
-          placeholder="All products"
-          @update:model-value="onProductChange"
-        />
-      </div>
       <div class="w-56">
         <label class="text-sm font-medium text-surface-700">Category</label>
         <CategorySelect
@@ -143,6 +134,15 @@ function openTransfer(row: InventoryDto) {
           show-clear
           placeholder="All categories"
           @update:model-value="onCategoryChange"
+        />
+      </div>
+      <div class="w-72">
+        <label class="text-sm font-medium text-surface-700">Product</label>
+        <ProductSelect
+          v-model="productFilter"
+          show-clear
+          placeholder="All products"
+          @update:model-value="onProductChange"
         />
       </div>
       <div class="w-56">

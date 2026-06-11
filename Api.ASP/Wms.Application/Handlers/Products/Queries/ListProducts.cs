@@ -19,6 +19,7 @@ public record ProductDto(
     decimal Volume,
     decimal UnitPrice,
     TemperatureZone RequiredTemperatureZone,
+    int OnHand,
     IReadOnlyList<Guid> PreferredLocationIds,
     Guid? CategoryId,
     string? CategoryName);
@@ -29,7 +30,8 @@ public sealed record ListProductsQuery(
     bool SortDescending = false,
     int Page = 1,
     int PageSize = 20,
-    Guid? CategoryId = null) : IQuery<PagedResult<ProductDto>>;
+    Guid? CategoryId = null,
+    TemperatureZone? TemperatureZone = null) : IQuery<PagedResult<ProductDto>>;
 
 public sealed class ListProductsValidator : AbstractValidator<ListProductsQuery>
 {
@@ -67,6 +69,11 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
                 p.ProductCategoryId.HasValue && subtree.Contains(p.ProductCategoryId.Value));
         }
 
+        if (query.TemperatureZone.HasValue)
+        {
+            productsQuery = productsQuery.Where(p => p.RequiredTemperatureZone == query.TemperatureZone.Value);
+        }
+
         var totalCount = await productsQuery.CountAsync(cancellationToken);
 
         var desc = query.SortDescending;
@@ -76,6 +83,10 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
             "name" => productsQuery.OrderByDirection(p => p.Name, desc),
             "weight" => productsQuery.OrderByDirection(p => p.Weight, desc),
             "volume" => productsQuery.OrderByDirection(p => p.Volume, desc),
+            "temperaturezone" => productsQuery.OrderByDirection(p => p.RequiredTemperatureZone, desc),
+            "onhand" => productsQuery.OrderByDirection(
+                p => context.Inventories.Where(i => i.ProductId == p.Id).Sum(i => i.OnHand.Value),
+                desc),
             "unitprice" => productsQuery.OrderByDirection(p => p.UnitPrice, desc),
             "category" => productsQuery.OrderByDirection(
                 p => context.ProductCategories
@@ -98,6 +109,7 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
                 p.Volume,
                 p.UnitPrice,
                 p.RequiredTemperatureZone,
+                context.Inventories.Where(i => i.ProductId == p.Id).Sum(i => i.OnHand.Value),
                 p.PreferredLocations
                     .OrderBy(pl => pl.Sequence)
                     .Select(pl => pl.LocationId)
