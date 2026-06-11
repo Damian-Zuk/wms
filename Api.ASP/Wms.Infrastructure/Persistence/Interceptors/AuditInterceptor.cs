@@ -41,8 +41,12 @@ public class AuditInterceptor : SaveChangesInterceptor
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.SetCreated(now, user);
-                    entry.Entity.SetUpdated(now, user);
+                    // Respect audit fields pre-set by callers (e.g. the demo-data
+                    // seeder backdates history); only stamp the ones still unset.
+                    if (entry.Entity.CreatedAt == default)
+                        entry.Entity.SetCreated(now, user);
+                    if (entry.Entity.UpdatedAt == default)
+                        entry.Entity.SetUpdated(now, user);
                     break;
 
                 case EntityState.Modified:

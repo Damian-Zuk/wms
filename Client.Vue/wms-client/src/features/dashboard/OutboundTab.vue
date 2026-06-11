@@ -48,7 +48,7 @@ const donutData = computed(() => ({
   datasets: [
     {
       data: pickMix.value.map((s) => s.units),
-      backgroundColor: ['#3b82f6', '#f59e0b', '#22c55e', '#a855f7'],
+      backgroundColor: ['#3b82f6', '#f59e0b', '#22c55e', '#a855f7', '#e04343'],
       borderWidth: 0,
     },
   ],

@@ -42,7 +42,7 @@ public class CreateStockInCommandHandlerTests : IntegrationTestBase
         var handler = new CreateStockInCommandHandler(actContext, Planner());
 
         var result = await handler.Handle(
-            new CreateStockInCommand([new StockInLineRequest(product.Id, null, 150)]),
+            new CreateStockInCommand([new StockInLineRequest(product.Id, null, 150)], null),
             ct);
 
         result.IsSuccess.Should().BeTrue();
@@ -76,7 +76,7 @@ public class CreateStockInCommandHandlerTests : IntegrationTestBase
         var handler = new CreateStockInCommandHandler(actContext, Planner());
 
         var result = await handler.Handle(
-            new CreateStockInCommand([new StockInLineRequest(product.Id, null, 150)]),
+            new CreateStockInCommand([new StockInLineRequest(product.Id, null, 150)], null),
             ct);
 
         result.IsFailure.Should().BeTrue();
@@ -102,7 +102,7 @@ public class CreateStockInCommandHandlerTests : IntegrationTestBase
         var handler = new CreateStockInCommandHandler(actContext, Planner());
 
         var result = await handler.Handle(
-            new CreateStockInCommand([new StockInLineRequest(product.Id, null, 500)]),
+            new CreateStockInCommand([new StockInLineRequest(product.Id, null, 500)], null),
             ct);
 
         result.IsSuccess.Should().BeTrue();
@@ -148,7 +148,7 @@ public class CreateStockInCommandHandlerTests : IntegrationTestBase
         var handler = new CreateStockInCommandHandler(actContext, Planner());
 
         var result = await handler.Handle(
-            new CreateStockInCommand([new StockInLineRequest(product.Id, null, 50)]),
+            new CreateStockInCommand([new StockInLineRequest(product.Id, null, 50)], null),
             ct);
 
         result.IsSuccess.Should().BeTrue();
@@ -173,7 +173,7 @@ public class CreateStockInCommandHandlerTests : IntegrationTestBase
         var handler = new CreateStockInCommandHandler(actContext, Planner());
 
         var result = await handler.Handle(
-            new CreateStockInCommand([new StockInLineRequest(Guid.NewGuid(), null, 5)]),
+            new CreateStockInCommand([new StockInLineRequest(Guid.NewGuid(), null, 5)], null),
             ct);
 
         result.IsFailure.Should().BeTrue();

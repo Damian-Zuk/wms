@@ -49,7 +49,7 @@ public class CreateStockOutCommandHandlerTests : IntegrationTestBase
 
         // Pull 12 units: 8 from early (drained) + 4 from late.
         var result = await handler.Handle(
-            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 12)]),
+            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 12)], null),
             ct);
 
         result.IsSuccess.Should().BeTrue();
@@ -110,7 +110,7 @@ public class CreateStockOutCommandHandlerTests : IntegrationTestBase
         var handler = new CreateStockOutCommandHandler(actContext, Planner());
 
         var result = await handler.Handle(
-            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fifo, 9)]),
+            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fifo, 9)], null),
             ct);
 
         result.IsSuccess.Should().BeTrue();
@@ -144,7 +144,7 @@ public class CreateStockOutCommandHandlerTests : IntegrationTestBase
         var handler = new CreateStockOutCommandHandler(actContext, Planner());
 
         var result = await handler.Handle(
-            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 5)]),
+            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 5)], null),
             ct);
 
         result.IsSuccess.Should().BeTrue();
@@ -170,7 +170,7 @@ public class CreateStockOutCommandHandlerTests : IntegrationTestBase
         var handler = new CreateStockOutCommandHandler(actContext, Planner());
 
         var result = await handler.Handle(
-            new CreateStockOutCommand([new StockOutLineRequest(Guid.NewGuid(), PickingStrategyType.Fefo, 1)]),
+            new CreateStockOutCommand([new StockOutLineRequest(Guid.NewGuid(), PickingStrategyType.Fefo, 1)], null),
             TestContext.Current.CancellationToken);
 
         result.IsFailure.Should().BeTrue();
@@ -190,7 +190,7 @@ public class CreateStockOutCommandHandlerTests : IntegrationTestBase
         var handler = new CreateStockOutCommandHandler(actContext, Planner());
 
         var result = await handler.Handle(
-            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 1)]),
+            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 1)], null),
             ct);
 
         result.IsFailure.Should().BeTrue();
@@ -218,7 +218,7 @@ public class CreateStockOutCommandHandlerTests : IntegrationTestBase
         var handler = new CreateStockOutCommandHandler(actContext, Planner());
 
         var result = await handler.Handle(
-            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 3)]),
+            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fefo, 3)], null),
             ct);
 
         result.IsFailure.Should().BeTrue();
