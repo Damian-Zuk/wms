@@ -1,5 +1,7 @@
 import type { LocationType, TemperatureZone } from './enums'
 
+export type LocationStatus = 'Active' | 'Inactive' | 'Blocked'
+
 export interface LocationAddressDto {
   zone: string
   aisle: string
@@ -39,6 +41,7 @@ export interface LocationFilters {
   zone?: string
   type?: LocationType
   temperatureZone?: TemperatureZone
+  status?: LocationStatus
   sortBy?: string
   sortDescending?: boolean
   page: number

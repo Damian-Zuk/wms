@@ -16,6 +16,7 @@ export const locationsApi = {
           zone: filters.zone || undefined,
           type: filters.type || undefined,
           temperatureZone: filters.temperatureZone || undefined,
+          status: filters.status || undefined,
           sortBy: filters.sortBy || undefined,
           sortDescending: filters.sortDescending || undefined,
           page: filters.page,

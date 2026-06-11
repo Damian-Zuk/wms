@@ -15,7 +15,7 @@ import { useLocations } from './useLocations'
 import { useAuthStore } from '@/stores/auth'
 import { locationTypeSeverity, temperatureZoneSeverity } from '@/lib/enum-display'
 import { sortOrderOf, toSortFilters, type SortChange } from '@/lib/sort'
-import type { LocationDto, LocationFilters } from '@/types/locations'
+import type { LocationDto, LocationFilters, LocationStatus } from '@/types/locations'
 import type { LocationType, TemperatureZone } from '@/types/enums'
 
 const router = useRouter()
@@ -36,6 +36,12 @@ const temperatureZoneOptions: { label: string; value: TemperatureZone }[] = [
   { label: 'Frozen', value: 'Frozen' },
 ]
 
+const statusOptions: { label: string; value: LocationStatus }[] = [
+  { label: 'Active', value: 'Active' },
+  { label: 'Inactive', value: 'Inactive' },
+  { label: 'Blocked', value: 'Blocked' },
+]
+
 const { data, isFetching, refetch } = useLocations(filters)
 
 function applySearch() {
@@ -48,6 +54,10 @@ function onTypeChange(value: LocationType | null) {
 
 function onTempZoneChange(value: TemperatureZone | null) {
   filters.value = { ...filters.value, temperatureZone: value ?? undefined, page: 1 }
+}
+
+function onStatusChange(value: LocationStatus | null) {
+  filters.value = { ...filters.value, status: value ?? undefined, page: 1 }
 }
 
 function setPage(page: number) {
@@ -88,6 +98,14 @@ function openLocation(location: LocationDto) {
           placeholder="All temp. zones"
           show-clear
           @update:model-value="onTempZoneChange"
+        />
+        <Select
+          :options="statusOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="All statuses"
+          show-clear
+          @update:model-value="onStatusChange"
         />
         <IconField>
           <InputIcon class="pi pi-search" />

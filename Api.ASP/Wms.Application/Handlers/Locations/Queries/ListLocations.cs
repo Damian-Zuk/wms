@@ -19,7 +19,8 @@ public sealed record ListLocationsQuery(
     bool SortDescending = false,
     int Page = 1,
     int PageSize = 20,
-    TemperatureZone? TemperatureZone = null) : IQuery<PagedResult<LocationDto>>;
+    TemperatureZone? TemperatureZone = null,
+    string? Status = null) : IQuery<PagedResult<LocationDto>>;
 
 public sealed class ListLocationsValidator : AbstractValidator<ListLocationsQuery>
 {
@@ -65,6 +66,14 @@ public sealed class ListLocationsQueryHandler(IAppDbContext context)
         {
             locationsQuery = locationsQuery.Where(l => l.TemperatureZone == query.TemperatureZone.Value);
         }
+
+        locationsQuery = query.Status?.Trim().ToLowerInvariant() switch
+        {
+            "blocked" => locationsQuery.Where(l => l.IsBlocked),
+            "active" => locationsQuery.Where(l => !l.IsBlocked && l.IsActive),
+            "inactive" => locationsQuery.Where(l => !l.IsBlocked && !l.IsActive),
+            _ => locationsQuery,
+        };
 
         var totalCount = await locationsQuery.CountAsync(cancellationToken);
 
