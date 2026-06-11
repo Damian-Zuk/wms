@@ -31,6 +31,7 @@ export interface StockOutDto {
 }
 
 export interface StockOutFilters {
+  search?: string
   page: number
   pageSize: number
 }

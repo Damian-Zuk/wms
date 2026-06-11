@@ -111,7 +111,7 @@ function openLocation(location: LocationDto) {
           <InputIcon class="pi pi-search" />
           <InputText
             v-model="search"
-            placeholder="Search code or description"
+            placeholder="Search code or address"
             @keyup.enter="applySearch"
           />
         </IconField>

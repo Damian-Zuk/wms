@@ -15,6 +15,7 @@ public class StockOutController : ControllerBase
 {
     [HttpGet]
     public async Task<IResult> ListStockOuts(
+        [FromQuery] string? search,
         [FromQuery] int page,
         [FromQuery] int pageSize,
         [FromServices] IQueryHandler<ListStockOutsQuery, PagedResult<StockOutDto>> handler,
@@ -22,6 +23,7 @@ public class StockOutController : ControllerBase
     {
         var result = await handler.Handle(
             new ListStockOutsQuery(
+                search,
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);

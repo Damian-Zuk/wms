@@ -13,7 +13,7 @@ export const stockOutsApi = {
   list: (filters: StockOutFilters) =>
     http
       .get<PagedResult<StockOutDto>>('/stock-outs', {
-        params: { page: filters.page, pageSize: filters.pageSize },
+        params: { search: filters.search || undefined, page: filters.page, pageSize: filters.pageSize },
       })
       .then((r) => r.data),
 

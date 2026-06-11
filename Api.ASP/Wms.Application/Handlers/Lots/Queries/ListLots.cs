@@ -44,8 +44,8 @@ public sealed class ListLotsQueryHandler(IAppDbContext context)
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var term = query.Search.Trim();
-            lotsQuery = lotsQuery.Where(l => l.Number.Value.Contains(term));
+            var term = query.Search.Trim().ToLower();
+            lotsQuery = lotsQuery.Where(l => l.Number.Value.ToLower().Contains(term));
         }
 
         if (query.CategoryId.HasValue)

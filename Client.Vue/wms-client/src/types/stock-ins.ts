@@ -32,6 +32,7 @@ export interface StockInDto {
 }
 
 export interface StockInFilters {
+  search?: string
   page: number
   pageSize: number
 }

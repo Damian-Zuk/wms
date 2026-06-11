@@ -12,7 +12,7 @@ export const stockInsApi = {
   list: (filters: StockInFilters) =>
     http
       .get<PagedResult<StockInDto>>('/stock-ins', {
-        params: { page: filters.page, pageSize: filters.pageSize },
+        params: { search: filters.search || undefined, page: filters.page, pageSize: filters.pageSize },
       })
       .then((r) => r.data),
 

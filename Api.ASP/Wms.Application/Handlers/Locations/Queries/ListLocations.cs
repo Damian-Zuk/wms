@@ -45,16 +45,16 @@ public sealed class ListLocationsQueryHandler(IAppDbContext context)
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var term = query.Search.Trim();
+            var term = query.Search.Trim().ToLower();
             locationsQuery = locationsQuery.Where(l =>
-                l.Code.Value.Contains(term) ||
-                (l.Description != null && l.Description.Contains(term)));
+                l.Code.Value.ToLower().Contains(term) ||
+                l.Address.ToString().ToLower().Contains(term));
         }
 
         if (!string.IsNullOrWhiteSpace(query.Zone))
         {
-            var zone = query.Zone.Trim();
-            locationsQuery = locationsQuery.Where(l => l.Address.Zone == zone);
+            var zone = query.Zone.Trim().ToLower();
+            locationsQuery = locationsQuery.Where(l => l.Address.Zone.ToLower() == zone);
         }
 
         if (query.Type.HasValue)

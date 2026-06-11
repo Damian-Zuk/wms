@@ -53,10 +53,10 @@ public sealed class ListProductsQueryHandler(IAppDbContext context)
 
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
-            var term = query.Search.Trim();
+            var term = query.Search.Trim().ToLower();
             productsQuery = productsQuery.Where(p =>
-                p.Sku.Value.Contains(term) ||
-                p.Name.Contains(term));
+                p.Sku.Value.ToLower().Contains(term) ||
+                p.Name.ToLower().Contains(term));
         }
 
         if (query.CategoryId.HasValue)

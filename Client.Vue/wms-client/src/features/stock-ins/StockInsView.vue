@@ -3,6 +3,9 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
+import InputText from 'primevue/inputtext'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
 import ListingHeader from '@/components/common/ListingHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -17,7 +20,12 @@ const router = useRouter()
 const auth = useAuthStore()
 
 const filters = ref<StockInFilters>({ page: 1, pageSize: 20 })
+const search = ref('')
 const { data, isFetching, refetch } = useStockIns(filters)
+
+function applySearch() {
+  filters.value = { ...filters.value, search: search.value.trim(), page: 1 }
+}
 
 function setPage(page: number) {
   filters.value = { ...filters.value, page }
@@ -36,12 +44,18 @@ function openStockIn(stockIn: StockInDto) {
   <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
     <div class="flex items-center justify-between gap-4">
       <ListingHeader title="Stock-Ins" :count="data?.totalCount ?? 0" :loading="isFetching" @refresh="refetch" />
-      <Button
-        v-if="auth.canMutate"
-        label="New Stock-In"
-        icon="pi pi-plus"
-        @click="router.push({ name: 'stock-in-create' })"
-      />
+      <div class="flex items-center gap-2">
+        <IconField>
+          <InputIcon class="pi pi-search" />
+          <InputText v-model="search" placeholder="Search description" @keyup.enter="applySearch" />
+        </IconField>
+        <Button
+          v-if="auth.canMutate"
+          label="New Stock-In"
+          icon="pi pi-plus"
+          @click="router.push({ name: 'stock-in-create' })"
+        />
+      </div>
     </div>
 
     <DataTableWrapper

@@ -15,6 +15,7 @@ public class StockInController : ControllerBase
 {
     [HttpGet]
     public async Task<IResult> ListStockIns(
+        [FromQuery] string? search,
         [FromQuery] int page,
         [FromQuery] int pageSize,
         [FromServices] IQueryHandler<ListStockInsQuery, PagedResult<StockInDto>> handler,
@@ -22,6 +23,7 @@ public class StockInController : ControllerBase
     {
         var result = await handler.Handle(
             new ListStockInsQuery(
+                search,
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize),
             cancellationToken);

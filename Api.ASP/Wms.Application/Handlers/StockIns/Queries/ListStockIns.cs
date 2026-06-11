@@ -9,6 +9,7 @@ using Wms.Shared.Common;
 namespace Wms.Application.Handlers.StockIns.Queries;
 
 public sealed record ListStockInsQuery(
+    string? Search = null,
     int Page = 1,
     int PageSize = 20) : IQuery<PagedResult<StockInDto>>;
 
@@ -29,6 +30,12 @@ public sealed class ListStockInsQueryHandler(IAppDbContext context)
         CancellationToken cancellationToken)
     {
         var stockInsQuery = context.StockIns.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var term = query.Search.Trim().ToLower();
+            stockInsQuery = stockInsQuery.Where(s => s.Description != null && s.Description.ToLower().Contains(term));
+        }
 
         var totalCount = await stockInsQuery.CountAsync(cancellationToken);
 
