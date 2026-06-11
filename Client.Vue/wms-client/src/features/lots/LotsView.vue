@@ -7,7 +7,7 @@ import IconField from 'primevue/iconfield'
 import InputIcon from 'primevue/inputicon'
 import Button from 'primevue/button'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
-import RefreshButton from '@/components/common/RefreshButton.vue'
+import ListingHeader from '@/components/common/ListingHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import ProductSelect from '@/components/pickers/ProductSelect.vue'
 import CategorySelect from '@/components/pickers/CategorySelect.vue'
@@ -70,10 +70,7 @@ function openLot(lot: LotDto) {
 <template>
   <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
     <div class="flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-semibold text-surface-900">Lots</h1>
-        <RefreshButton :loading="isFetching" @click="() => refetch()" />
-      </div>
+      <ListingHeader title="Lots" :count="data?.totalCount ?? 0" :loading="isFetching" @refresh="refetch" />
 
       <div class="flex items-center gap-2">
         <div class="w-56">

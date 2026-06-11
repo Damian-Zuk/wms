@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
-import RefreshButton from '@/components/common/RefreshButton.vue'
+import ListingHeader from '@/components/common/ListingHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import { useStockIns } from './useStockIns'
 import { useAuthStore } from '@/stores/auth'
@@ -34,10 +34,7 @@ function openStockIn(stockIn: StockInDto) {
 <template>
   <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
     <div class="flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-semibold text-surface-900">Stock-Ins</h1>
-        <RefreshButton :loading="isFetching" @click="() => refetch()" />
-      </div>
+      <ListingHeader title="Stock-Ins" :count="data?.totalCount ?? 0" :loading="isFetching" @refresh="refetch" />
       <Button
         v-if="auth.canMutate"
         label="New Stock-In"

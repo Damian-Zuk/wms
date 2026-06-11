@@ -8,7 +8,7 @@ import InputIcon from 'primevue/inputicon'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
-import RefreshButton from '@/components/common/RefreshButton.vue'
+import ListingHeader from '@/components/common/ListingHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import CapacityBar from './CapacityBar.vue'
 import { useLocations } from './useLocations'
@@ -70,10 +70,7 @@ function openLocation(location: LocationDto) {
 <template>
   <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
     <div class="flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-semibold text-surface-900">Locations</h1>
-        <RefreshButton :loading="isFetching" @click="() => refetch()" />
-      </div>
+      <ListingHeader title="Locations" :count="data?.totalCount ?? 0" :loading="isFetching" @refresh="refetch" />
 
       <div class="flex items-center gap-2">
         <Select

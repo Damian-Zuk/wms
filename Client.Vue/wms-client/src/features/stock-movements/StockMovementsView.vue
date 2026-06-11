@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import Column from 'primevue/column'
 import Select from 'primevue/select'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
-import RefreshButton from '@/components/common/RefreshButton.vue'
+import ListingHeader from '@/components/common/ListingHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
 import ProductSelect from '@/components/pickers/ProductSelect.vue'
 import LocationSelect from '@/components/pickers/LocationSelect.vue'
@@ -61,10 +61,7 @@ function setPageSize(pageSize: number) {
 
 <template>
   <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
-    <div class="flex items-center gap-3">
-      <h1 class="text-2xl font-semibold text-surface-900">Stock Movements</h1>
-      <RefreshButton :loading="isFetching" @click="() => refetch()" />
-    </div>
+    <ListingHeader title="Stock Movements" :count="data?.totalCount ?? 0" :loading="isFetching" @refresh="refetch" />
 
     <div class="flex items-center gap-2 flex-wrap">
       <div class="w-72">

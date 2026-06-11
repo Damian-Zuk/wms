@@ -12,7 +12,6 @@ const emit = defineEmits<{ click: [] }>()
   <Button
     icon="pi pi-refresh"
     severity="secondary"
-    style="transform: translateY(0.05em)"
     outlined
     rounded
     :loading="loading"

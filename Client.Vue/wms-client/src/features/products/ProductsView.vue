@@ -9,7 +9,7 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Select from 'primevue/select'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
-import RefreshButton from '@/components/common/RefreshButton.vue'
+import ListingHeader from '@/components/common/ListingHeader.vue'
 import CategorySelect from '@/components/pickers/CategorySelect.vue'
 import { useProducts } from './useProducts'
 import { useAuthStore } from '@/stores/auth'
@@ -88,10 +88,7 @@ function onSort(change: SortChange) {
 <template>
   <section class="p-6 flex flex-col gap-4" style="max-width: 1600px">
     <div class="flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <h1 class="text-2xl font-semibold text-surface-900">Product Catalog</h1>
-        <RefreshButton :loading="isFetching" @click="() => refetch()" />
-      </div>
+      <ListingHeader title="Product Catalog" :count="data?.totalCount ?? 0" :loading="isFetching" @refresh="refetch" />
 
       <div class="flex items-center gap-2">
         <div class="w-56">
