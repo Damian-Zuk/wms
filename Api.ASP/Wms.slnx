@@ -6,5 +6,8 @@
     <Project Path="Wms.Infrastructure/Wms.Infrastructure.csproj" />
     <Project Path="Wms.Shared/Wms.Shared.csproj" />
   </Folder>
+  <Project Path="docker-compose.dcproj" Id="34bb3069-d5d0-4046-acad-a2025ed7678f">
+    <Build />
+  </Project>
   <Project Path="Wms.Tests/Wms.Tests.csproj" Id="f4d9b7e4-5f17-47f5-915e-2180f15481d0" />
 </Solution>

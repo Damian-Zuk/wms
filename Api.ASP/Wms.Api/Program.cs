@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 using Wms.Api.Infrastructure;
 using Wms.Application;
@@ -73,7 +74,8 @@ if (args.Contains("truncate", StringComparer.OrdinalIgnoreCase))
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi().AllowAnonymous();
+    app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "Wms API v1"));
 }
 
 app.UseSerilogRequestLogging();
@@ -87,9 +89,12 @@ app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
+    var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
     var userManager = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
     var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+    await dbContext.Database.MigrateAsync();
 
     await RoleSeeder.SeedAsync(roleManager);
     await AdminSeeder.SeedAsync(userManager, config);
