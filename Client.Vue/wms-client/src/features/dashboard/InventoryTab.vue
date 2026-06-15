@@ -131,13 +131,6 @@ const noExpiryValue = computed(() => expiryValue.value?.noExpiry ?? 0)
         </div>
       </div>
 
-      <!-- Top SKUs -->
-      <div class="rounded-xl border border-surface-200 bg-white p-4">
-        <h2 class="text-base font-semibold text-surface-900 mb-2">Top SKUs by on-hand quantity</h2>
-        <VueApexCharts v-if="top.length" type="bar" height="300" :options="topOpts" :series="topSeries" />
-        <p v-else class="text-sm text-surface-500 py-8 text-center">No stock on hand.</p>
-      </div>
-
       <!-- Expiry -->
       <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <div class="xl:col-span-2 rounded-xl border border-surface-200 bg-white p-4">
@@ -171,6 +164,14 @@ const noExpiryValue = computed(() => expiryValue.value?.noExpiry ?? 0)
           </div>
         </div>
       </div>
+
+      <!-- Top SKUs -->
+      <div class="rounded-xl border border-surface-200 bg-white p-4">
+        <h2 class="text-base font-semibold text-surface-900 mb-2">Top SKUs by on-hand quantity</h2>
+        <VueApexCharts v-if="top.length" type="bar" height="300" :options="topOpts" :series="topSeries" />
+        <p v-else class="text-sm text-surface-500 py-8 text-center">No stock on hand.</p>
+      </div>
+
     </template>
   </div>
 </template>

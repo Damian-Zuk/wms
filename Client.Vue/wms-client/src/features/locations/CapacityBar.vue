@@ -59,8 +59,8 @@ const fillWidth = computed(() => Math.min(overallPercent.value ?? 0, 100))
 
 const fillColor = computed(() => {
   const p = overallPercent.value ?? 0
-  if (p >= 100) return 'bg-red-500'
-  if (p >= 80) return 'bg-amber-500'
+  if (p >= 90) return 'bg-red-500'
+  if (p >= 75) return 'bg-amber-500'
   return 'bg-emerald-500'
 })
 
