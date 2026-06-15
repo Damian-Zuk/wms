@@ -23,4 +23,9 @@ public static class PutawayErrors
         $"Cannot place the full quantity for product '{productId}'" +
         (lotId.HasValue ? $" (lot '{lotId.Value}')" : string.Empty) +
         $": requested {requested}, {unplaced} could not be placed (insufficient capacity).");
+
+    public static Error NoSingleLocationFitsHandlingUnit(Guid productId, Guid? lotId, int quantity) => Error.Conflict(
+        "Putaway.NoSingleLocationFitsHandlingUnit",
+        $"No single location can hold a handling unit of {quantity} unit(s) of product '{productId}'" +
+        (lotId.HasValue ? $" (lot '{lotId.Value}')." : "."));
 }

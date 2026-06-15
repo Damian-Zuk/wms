@@ -66,12 +66,13 @@ public sealed class ReplanStockOutLineCommandHandler(IAppDbContext context, IPic
         // planner reasons over counts the units this draft already holds as available.
         // A draft never has picked units, so each item's full quantity is still reserved.
         var currentReservations = line.Items
-            .Select(i => (i.LocationId, i.LotId, i.Quantity.Value))
+            .Select(i => (i.LocationId, i.LotId, i.HandlingUnitId, i.Quantity.Value))
             .ToList();
 
-        foreach (var (locationId, lotId, quantity) in currentReservations)
+        foreach (var (locationId, lotId, handlingUnitId, quantity) in currentReservations)
         {
-            var inventory = inventories.FirstOrDefault(i => i.LocationId == locationId && i.LotId == lotId);
+            var inventory = inventories.FirstOrDefault(i =>
+                i.LocationId == locationId && i.LotId == lotId && i.HandlingUnitId == handlingUnitId);
             if (inventory is null)
                 continue;
 
@@ -104,7 +105,9 @@ public sealed class ReplanStockOutLineCommandHandler(IAppDbContext context, IPic
         foreach (var allocation in plan.Value)
         {
             var inventory = inventories.FirstOrDefault(i =>
-                i.LocationId == allocation.LocationId && i.LotId == allocation.LotId);
+                i.LocationId == allocation.LocationId
+                && i.LotId == allocation.LotId
+                && i.HandlingUnitId == allocation.HandlingUnitId);
 
             if (inventory is null)
                 return InventoryErrors.InsufficientAvailableStock(0, allocation.Quantity);

@@ -1,4 +1,4 @@
-import type { LocationRef, LotRef, ProductRef } from './refs'
+import type { HandlingUnitRef, LocationRef, LotRef, ProductRef } from './refs'
 
 export interface InventoryDto {
   id: string
@@ -11,6 +11,8 @@ export interface InventoryDto {
   available: number
   /** On-hand units valued at the product's unit cost. */
   onHandValue: number
+  /** The handling unit the stock sits on; null = loose stock. */
+  handlingUnit: HandlingUnitRef | null
 }
 
 export interface InventoryFilters {
@@ -18,6 +20,7 @@ export interface InventoryFilters {
   locationId?: string
   lotId?: string
   categoryId?: string
+  handlingUnitId?: string
   expiringWithinDays?: number
   sortBy?: string
   sortDescending?: boolean

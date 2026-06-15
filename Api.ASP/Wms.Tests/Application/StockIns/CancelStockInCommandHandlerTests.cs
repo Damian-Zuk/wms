@@ -219,6 +219,107 @@ public class CancelStockInCommandHandlerTests : IntegrationTestBase
         result.Error.Code.Should().Be("StockIn.InvalidStatusTransition");
     }
 
+    [Fact]
+    public async Task Cancel_soft_deletes_emptied_and_never_placed_declared_units()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var product = TestData.Product("CN-HU-1");
+        var location = TestData.Location("CN-HU-1-LOC", capacity: 100);
+
+        // Placed pallet: its 6 units are on hand, keyed to the unit.
+        var placedUnit = TestData.HandlingUnit("CN-HU-1-PLACED", locationId: location.Id);
+        var inv = TestData.Inventory(product.Id, location.Id, onHand: 6, handlingUnitId: placedUnit.Id);
+
+        // Declared-but-never-placed pallet (still unplaced, no inventory).
+        var unplacedUnit = TestData.HandlingUnit("CN-HU-1-UNPLACED");
+
+        var stockIn = new StockIn(Guid.NewGuid());
+        stockIn.AddLineWithPlacements(product.Id, null, new Quantity(10),
+        [
+            new(location.Id, 6, PutawayStrategyType.NearestEmpty, placedUnit.Id),
+            new(location.Id, 4, PutawayStrategyType.NearestEmpty, unplacedUnit.Id)
+        ]);
+        stockIn.StartPutaway();
+        var placedItem = stockIn.Lines.Single().Items.Single(i => i.HandlingUnitId == placedUnit.Id);
+        stockIn.PutawayItem(placedItem.Id, new Quantity(6));
+        stockIn.ClearDomainEvents();
+
+        Context.Products.Add(product);
+        Context.Locations.Add(location);
+        Context.HandlingUnits.AddRange(placedUnit, unplacedUnit);
+        Context.Inventories.Add(inv);
+        Context.StockIns.Add(stockIn);
+        await Context.SaveChangesAsync(ct);
+
+        await using var actContext = CreateContext();
+        WireRemovedFromStockHandler(actContext);
+        var handler = new CancelStockInCommandHandler(actContext);
+
+        var result = await handler.Handle(new CancelStockInCommand(stockIn.Id), ct);
+
+        result.IsSuccess.Should().BeTrue();
+
+        await using var verify = CreateContext();
+
+        var reloadedInv = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == inv.Id, ct);
+        reloadedInv.OnHand.Value.Should().Be(0);
+
+        // Both units ended up holding nothing — soft-deleted (invisible through the filter).
+        (await verify.HandlingUnits.AnyAsync(ct)).Should().BeFalse();
+        (await verify.HandlingUnits.IgnoreQueryFilters().CountAsync(h => h.IsDeleted, ct)).Should().Be(2);
+
+        var movement = await verify.StockMovements.AsNoTracking().SingleAsync(m => m.SourceId == stockIn.Id, ct);
+        movement.HandlingUnitId.Should().Be(placedUnit.Id);
+    }
+
+    [Fact]
+    public async Task Cancel_keeps_a_declared_unit_that_gained_other_stock()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var product = TestData.Product("CN-HU-2");
+        var otherProduct = TestData.Product("CN-HU-2-OTHER");
+        var location = TestData.Location("CN-HU-2-LOC", capacity: 100);
+
+        var handlingUnit = TestData.HandlingUnit("CN-HU-2-PAL", locationId: location.Id);
+        var stockInRow = TestData.Inventory(product.Id, location.Id, onHand: 6, handlingUnitId: handlingUnit.Id);
+        // Someone packed another product onto the same pallet after putaway.
+        var packedRow = TestData.Inventory(otherProduct.Id, location.Id, onHand: 3, handlingUnitId: handlingUnit.Id);
+
+        var stockIn = TestData.StockIn(product.Id, location.Id, 6, handlingUnitId: handlingUnit.Id);
+        stockIn.StartPutaway();
+        var item = stockIn.Lines.Single().Items.Single();
+        stockIn.PutawayItem(item.Id, new Quantity(6));
+        stockIn.ClearDomainEvents();
+
+        Context.Products.AddRange(product, otherProduct);
+        Context.Locations.Add(location);
+        Context.HandlingUnits.Add(handlingUnit);
+        Context.Inventories.AddRange(stockInRow, packedRow);
+        Context.StockIns.Add(stockIn);
+        await Context.SaveChangesAsync(ct);
+
+        await using var actContext = CreateContext();
+        WireRemovedFromStockHandler(actContext);
+        var handler = new CancelStockInCommandHandler(actContext);
+
+        var result = await handler.Handle(new CancelStockInCommand(stockIn.Id), ct);
+
+        result.IsSuccess.Should().BeTrue();
+
+        await using var verify = CreateContext();
+
+        // The stock-in's own units are reversed…
+        (await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == stockInRow.Id, ct))
+            .OnHand.Value.Should().Be(0);
+
+        // …but the pallet still carries the other product, so it survives.
+        (await verify.HandlingUnits.AnyAsync(h => h.Id == handlingUnit.Id, ct)).Should().BeTrue();
+        (await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == packedRow.Id, ct))
+            .OnHand.Value.Should().Be(3);
+    }
+
     private void WireRemovedFromStockHandler(IAppDbContext context)
     {
         EventDispatcher.Register<StockInItemRemovedFromStockDomainEvent>((evt, ct) =>

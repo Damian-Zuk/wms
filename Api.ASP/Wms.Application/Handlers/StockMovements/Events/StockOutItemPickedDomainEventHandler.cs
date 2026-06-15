@@ -18,7 +18,8 @@ internal sealed class StockOutItemPickedDomainEventHandler(IAppDbContext context
             domainEvent.Quantity,
             StockMovementType.Out,
             StockMovementSource.StockOut,
-            domainEvent.StockOutId);
+            domainEvent.StockOutId,
+            domainEvent.HandlingUnitId);
 
         await context.StockMovements.AddAsync(movement, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);

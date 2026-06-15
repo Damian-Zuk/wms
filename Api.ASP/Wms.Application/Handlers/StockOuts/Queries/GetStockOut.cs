@@ -14,7 +14,8 @@ public sealed record StockOutItemDto(
     LotRef? Lot,
     int Quantity,
     int PickedQuantity,
-    PickingStrategyType Strategy);
+    PickingStrategyType Strategy,
+    HandlingUnitRef? HandlingUnit);
 
 public sealed record StockOutLineDto(
     Guid Id,
@@ -63,7 +64,8 @@ public sealed class GetStockOutQueryHandler(IAppDbContext context)
                         i.LotId,
                         Quantity = i.Quantity.Value,
                         PickedQuantity = i.PickedQuantity.Value,
-                        i.Strategy
+                        i.Strategy,
+                        i.HandlingUnitId
                     }).ToList()
                 }).ToList()
             })
@@ -76,10 +78,16 @@ public sealed class GetStockOutQueryHandler(IAppDbContext context)
         var items = stockOut.Lines.SelectMany(l => l.Items).ToList();
         var locationIds = items.Select(i => i.LocationId).Distinct().ToList();
         var lotIds = items.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
+        var handlingUnitIds = items
+            .Where(i => i.HandlingUnitId.HasValue)
+            .Select(i => i.HandlingUnitId!.Value)
+            .Distinct()
+            .ToList();
 
         var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
         var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
         var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
+        var handlingUnits = await RefLookup.LoadHandlingUnitRefsAsync(context, handlingUnitIds, cancellationToken);
 
         var lines = stockOut.Lines
             .Select(l => new StockOutLineDto(
@@ -94,7 +102,8 @@ public sealed class GetStockOutQueryHandler(IAppDbContext context)
                         i.LotId.HasValue ? lots[i.LotId.Value] : null,
                         i.Quantity,
                         i.PickedQuantity,
-                        i.Strategy))
+                        i.Strategy,
+                        i.HandlingUnitId.HasValue ? handlingUnits[i.HandlingUnitId.Value] : null))
                     .ToList()))
             .ToList();
 

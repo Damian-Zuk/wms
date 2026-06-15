@@ -9,6 +9,9 @@ public class StockMovement : Entity
     public Guid LocationId { get; private set; }
     public Guid? LotId { get; private set; }
 
+    /// <summary>The handling unit involved in the movement; null = loose stock.</summary>
+    public Guid? HandlingUnitId { get; private set; }
+
     public int QuantityChange { get; private set; }
 
     public StockMovementType Type { get; private set; }
@@ -25,7 +28,8 @@ public class StockMovement : Entity
         int quantityChange,
         StockMovementType type,
         StockMovementSource source,
-        Guid sourceId)
+        Guid sourceId,
+        Guid? handlingUnitId = null)
     {
         Id = Guid.NewGuid();
         ProductId = productId;
@@ -35,5 +39,6 @@ public class StockMovement : Entity
         Type = type;
         Source = source;
         SourceId = sourceId;
+        HandlingUnitId = handlingUnitId;
     }
 }

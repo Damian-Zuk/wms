@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRoute } from 'vue-router'
 import Column from 'primevue/column'
 import Select from 'primevue/select'
+import Tag from 'primevue/tag'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
 import ListingHeader from '@/components/common/ListingHeader.vue'
 import StatusBadge from '@/components/common/StatusBadge.vue'
@@ -18,7 +20,14 @@ import {
 import type { StockMovementFilters, StockMovementDto } from '@/types/stock-movements'
 import type { StockMovementSource, StockMovementType } from '@/types/enums'
 
-const filters = ref<StockMovementFilters>({ page: 1, pageSize: 20 })
+const route = useRoute()
+
+// "View movements" on a handling unit's page lands here pre-filtered.
+const filters = ref<StockMovementFilters>({
+  page: 1,
+  pageSize: 20,
+  handlingUnitId: (route.query.handlingUnitId as string) ?? undefined,
+})
 const productFilter = ref<string | null>(null)
 const locationFilter = ref<string | null>(null)
 const typeFilter = ref<StockMovementType | null>(null)
@@ -136,6 +145,17 @@ function setPageSize(pageSize: number) {
       <Column header="Lot" style="width: 10rem">
         <template #body="{ data: row }: { data: StockMovementDto }">
           {{ row.lot?.number ?? '—' }}
+        </template>
+      </Column>
+      <Column header="Handling Unit" style="width: 11rem">
+        <template #body="{ data: row }: { data: StockMovementDto }">
+          <Tag
+            v-if="row.handlingUnit"
+            :value="row.handlingUnit.code"
+            severity="info"
+            icon="pi pi-inbox"
+          />
+          <span v-else class="text-surface-400">—</span>
         </template>
       </Column>
       <Column header="Value" style="width: 10rem">

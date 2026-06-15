@@ -18,4 +18,16 @@ public interface IPutawayPlanner
         Lot? lot,
         Quantity quantity,
         PutawayPlanContext context);
+
+    /// <summary>
+    /// Plans an atomic chunk — a handling unit — that must land whole in exactly one
+    /// location. Walks the same strategy/candidate order as <see cref="Plan"/> but
+    /// only accepts a location whose remaining capacity covers the entire
+    /// <paramref name="quantity"/>; fails when none does.
+    /// </summary>
+    Result<PlacementAllocation> PlanSingle(
+        Product product,
+        Lot? lot,
+        Quantity quantity,
+        PutawayPlanContext context);
 }

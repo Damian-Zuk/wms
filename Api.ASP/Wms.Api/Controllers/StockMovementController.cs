@@ -22,6 +22,7 @@ public class StockMovementController : ControllerBase
         [FromQuery] StockMovementSource? source,
         [FromQuery, Range(0, int.MaxValue)] int page,
         [FromQuery, Range(0, 100)] int pageSize,
+        [FromQuery] Guid? handlingUnitId,
         [FromServices] IQueryHandler<ListStockMovementsQuery, PagedResult<StockMovementDto>> handler,
         CancellationToken cancellationToken)
     {
@@ -33,7 +34,8 @@ public class StockMovementController : ControllerBase
                 type,
                 source,
                 page == 0 ? 1 : page,
-                pageSize == 0 ? 20 : pageSize),
+                pageSize == 0 ? 20 : pageSize,
+                handlingUnitId),
             cancellationToken);
         
         return result.Match(Results.Ok, CustomResults.Problem); ;

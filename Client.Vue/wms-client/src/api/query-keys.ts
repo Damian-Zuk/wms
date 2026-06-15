@@ -5,6 +5,7 @@ import type { AvailabilityParams, InventoryFilters } from '@/types/inventory'
 import type { StockInFilters } from '@/types/stock-ins'
 import type { StockOutFilters } from '@/types/stock-outs'
 import type { StockMovementFilters } from '@/types/stock-movements'
+import type { HandlingUnitFilters } from '@/types/handling-units'
 
 export const qk = {
   products: {
@@ -52,6 +53,13 @@ export const qk = {
     list: (filters: StockMovementFilters) =>
       ['stock-movements', 'list', filters] as const,
     detail: (id: string) => ['stock-movements', 'detail', id] as const,
+  },
+  handlingUnits: {
+    all: ['handling-units'] as const,
+    list: (filters: HandlingUnitFilters) => ['handling-units', 'list', filters] as const,
+    detail: (id: string) => ['handling-units', 'detail', id] as const,
+    options: (locationId?: string) =>
+      ['handling-units', 'options', locationId ?? null] as const,
   },
   users: {
     all: ['users'] as const,

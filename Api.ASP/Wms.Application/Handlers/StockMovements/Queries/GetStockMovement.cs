@@ -17,7 +17,8 @@ public sealed record StockMovementDto(
     StockMovementType Type,
     StockMovementSource Source,
     Guid SourceId,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    HandlingUnitRef? HandlingUnit);
 
 public sealed record GetStockMovementQuery(Guid Id) : IQuery<StockMovementDto>;
 
@@ -37,6 +38,7 @@ public sealed class GetStockMovementQueryHandler(IAppDbContext context)
                 m.ProductId,
                 m.LocationId,
                 m.LotId,
+                m.HandlingUnitId,
                 m.QuantityChange,
                 m.Type,
                 m.Source,
@@ -58,6 +60,10 @@ public sealed class GetStockMovementQueryHandler(IAppDbContext context)
             ? await RefLookup.LoadLotRefsAsync(context, [movement.LotId.Value], cancellationToken)
             : [];
 
+        var handlingUnits = movement.HandlingUnitId.HasValue
+            ? await RefLookup.LoadHandlingUnitRefsAsync(context, [movement.HandlingUnitId.Value], cancellationToken)
+            : [];
+
         return new StockMovementDto(
             movement.Id,
             products[movement.ProductId],
@@ -67,6 +73,7 @@ public sealed class GetStockMovementQueryHandler(IAppDbContext context)
             movement.Type,
             movement.Source,
             movement.SourceId,
-            movement.CreatedAt);
+            movement.CreatedAt,
+            movement.HandlingUnitId.HasValue ? handlingUnits[movement.HandlingUnitId.Value] : null);
     }
 }

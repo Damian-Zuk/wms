@@ -16,3 +16,9 @@ export interface LotRef {
   number: string
   expirationDate: string | null
 }
+
+export interface HandlingUnitRef {
+  id: string
+  code: string
+  type: import('./enums').HandlingUnitType
+}

@@ -10,6 +10,7 @@ public interface IAppDbContext
     DbSet<ProductPreferredLocation> ProductPreferredLocations { get; }
     DbSet<Location> Locations { get; }
     DbSet<Inventory> Inventories { get; }
+    DbSet<HandlingUnit> HandlingUnits { get; }
     DbSet<Lot> Lots { get; }
     DbSet<StockIn> StockIns { get; }
     DbSet<StockInLine> StockInLines { get; }

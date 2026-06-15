@@ -84,6 +84,21 @@ public sealed class PutawayStockInItemCommandHandler(IAppDbContext context)
         if (canAccept.IsFailure)
             return canAccept;
 
+        // A placement bound to a declared handling unit pins the unit to its location
+        // on the first putaway (idempotent for the partial putaways that follow).
+        if (item.HandlingUnitId.HasValue)
+        {
+            var handlingUnit = await context.HandlingUnits
+                .FirstOrDefaultAsync(h => h.Id == item.HandlingUnitId.Value, cancellationToken);
+
+            if (handlingUnit is null)
+                return HandlingUnitErrors.NotFound(item.HandlingUnitId.Value);
+
+            var place = handlingUnit.PlaceAt(item.LocationId);
+            if (place.IsFailure)
+                return place;
+        }
+
         // Record the putaway on the placement (raises a stock-movement event).
         var putaway = stockIn.PutawayItem(command.ItemId, quantity);
         if (putaway.IsFailure)
@@ -93,11 +108,12 @@ public sealed class PutawayStockInItemCommandHandler(IAppDbContext context)
         var inventory = contentsAtLocation.FirstOrDefault(i =>
             i.LocationId == item.LocationId
             && i.ProductId == line.ProductId
-            && i.LotId == line.LotId);
+            && i.LotId == line.LotId
+            && i.HandlingUnitId == item.HandlingUnitId);
 
         if (inventory is null)
         {
-            inventory = new Inventory(line.ProductId, item.LocationId, line.LotId);
+            inventory = new Inventory(line.ProductId, item.LocationId, line.LotId, item.HandlingUnitId);
             await context.Inventories.AddAsync(inventory, cancellationToken);
         }
 

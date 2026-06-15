@@ -19,6 +19,9 @@ public class StockOutItem : Entity
     public Quantity Quantity { get; private set; } = new Quantity(0);
     public PickingStrategyType Strategy { get; private set; }
 
+    /// <summary>The handling unit the planner pinned this pick to; null = loose stock.</summary>
+    public Guid? HandlingUnitId { get; private set; }
+
     /// <summary>How much of <see cref="Quantity"/> has been physically picked so far.</summary>
     public Quantity PickedQuantity { get; private set; } = new Quantity(0);
 
@@ -29,13 +32,14 @@ public class StockOutItem : Entity
 
     private StockOutItem() { }
 
-    public StockOutItem(Guid locationId, Guid? lotId, Quantity quantity, PickingStrategyType strategy)
+    public StockOutItem(Guid locationId, Guid? lotId, Quantity quantity, PickingStrategyType strategy, Guid? handlingUnitId = null)
     {
         Id = Guid.NewGuid();
         LocationId = locationId;
         LotId = lotId;
         Quantity = quantity;
         Strategy = strategy;
+        HandlingUnitId = handlingUnitId;
     }
 
     /// <summary>

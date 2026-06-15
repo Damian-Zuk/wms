@@ -17,6 +17,7 @@ public static class WarehouseCleaner
         await context.StockOutLines.ExecuteDeleteAsync(cancellationToken);
         await context.StockOuts.ExecuteDeleteAsync(cancellationToken);
         await context.Inventories.ExecuteDeleteAsync(cancellationToken);
+        await context.HandlingUnits.ExecuteDeleteAsync(cancellationToken);
         await context.ProductPreferredLocations.ExecuteDeleteAsync(cancellationToken);
         await context.Lots.ExecuteDeleteAsync(cancellationToken);
         await context.Products.ExecuteDeleteAsync(cancellationToken);

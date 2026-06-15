@@ -18,6 +18,7 @@ public class AppDbContext(
     public DbSet<ProductPreferredLocation> ProductPreferredLocations => Set<ProductPreferredLocation>();
     public DbSet<Location> Locations => Set<Location>();
     public DbSet<Inventory> Inventories => Set<Inventory>();
+    public DbSet<HandlingUnit> HandlingUnits => Set<HandlingUnit>();
     public DbSet<Lot> Lots => Set<Lot>();
     public DbSet<StockIn> StockIns => Set<StockIn>();
     public DbSet<StockInLine> StockInLines => Set<StockInLine>();
@@ -32,6 +33,10 @@ public class AppDbContext(
     {
         base.OnModelCreating(builder);
         builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+
+        // In the model (not just a migration) so test databases created via
+        // EnsureCreated get the sequence too.
+        builder.HasSequence<long>("HandlingUnitCodes").StartsAt(1);
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

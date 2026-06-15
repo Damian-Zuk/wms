@@ -267,6 +267,66 @@ public class PutawayPlannerTests
         second.Error.Code.Should().Be("Putaway.CannotPlaceFullQuantity");
     }
 
+    [Fact]
+    public void PlanSingle_skips_bins_too_small_for_the_whole_chunk()
+    {
+        // Plan would fill B1 partially; a chunk must skip it and land whole in B2.
+        var product = TestData.Product();
+        var small = StorageAt("B1", "SMALL", capacity: 60);
+        var big = StorageAt("B2", "BIG", capacity: 100);
+        var context = new PutawayPlanContext([small, big], [], [], [product]);
+
+        var result = NewPlanner().PlanSingle(product, null, new Quantity(80), context);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.LocationId.Should().Be(big.Id);
+        result.Value.Quantity.Should().Be(80);
+    }
+
+    [Fact]
+    public void PlanSingle_commits_so_the_next_chunk_avoids_the_filled_bin()
+    {
+        var product = TestData.Product();
+        var locA = StorageAt("B1", "A", capacity: 100);
+        var locB = StorageAt("B2", "B", capacity: 100);
+        var context = new PutawayPlanContext([locA, locB], [], [], [product]);
+        var planner = NewPlanner();
+
+        var first = planner.PlanSingle(product, null, new Quantity(70), context);
+        var second = planner.PlanSingle(product, null, new Quantity(70), context);
+
+        first.IsSuccess.Should().BeTrue();
+        second.IsSuccess.Should().BeTrue();
+        first.Value.LocationId.Should().NotBe(second.Value.LocationId);
+    }
+
+    [Fact]
+    public void PlanSingle_fails_when_only_a_split_could_satisfy()
+    {
+        var product = TestData.Product();
+        var locA = StorageAt("B1", "A", capacity: 60);
+        var locB = StorageAt("B2", "B", capacity: 60);
+        var context = new PutawayPlanContext([locA, locB], [], [], [product]);
+
+        var result = NewPlanner().PlanSingle(product, null, new Quantity(100), context);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("Putaway.NoSingleLocationFitsHandlingUnit");
+    }
+
+    [Fact]
+    public void PlanSingle_accepts_an_unlimited_location()
+    {
+        var product = TestData.Product();
+        var unlimited = StorageAt("B1", "INF", capacity: null);
+        var context = new PutawayPlanContext([unlimited], [], [], [product]);
+
+        var result = NewPlanner().PlanSingle(product, null, new Quantity(500), context);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.LocationId.Should().Be(unlimited.Id);
+    }
+
     private static void SetMixedSkuDisallowed(Location location) =>
         location.Update(
             location.Code,

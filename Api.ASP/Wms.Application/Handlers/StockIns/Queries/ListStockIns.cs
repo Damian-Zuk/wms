@@ -56,7 +56,8 @@ public sealed class ListStockInsQueryHandler(IAppDbContext context)
                         i.LocationId,
                         Quantity = i.Quantity.Value,
                         PlacedQuantity = i.PlacedQuantity.Value,
-                        i.Strategy
+                        i.Strategy,
+                        i.HandlingUnitId
                     }).ToList()
                 }).ToList()
             })
@@ -66,10 +67,16 @@ public sealed class ListStockInsQueryHandler(IAppDbContext context)
         var productIds = allLines.Select(l => l.ProductId).Distinct().ToList();
         var lotIds = allLines.Where(l => l.LotId.HasValue).Select(l => l.LotId!.Value).Distinct().ToList();
         var locationIds = allLines.SelectMany(l => l.Items).Select(i => i.LocationId).Distinct().ToList();
+        var handlingUnitIds = allLines.SelectMany(l => l.Items)
+            .Where(i => i.HandlingUnitId.HasValue)
+            .Select(i => i.HandlingUnitId!.Value)
+            .Distinct()
+            .ToList();
 
         var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
         var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
         var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
+        var handlingUnits = await RefLookup.LoadHandlingUnitRefsAsync(context, handlingUnitIds, cancellationToken);
 
         var items = page.Select(s => new StockInDto(
                 s.Id,
@@ -87,7 +94,8 @@ public sealed class ListStockInsQueryHandler(IAppDbContext context)
                         l.Quantity,
                         l.Items
                             .Select(i => new StockInPlacementDto(
-                                i.Id, locations[i.LocationId], i.Quantity, i.PlacedQuantity, i.Strategy))
+                                i.Id, locations[i.LocationId], i.Quantity, i.PlacedQuantity, i.Strategy,
+                                i.HandlingUnitId.HasValue ? handlingUnits[i.HandlingUnitId.Value] : null))
                             .ToList()))
                     .ToList()))
             .ToList();

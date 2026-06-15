@@ -12,7 +12,7 @@ public class InventoryConfiguration : EntityConfiguration<Inventory>
 
         builder.ToTable("Inventories");
 
-        builder.HasIndex(i => new { i.ProductId, i.LocationId, i.LotId })
+        builder.HasIndex(i => new { i.ProductId, i.LocationId, i.LotId, i.HandlingUnitId })
             .IsUnique();
 
         builder.OwnsOne(i => i.OnHand, qtyBuilder =>
@@ -49,6 +49,15 @@ public class InventoryConfiguration : EntityConfiguration<Inventory>
             .WithMany()
             .HasForeignKey(i => i.LotId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property(i => i.HandlingUnitId).IsRequired(false);
+
+        builder.HasOne<HandlingUnit>()
+            .WithMany()
+            .HasForeignKey(i => i.HandlingUnitId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(i => i.HandlingUnitId);
 
         builder.Property<uint>("xmin").IsRowVersion();
     }

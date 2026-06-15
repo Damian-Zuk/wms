@@ -16,7 +16,8 @@ public sealed record InventoryDto(
     int OnHand,
     int Reserved,
     int Available,
-    decimal OnHandValue);
+    decimal OnHandValue,
+    HandlingUnitRef? HandlingUnit);
 
 public sealed record GetInventoryQuery(Guid Id) : IQuery<InventoryDto>;
 
@@ -36,6 +37,7 @@ public sealed class GetInventoryQueryHandler(IAppDbContext context)
                 i.ProductId,
                 i.LocationId,
                 i.LotId,
+                i.HandlingUnitId,
                 OnHand = i.OnHand.Value,
                 Reserved = i.Reserved.Value,
                 UnitPrice = context.Products
@@ -58,6 +60,10 @@ public sealed class GetInventoryQueryHandler(IAppDbContext context)
             ? await RefLookup.LoadLotRefsAsync(context, [inventory.LotId.Value], cancellationToken)
             : new Dictionary<Guid, LotRef>();
 
+        var handlingUnits = inventory.HandlingUnitId.HasValue
+            ? await RefLookup.LoadHandlingUnitRefsAsync(context, [inventory.HandlingUnitId.Value], cancellationToken)
+            : new Dictionary<Guid, HandlingUnitRef>();
+
         return new InventoryDto(
             inventory.Id,
             products[inventory.ProductId],
@@ -67,6 +73,7 @@ public sealed class GetInventoryQueryHandler(IAppDbContext context)
             inventory.OnHand,
             inventory.Reserved,
             inventory.OnHand - inventory.Reserved,
-            inventory.OnHand * inventory.UnitPrice);
+            inventory.OnHand * inventory.UnitPrice,
+            inventory.HandlingUnitId.HasValue ? handlingUnits[inventory.HandlingUnitId.Value] : null);
     }
 }

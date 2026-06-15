@@ -12,6 +12,9 @@ public class Inventory : Entity
     public Guid LocationId { get; private set; }
     public Guid? LotId { get; private set; }
 
+    /// <summary>The handling unit this stock sits on; null = loose stock.</summary>
+    public Guid? HandlingUnitId { get; private set; }
+
     /// <summary>Physical units present in the location.</summary>
     public Quantity OnHand { get; private set; } = new Quantity(0);
 
@@ -25,12 +28,13 @@ public class Inventory : Entity
 
     private Inventory() { }
 
-    public Inventory(Guid productId, Guid locationId, Guid? lotId = null)
+    public Inventory(Guid productId, Guid locationId, Guid? lotId = null, Guid? handlingUnitId = null)
     {
         Id = Guid.NewGuid();
         ProductId = productId;
         LocationId = locationId;
         LotId = lotId;
+        HandlingUnitId = handlingUnitId;
         OnHand = new Quantity(0);
         Reserved = new Quantity(0);
     }
@@ -148,7 +152,8 @@ public class Inventory : Entity
             LocationId,
             LotId,
             quantityChange,
-            reason));
+            reason,
+            HandlingUnitId));
 
         return Result.Success();
     }
@@ -177,7 +182,63 @@ public class Inventory : Entity
             LocationId,
             destination.LocationId,
             LotId,
-            quantity.Value));
+            quantity.Value,
+            HandlingUnitId,
+            destination.HandlingUnitId));
+
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Carries this row along when its handling unit is relocated. The whole row moves —
+    /// a pallet's contents travel with the pallet — so any outbound reservation blocks
+    /// the move (the pick that owns it points at this row in its current location).
+    /// <see cref="ReceivedAt"/> is untouched: FIFO age travels with the stock.
+    /// </summary>
+    public Result RelocateWith(Guid destinationLocationId, Guid moveId)
+    {
+        if (Reserved.Value > 0)
+            return HandlingUnitErrors.HasReservedStock(HandlingUnitId!.Value);
+
+        if (LocationId == destinationLocationId)
+            return HandlingUnitErrors.SameLocation();
+
+        if (OnHand.Value > 0)
+        {
+            Raise(new HandlingUnitMovedDomainEvent(
+                moveId,
+                HandlingUnitId!.Value,
+                ProductId,
+                LocationId,
+                destinationLocationId,
+                LotId,
+                OnHand.Value));
+        }
+
+        LocationId = destinationLocationId;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Re-buckets stock between this row and another row of the same product/lot at the
+    /// same location — packing loose stock onto a handling unit or unpacking off one.
+    /// Only Available stock may move: a reservation pins the row identity the pick
+    /// references. No movement event — the stock never leaves the location.
+    /// </summary>
+    public Result Rebucket(Inventory destination, Quantity quantity)
+    {
+        if (LocationId != destination.LocationId)
+            return HandlingUnitErrors.SameLocation();
+
+        if (ProductId != destination.ProductId || LotId != destination.LotId)
+            return InventoryErrors.RebucketMustMatchProductAndLot();
+
+        if (quantity.Value > Available.Value)
+            return InventoryErrors.InsufficientAvailableStock(Available.Value, quantity.Value);
+
+        OnHand = OnHand.Subtract(quantity);
+        destination.OnHand = destination.OnHand.Add(quantity);
+        destination.ReceivedAt ??= ReceivedAt;
 
         return Result.Success();
     }

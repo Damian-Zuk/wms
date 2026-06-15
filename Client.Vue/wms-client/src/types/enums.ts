@@ -26,3 +26,6 @@ export type StockMovementSource =
   | 'Transfer'
   | 'StockOutCancellation'
   | 'StockInCancellation'
+  | 'HandlingUnitMove'
+
+export type HandlingUnitType = 'Pallet' | 'Box' | 'Container'

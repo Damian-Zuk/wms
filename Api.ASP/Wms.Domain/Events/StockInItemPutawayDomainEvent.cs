@@ -7,4 +7,5 @@ public sealed record StockInItemPutawayDomainEvent(
     Guid ProductId,
     Guid LocationId,
     Guid? LotId,
-    int Quantity) : IDomainEvent;
+    int Quantity,
+    Guid? HandlingUnitId = null) : IDomainEvent;

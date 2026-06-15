@@ -216,17 +216,93 @@ public class PutawayStockInItemCommandHandlerTests : IntegrationTestBase
         result.Error.Code.Should().Be("StockIn.NotFound");
     }
 
+    [Fact]
+    public async Task Handling_unit_item_places_the_unit_and_keys_inventory_to_it()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var product = TestData.Product("PUT-HU-1");
+        var location = TestData.Location("PUT-HU-1-LOC", capacity: 100);
+        var handlingUnit = TestData.HandlingUnit("PUT-HU-1-PAL");
+        Context.HandlingUnits.Add(handlingUnit);
+
+        // Loose stock already at the location: the pallet's stock must not merge into it.
+        Context.Inventories.Add(TestData.Inventory(product.Id, location.Id, onHand: 5));
+
+        var (stockIn, item) = await ArrangePutawayAsync(
+            product, location, 20, lot: null, handlingUnitId: handlingUnit.Id);
+
+        await using var actContext = CreateContext();
+        WireStockInItemPutawayHandler(actContext);
+        var handler = new PutawayStockInItemCommandHandler(actContext);
+
+        // Two partial putaways: the second must reuse the same handling-unit row.
+        (await handler.Handle(new PutawayStockInItemCommand(stockIn.Id, item.Id, 8), ct))
+            .IsSuccess.Should().BeTrue();
+        (await handler.Handle(new PutawayStockInItemCommand(stockIn.Id, item.Id, 12), ct))
+            .IsSuccess.Should().BeTrue();
+
+        await using var verify = CreateContext();
+
+        var placedUnit = await verify.HandlingUnits.AsNoTracking().SingleAsync(h => h.Id == handlingUnit.Id, ct);
+        placedUnit.LocationId.Should().Be(location.Id);
+
+        var rows = await verify.Inventories.AsNoTracking()
+            .Where(i => i.ProductId == product.Id && i.LocationId == location.Id)
+            .ToListAsync(ct);
+        rows.Should().HaveCount(2);
+        rows.Single(r => r.HandlingUnitId == handlingUnit.Id).OnHand.Value.Should().Be(20);
+        rows.Single(r => r.HandlingUnitId == null).OnHand.Value.Should().Be(5);
+
+        var movements = await verify.StockMovements.AsNoTracking()
+            .Where(m => m.SourceId == stockIn.Id)
+            .ToListAsync(ct);
+        movements.Should().HaveCount(2);
+        movements.Should().OnlyContain(m => m.HandlingUnitId == handlingUnit.Id);
+    }
+
+    [Fact]
+    public async Task Handling_unit_already_standing_elsewhere_blocks_the_putaway()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var product = TestData.Product("PUT-HU-2");
+        var location = TestData.Location("PUT-HU-2-LOC", capacity: 100);
+        var elsewhere = TestData.Location("PUT-HU-2-ELSE", capacity: 100);
+        Context.Locations.Add(elsewhere);
+        var handlingUnit = TestData.HandlingUnit("PUT-HU-2-PAL");
+        Context.HandlingUnits.Add(handlingUnit);
+
+        var (stockIn, item) = await ArrangePutawayAsync(
+            product, location, 10, lot: null, handlingUnitId: handlingUnit.Id);
+
+        // Someone moved the unit somewhere else between declaration and putaway.
+        handlingUnit.PlaceAt(elsewhere.Id);
+        await Context.SaveChangesAsync(ct);
+
+        await using var actContext = CreateContext();
+        var handler = new PutawayStockInItemCommandHandler(actContext);
+
+        var result = await handler.Handle(new PutawayStockInItemCommand(stockIn.Id, item.Id, 10), ct);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("HandlingUnit.AlreadyPlacedElsewhere");
+
+        await using var verify = CreateContext();
+        (await verify.Inventories.AnyAsync(i => i.LocationId == location.Id, ct)).Should().BeFalse();
+    }
+
     /// <summary>
     /// Seeds a product/location (and optional lot), a StockIn driven to Putaway, and
     /// the capacity hold that StartPutaway would have created — so a putaway has
     /// something to book against and shrink.
     /// </summary>
     private async Task<(StockIn StockIn, StockInItem Item)> ArrangePutawayAsync(
-        Product product, Location location, int quantity, Lot? lot)
+        Product product, Location location, int quantity, Lot? lot, Guid? handlingUnitId = null)
     {
         var ct = TestContext.Current.CancellationToken;
 
-        var stockIn = TestData.StockIn(product.Id, location.Id, quantity, lot?.Id);
+        var stockIn = TestData.StockIn(product.Id, location.Id, quantity, lot?.Id, handlingUnitId: handlingUnitId);
         stockIn.StartPutaway();
         stockIn.ClearDomainEvents();
 

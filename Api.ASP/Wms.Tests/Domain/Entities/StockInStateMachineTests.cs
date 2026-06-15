@@ -85,7 +85,7 @@ public class StockInStateMachineTests
 
             var result = stockIn.ModifyLinePlacements(
                 lineId,
-                [(Guid.NewGuid(), 7), (Guid.NewGuid(), 3)],
+                [(Guid.NewGuid(), 7, null), (Guid.NewGuid(), 3, null)],
                 "alice",
                 when);
 
@@ -106,7 +106,7 @@ public class StockInStateMachineTests
 
             var result = stockIn.ModifyLinePlacements(
                 lineId,
-                [(Guid.NewGuid(), 9)],
+                [(Guid.NewGuid(), 9, null)],
                 "alice",
                 DateTime.UtcNow);
 
@@ -121,7 +121,7 @@ public class StockInStateMachineTests
 
             var result = stockIn.ModifyLinePlacements(
                 Guid.NewGuid(),
-                [(Guid.NewGuid(), 10)],
+                [(Guid.NewGuid(), 10, null)],
                 "alice",
                 DateTime.UtcNow);
 
@@ -138,7 +138,7 @@ public class StockInStateMachineTests
 
             var result = stockIn.ModifyLinePlacements(
                 lineId,
-                [(Guid.NewGuid(), 10)],
+                [(Guid.NewGuid(), 10, null)],
                 "alice",
                 DateTime.UtcNow);
 

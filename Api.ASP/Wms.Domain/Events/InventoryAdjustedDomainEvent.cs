@@ -8,4 +8,5 @@ public sealed record InventoryAdjustedDomainEvent(
     Guid LocationId,
     Guid? LotId,
     int QuantityChange,
-    string? Reason) : IDomainEvent;
+    string? Reason,
+    Guid? HandlingUnitId = null) : IDomainEvent;

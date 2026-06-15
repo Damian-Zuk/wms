@@ -5,6 +5,8 @@ using Wms.Application.Common.Messaging;
 using Wms.Application.Putaway;
 using Wms.Domain.Entities;
 using Wms.Domain.Errors;
+using Wms.Domain.Models;
+using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
 
 namespace Wms.Application.Handlers.StockIns.Commands;
@@ -70,11 +72,30 @@ public sealed class ReplanStockInLineCommandHandler(IAppDbContext context, IPuta
 
         var planContext = new PutawayPlanContext(locations, inventories, activeReservations, products.Values);
 
-        var plan = planner.Plan(product, lot, line.Quantity, planContext);
-        if (plan.IsFailure)
-            return plan.Error;
+        // The line's handling units keep their declared quantities — each chunk is
+        // re-planned to a (possibly new) single location — and the loose remainder
+        // is re-planned as before.
+        var allocations = new List<PlacementAllocation>();
+        foreach (var item in line.Items.Where(i => i.HandlingUnitId.HasValue))
+        {
+            var chunk = planner.PlanSingle(product, lot, item.Quantity, planContext);
+            if (chunk.IsFailure)
+                return chunk.Error;
 
-        var replan = stockIn.ReplanLinePlacements(command.LineId, plan.Value);
+            allocations.Add(chunk.Value with { HandlingUnitId = item.HandlingUnitId });
+        }
+
+        var looseQuantity = line.Quantity.Value - allocations.Sum(a => a.Quantity);
+        if (looseQuantity > 0)
+        {
+            var plan = planner.Plan(product, lot, new Quantity(looseQuantity), planContext);
+            if (plan.IsFailure)
+                return plan.Error;
+
+            allocations.AddRange(plan.Value);
+        }
+
+        var replan = stockIn.ReplanLinePlacements(command.LineId, allocations);
         if (replan.IsFailure)
             return replan.Error;
 

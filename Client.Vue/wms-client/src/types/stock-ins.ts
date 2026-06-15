@@ -1,5 +1,5 @@
-import type { LocationRef, LotRef, ProductRef } from './refs'
-import type { PutawayStrategyType, StockInStatus } from './enums'
+import type { HandlingUnitRef, LocationRef, LotRef, ProductRef } from './refs'
+import type { HandlingUnitType, PutawayStrategyType, StockInStatus } from './enums'
 
 /** A planned/edited placement: where part of a line's quantity goes. */
 export interface StockInPlacementDto {
@@ -8,6 +8,8 @@ export interface StockInPlacementDto {
   quantity: number
   placedQuantity: number
   strategy: PutawayStrategyType
+  /** The declared handling unit this placement receives onto; null = loose stock. */
+  handlingUnit: HandlingUnitRef | null
 }
 
 /** A requested receipt line; its quantity is split across one or more placements. */
@@ -37,11 +39,21 @@ export interface StockInFilters {
   pageSize: number
 }
 
+/** A handling unit announced on a receipt line (ASN style). */
+export interface DeclaredHandlingUnit {
+  quantity: number
+  type: HandlingUnitType
+  /** Optional license plate; generated when null. */
+  code: string | null
+}
+
 /** One create line — the caller does NOT pick locations; the planner does. */
 export interface CreateStockInLine {
   productId: string
   lotId: string | null
   quantity: number
+  /** Declared units must not exceed the line quantity; the remainder arrives loose. */
+  handlingUnits?: DeclaredHandlingUnit[]
 }
 
 /** POST /api/stock-ins body. */
@@ -59,6 +71,8 @@ export interface UpdateStockInDescriptionRequest {
 export interface ModifyPlacement {
   locationId: string
   quantity: number
+  /** Keeps the placement bound to its declared handling unit; null = loose. */
+  handlingUnitId: string | null
 }
 
 /** PUT /api/stock-ins/{id}/lines/{lineId}/placements body. */

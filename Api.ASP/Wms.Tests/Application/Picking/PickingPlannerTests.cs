@@ -204,4 +204,49 @@ public class PickingPlannerTests
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("Picking.UnknownStrategy");
     }
+
+    [Fact]
+    public void Handling_unit_and_loose_rows_at_one_location_are_distinct_sources()
+    {
+        var product = TestData.Product("HU-SPLIT");
+        var location = TestData.Location("HU-SPLIT-LOC");
+        var handlingUnitId = Guid.NewGuid();
+
+        // Same product, same location, no lots: an older pallet and newer loose stock.
+        var huRow = TestData.Inventory(product.Id, location.Id, onHand: 6,
+            receivedAt: new DateTime(2026, 01, 01, 0, 0, 0, DateTimeKind.Utc),
+            handlingUnitId: handlingUnitId);
+        var looseRow = TestData.Inventory(product.Id, location.Id, onHand: 6,
+            receivedAt: new DateTime(2026, 02, 01, 0, 0, 0, DateTimeKind.Utc));
+
+        var context = new PickingContext([huRow, looseRow], [], [location]);
+
+        var result = NewPlanner().Plan(product.Id, PickingStrategyType.Fifo, new Quantity(9), context);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value.Should().HaveCount(2);
+        result.Value[0].HandlingUnitId.Should().Be(handlingUnitId, "the pallet is older, FIFO drains it first");
+        result.Value[0].Quantity.Should().Be(6);
+        result.Value[1].HandlingUnitId.Should().BeNull();
+        result.Value[1].Quantity.Should().Be(3);
+    }
+
+    [Fact]
+    public void Commit_only_consumes_the_matching_handling_unit_bucket()
+    {
+        var product = TestData.Product("HU-COMMIT");
+        var location = TestData.Location("HU-COMMIT-LOC");
+        var handlingUnitId = Guid.NewGuid();
+
+        var huRow = TestData.Inventory(product.Id, location.Id, onHand: 5, handlingUnitId: handlingUnitId);
+        var looseRow = TestData.Inventory(product.Id, location.Id, onHand: 5);
+
+        var context = new PickingContext([huRow, looseRow], [], [location]);
+
+        context.Commit(product.Id, location.Id, null, handlingUnitId, 5);
+
+        var remaining = context.AvailableFor(product.Id);
+        remaining.Should().ContainSingle()
+            .Which.HandlingUnitId.Should().BeNull("only the pallet bucket was committed");
+    }
 }

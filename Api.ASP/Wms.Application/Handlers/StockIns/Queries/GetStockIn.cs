@@ -13,7 +13,8 @@ public sealed record StockInPlacementDto(
     LocationRef Location,
     int Quantity,
     int PlacedQuantity,
-    PutawayStrategyType Strategy);
+    PutawayStrategyType Strategy,
+    HandlingUnitRef? HandlingUnit);
 
 public sealed record StockInLineDto(
     Guid Id,
@@ -65,7 +66,8 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
                         i.LocationId,
                         Quantity = i.Quantity.Value,
                         PlacedQuantity = i.PlacedQuantity.Value,
-                        i.Strategy
+                        i.Strategy,
+                        i.HandlingUnitId
                     }).ToList()
                 }).ToList()
             })
@@ -77,10 +79,16 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
         var productIds = stockIn.Lines.Select(l => l.ProductId).Distinct().ToList();
         var lotIds = stockIn.Lines.Where(l => l.LotId.HasValue).Select(l => l.LotId!.Value).Distinct().ToList();
         var locationIds = stockIn.Lines.SelectMany(l => l.Items).Select(i => i.LocationId).Distinct().ToList();
+        var handlingUnitIds = stockIn.Lines.SelectMany(l => l.Items)
+            .Where(i => i.HandlingUnitId.HasValue)
+            .Select(i => i.HandlingUnitId!.Value)
+            .Distinct()
+            .ToList();
 
         var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
         var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
         var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
+        var handlingUnits = await RefLookup.LoadHandlingUnitRefsAsync(context, handlingUnitIds, cancellationToken);
 
         var lines = stockIn.Lines
             .Select(l => new StockInLineDto(
@@ -90,7 +98,8 @@ public sealed class GetStockInQueryHandler(IAppDbContext context)
                 l.Quantity,
                 l.Items
                     .Select(i => new StockInPlacementDto(
-                        i.Id, locations[i.LocationId], i.Quantity, i.PlacedQuantity, i.Strategy))
+                        i.Id, locations[i.LocationId], i.Quantity, i.PlacedQuantity, i.Strategy,
+                        i.HandlingUnitId.HasValue ? handlingUnits[i.HandlingUnitId.Value] : null))
                     .ToList()))
             .ToList();
 

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Wms.Application.Common.Data;
 using Wms.Application.Common.Messaging;
 using Wms.Application.Common.Extensions;
+using Wms.Domain.Entities;
 using Wms.Domain.Errors;
 using Wms.Domain.ValueObjects;
 using Wms.Shared.Common;
@@ -56,7 +57,8 @@ public sealed class CancelStockInCommandHandler(IAppDbContext context)
                 var inventory = inventories.FirstOrDefault(i =>
                     i.ProductId == line.ProductId
                     && i.LocationId == item.LocationId
-                    && i.LotId == line.LotId);
+                    && i.LotId == line.LotId
+                    && i.HandlingUnitId == item.HandlingUnitId);
 
                 // The putaway created this row, so it should exist; treat a missing or
                 // short row as the units no longer being on hand to remove.
@@ -69,6 +71,45 @@ public sealed class CancelStockInCommandHandler(IAppDbContext context)
             }
         }
 
+        await CleanUpDeclaredHandlingUnitsAsync(stockIn, cancellationToken);
+
         return await context.SaveChangesWithConcurrencyCheckAsync(cancellationToken);
+    }
+
+    /// <summary>
+    /// Soft-deletes the stock-in's declared handling units that end up holding nothing —
+    /// never-placed ones and ones whose putaway was just reversed. A unit that gained
+    /// other stock in the meantime (someone packed onto it) stays.
+    /// </summary>
+    private async Task CleanUpDeclaredHandlingUnitsAsync(StockIn stockIn, CancellationToken cancellationToken)
+    {
+        var huIds = stockIn.Lines
+            .SelectMany(l => l.Items)
+            .Where(i => i.HandlingUnitId.HasValue)
+            .Select(i => i.HandlingUnitId!.Value)
+            .Distinct()
+            .ToList();
+
+        if (huIds.Count == 0)
+            return;
+
+        var handlingUnits = await context.HandlingUnits
+            .Where(h => huIds.Contains(h.Id))
+            .ToListAsync(cancellationToken);
+
+        // The identity map returns the rows already decreased above, so these sums
+        // reflect the post-reversal state.
+        var stockByHu = (await context.Inventories
+                .Where(i => i.HandlingUnitId.HasValue && huIds.Contains(i.HandlingUnitId.Value))
+                .ToListAsync(cancellationToken))
+            .GroupBy(i => i.HandlingUnitId!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(i => i.OnHand.Value + i.Reserved.Value));
+
+        foreach (var handlingUnit in handlingUnits)
+        {
+            var remaining = stockByHu.TryGetValue(handlingUnit.Id, out var total) ? total : 0;
+            if (remaining == 0)
+                handlingUnit.MarkAsDeleted();
+        }
     }
 }

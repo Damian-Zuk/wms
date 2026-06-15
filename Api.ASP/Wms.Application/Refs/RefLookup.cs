@@ -58,4 +58,22 @@ public static class RefLookup
             .Select(l => new LotRef(l.Id, l.Number.Value, l.ExpirationDate))
             .ToDictionaryAsync(r => r.Id, cancellationToken);
     }
+
+    public static async Task<Dictionary<Guid, HandlingUnitRef>> LoadHandlingUnitRefsAsync(
+        IAppDbContext context,
+        IReadOnlyCollection<Guid> ids,
+        CancellationToken cancellationToken)
+    {
+        if (ids.Count == 0)
+            return new Dictionary<Guid, HandlingUnitRef>();
+
+        // Movements and completed documents may reference soft-deleted units
+        // (e.g. cancelled stock-ins); their refs must still resolve.
+        return await context.HandlingUnits
+            .AsNoTracking()
+            .IgnoreQueryFilters()
+            .Where(h => ids.Contains(h.Id))
+            .Select(h => new HandlingUnitRef(h.Id, h.Code.Value, h.Type))
+            .ToDictionaryAsync(r => r.Id, cancellationToken);
+    }
 }

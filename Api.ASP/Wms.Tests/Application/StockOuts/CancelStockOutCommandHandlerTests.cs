@@ -238,6 +238,53 @@ public class CancelStockOutCommandHandlerTests : IntegrationTestBase
         result.Error.Code.Should().Be("StockOut.NotFound");
     }
 
+    [Fact]
+    public async Task Cancel_after_pick_returns_stock_to_the_handling_unit_row()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var product = TestData.Product("CNO-HU-1");
+        var location = TestData.Location("CNO-HU-1-LOC");
+        var handlingUnit = TestData.HandlingUnit("CNO-HU-1-PAL", locationId: location.Id);
+
+        // Pallet row picked down to 6 (4 picked, nothing reserved anymore), plus a
+        // loose row that must stay untouched by the cancellation.
+        var huRow = TestData.Inventory(product.Id, location.Id, onHand: 6, handlingUnitId: handlingUnit.Id);
+        var looseRow = TestData.Inventory(product.Id, location.Id, onHand: 9);
+
+        var stockOut = TestData.StockOut(product.Id, location.Id, 4, handlingUnitId: handlingUnit.Id);
+        stockOut.StartPicking();
+        var item = stockOut.Lines.Single().Items.Single();
+        stockOut.PickItem(item.Id, new Quantity(4));
+        stockOut.ClearDomainEvents();
+
+        Context.Products.Add(product);
+        Context.Locations.Add(location);
+        Context.HandlingUnits.Add(handlingUnit);
+        Context.Inventories.AddRange(huRow, looseRow);
+        Context.StockOuts.Add(stockOut);
+        await Context.SaveChangesAsync(ct);
+
+        await using var actContext = CreateContext();
+        WireReturnedToStockHandler(actContext);
+        var handler = new CancelStockOutCommandHandler(actContext);
+
+        var result = await handler.Handle(new CancelStockOutCommand(stockOut.Id), ct);
+
+        result.IsSuccess.Should().BeTrue();
+
+        await using var verify = CreateContext();
+
+        var reloadedHuRow = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == huRow.Id, ct);
+        reloadedHuRow.OnHand.Value.Should().Be(10, "the picked units return to the pallet");
+
+        var reloadedLooseRow = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == looseRow.Id, ct);
+        reloadedLooseRow.OnHand.Value.Should().Be(9);
+
+        var movement = await verify.StockMovements.AsNoTracking().SingleAsync(m => m.SourceId == stockOut.Id, ct);
+        movement.HandlingUnitId.Should().Be(handlingUnit.Id);
+    }
+
     private void WireReturnedToStockHandler(IAppDbContext context)
     {
         EventDispatcher.Register<StockOutItemReturnedToStockDomainEvent>((evt, ct) =>

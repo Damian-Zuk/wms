@@ -18,7 +18,8 @@ internal sealed class StockTransferredDomainEventHandler(IAppDbContext context)
             domainEvent.Quantity,
             StockMovementType.Out,
             StockMovementSource.Transfer,
-            domainEvent.TransferId);
+            domainEvent.TransferId,
+            domainEvent.SourceHandlingUnitId);
 
         var inMovement = new StockMovement(
             domainEvent.ProductId,
@@ -27,7 +28,8 @@ internal sealed class StockTransferredDomainEventHandler(IAppDbContext context)
             domainEvent.Quantity,
             StockMovementType.In,
             StockMovementSource.Transfer,
-            domainEvent.TransferId);
+            domainEvent.TransferId,
+            domainEvent.DestinationHandlingUnitId);
 
         await context.StockMovements.AddAsync(outMovement, cancellationToken);
         await context.StockMovements.AddAsync(inMovement, cancellationToken);

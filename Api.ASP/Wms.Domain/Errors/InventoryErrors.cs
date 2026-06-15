@@ -41,4 +41,8 @@ public static class InventoryErrors
         "Inventory.InsufficientAvailableStockForFefo",
         $"FEFO cannot fully allocate product '{productId}' " +
         $"(available across lots: {available}, requested: {requested}).");
+
+    public static Error RebucketMustMatchProductAndLot() => Error.Problem(
+        "Inventory.RebucketMustMatchProductAndLot",
+        "Stock can only be re-bucketed between rows of the same product and lot.");
 }

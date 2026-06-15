@@ -47,6 +47,14 @@ public class StockOutItemConfiguration : EntityConfiguration<StockOutItem>
             .HasForeignKey(i => i.LotId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(i => i.HandlingUnitId)
+            .IsRequired(false);
+
+        builder.HasOne<HandlingUnit>()
+            .WithMany()
+            .HasForeignKey(i => i.HandlingUnitId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex("StockOutLineId");
         builder.HasIndex(i => i.LocationId);
     }

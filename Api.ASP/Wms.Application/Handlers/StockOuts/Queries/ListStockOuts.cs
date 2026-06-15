@@ -55,7 +55,8 @@ public sealed class ListStockOutsQueryHandler(IAppDbContext context)
                         i.LotId,
                         Quantity = i.Quantity.Value,
                         PickedQuantity = i.PickedQuantity.Value,
-                        i.Strategy
+                        i.Strategy,
+                        i.HandlingUnitId
                     }).ToList()
                 }).ToList()
             })
@@ -65,10 +66,16 @@ public sealed class ListStockOutsQueryHandler(IAppDbContext context)
         var productIds = page.SelectMany(s => s.Lines).Select(l => l.ProductId).Distinct().ToList();
         var locationIds = allItems.Select(i => i.LocationId).Distinct().ToList();
         var lotIds = allItems.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
+        var handlingUnitIds = allItems
+            .Where(i => i.HandlingUnitId.HasValue)
+            .Select(i => i.HandlingUnitId!.Value)
+            .Distinct()
+            .ToList();
 
         var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
         var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
         var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
+        var handlingUnits = await RefLookup.LoadHandlingUnitRefsAsync(context, handlingUnitIds, cancellationToken);
 
         var items = page.Select(s => new StockOutDto(
                 s.Id,
@@ -89,7 +96,8 @@ public sealed class ListStockOutsQueryHandler(IAppDbContext context)
                                 i.LotId.HasValue ? lots[i.LotId.Value] : null,
                                 i.Quantity,
                                 i.PickedQuantity,
-                                i.Strategy))
+                                i.Strategy,
+                                i.HandlingUnitId.HasValue ? handlingUnits[i.HandlingUnitId.Value] : null))
                             .ToList()))
                     .ToList()))
             .ToList();

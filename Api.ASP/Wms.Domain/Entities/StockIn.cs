@@ -61,7 +61,7 @@ public class StockIn : Entity
     /// </summary>
     public Result ModifyLinePlacements(
         Guid lineId,
-        IEnumerable<(Guid LocationId, int Quantity)> placements,
+        IEnumerable<(Guid LocationId, int Quantity, Guid? HandlingUnitId)> placements,
         string? modifiedBy,
         DateTime modifiedAt)
     {
@@ -133,7 +133,8 @@ public class StockIn : Entity
             line.ProductId,
             item.LocationId,
             line.LotId,
-            qty.Value));
+            qty.Value,
+            item.HandlingUnitId));
 
         return Result.Success();
     }
@@ -179,7 +180,8 @@ public class StockIn : Entity
                         line.ProductId,
                         item.LocationId,
                         line.LotId,
-                        item.PlacedQuantity.Value));
+                        item.PlacedQuantity.Value,
+                        item.HandlingUnitId));
                 }
             }
         }

@@ -1,7 +1,9 @@
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Wms.Application.Handlers.StockIns.Commands;
+using Wms.Domain.Entities;
 using Wms.Domain.Enums;
+using Wms.Domain.ValueObjects;
 using Wms.Tests.Common;
 using Xunit;
 
@@ -141,5 +143,106 @@ public class ModifyStockInPlacementsCommandHandlerTests : IntegrationTestBase
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("StockIn.CannotModifyItems");
+    }
+
+    [Fact]
+    public async Task Handling_unit_chunk_may_change_location_but_not_quantity()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var (stockIn, lineId, handlingUnitId, locA, locB) = await ArrangeHuLineAsync("MD-HU-1");
+
+        await using var actContext = CreateContext();
+        var handler = new ModifyStockInLinePlacementsCommandHandler(actContext, CurrentUser);
+
+        // Relocate the pallet (20 stays 20) and reshape the loose remainder.
+        var result = await handler.Handle(
+            new ModifyStockInLinePlacementsCommand(stockIn.Id, lineId,
+            [
+                new ModifyPlacementRequest(locB.Id, 20, handlingUnitId),
+                new ModifyPlacementRequest(locA.Id, 4),
+                new ModifyPlacementRequest(locB.Id, 6)
+            ]),
+            ct);
+
+        result.IsSuccess.Should().BeTrue();
+
+        await using var verify = CreateContext();
+        var line = (await verify.StockIns
+                .AsNoTracking()
+                .Include(s => s.Lines)
+                .ThenInclude(l => l.Items)
+                .SingleAsync(s => s.Id == stockIn.Id, ct))
+            .Lines.Single();
+
+        var huItem = line.Items.Single(i => i.HandlingUnitId == handlingUnitId);
+        huItem.LocationId.Should().Be(locB.Id);
+        huItem.Quantity.Value.Should().Be(20);
+    }
+
+    [Theory]
+    [InlineData("resize")]
+    [InlineData("drop")]
+    [InlineData("split")]
+    [InlineData("foreign")]
+    public async Task Handling_unit_chunks_must_be_preserved(string mutation)
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var (stockIn, lineId, handlingUnitId, locA, locB) = await ArrangeHuLineAsync($"MD-HU-{mutation}");
+
+        List<ModifyPlacementRequest> placements = mutation switch
+        {
+            // Pallet grows from 20 to 25.
+            "resize" => [new(locA.Id, 25, handlingUnitId), new(locB.Id, 5)],
+            // Pallet vanishes entirely.
+            "drop" => [new(locA.Id, 30)],
+            // Pallet split across two placements.
+            "split" => [new(locA.Id, 10, handlingUnitId), new(locB.Id, 10, handlingUnitId), new(locA.Id, 10)],
+            // A handling unit the line never declared.
+            "foreign" => [new(locA.Id, 20, Guid.NewGuid()), new(locB.Id, 10)],
+            _ => throw new ArgumentOutOfRangeException(nameof(mutation))
+        };
+
+        await using var actContext = CreateContext();
+        var handler = new ModifyStockInLinePlacementsCommandHandler(actContext, CurrentUser);
+
+        var result = await handler.Handle(
+            new ModifyStockInLinePlacementsCommand(stockIn.Id, lineId, placements), ct);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().BeOneOf(
+            "HandlingUnit.PlacementsMustPreserveHandlingUnits",
+            "HandlingUnit.SplitAcrossPlacements");
+    }
+
+    /// <summary>
+    /// A draft line of 30: a declared pallet of 20 placed at locA plus 10 loose,
+    /// with a second location available for re-placement.
+    /// </summary>
+    private async Task<(StockIn StockIn, Guid LineId, Guid HandlingUnitId, Location LocA, Location LocB)>
+        ArrangeHuLineAsync(string prefix)
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var product = TestData.Product(prefix);
+        var locA = TestData.Location($"{prefix}-A", capacity: 100);
+        var locB = TestData.Location($"{prefix}-B", capacity: 100);
+        var handlingUnit = TestData.HandlingUnit($"{prefix}-PAL");
+
+        var stockIn = new StockIn(Guid.NewGuid());
+        stockIn.AddLineWithPlacements(product.Id, null, new Quantity(30),
+        [
+            new(locA.Id, 20, PutawayStrategyType.NearestEmpty, handlingUnit.Id),
+            new(locA.Id, 10, PutawayStrategyType.NearestEmpty)
+        ]);
+
+        Context.Products.Add(product);
+        Context.Locations.AddRange(locA, locB);
+        Context.HandlingUnits.Add(handlingUnit);
+        Context.StockIns.Add(stockIn);
+        await Context.SaveChangesAsync(ct);
+
+        return (stockIn, stockIn.Lines.Single().Id, handlingUnit.Id, locA, locB);
     }
 }

@@ -1,4 +1,5 @@
 import type {
+  HandlingUnitType,
   LocationType,
   PickingStrategyType,
   PutawayStrategyType,
@@ -91,6 +92,7 @@ export const stockMovementSourceLabel: Record<StockMovementSource, string> = {
   Transfer: 'Transfer',
   StockOutCancellation: 'Stock-Out Cancellation',
   StockInCancellation: 'Stock-In Cancellation',
+  HandlingUnitMove: 'Handling Unit Move',
 }
 
 export const stockMovementSourceSeverity: Record<StockMovementSource, TagSeverity> = {
@@ -100,4 +102,17 @@ export const stockMovementSourceSeverity: Record<StockMovementSource, TagSeverit
   Transfer: 'secondary',
   StockOutCancellation: 'contrast',
   StockInCancellation: 'danger',
+  HandlingUnitMove: 'info',
+}
+
+export const handlingUnitTypeLabel: Record<HandlingUnitType, string> = {
+  Pallet: 'Pallet',
+  Box: 'Box',
+  Container: 'Container',
+}
+
+export const handlingUnitTypeSeverity: Record<HandlingUnitType, TagSeverity> = {
+  Pallet: 'info',
+  Box: 'secondary',
+  Container: 'warn',
 }

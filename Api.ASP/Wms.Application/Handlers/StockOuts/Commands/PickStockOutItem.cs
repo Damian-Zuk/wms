@@ -49,12 +49,14 @@ public sealed class PickStockOutItemCommandHandler(IAppDbContext context)
         var item = line.Items.First(i => i.Id == command.ItemId);
         var quantity = new Quantity(command.Quantity);
 
-        // The inventory row the pick draws from (the planner pinned location + lot).
+        // The inventory row the pick draws from (the planner pinned location + lot +
+        // handling unit).
         var inventory = await context.Inventories
             .FirstOrDefaultAsync(
                 i => i.ProductId == line.ProductId
                     && i.LocationId == item.LocationId
-                    && i.LotId == item.LotId,
+                    && i.LotId == item.LotId
+                    && i.HandlingUnitId == item.HandlingUnitId,
                 cancellationToken);
 
         if (inventory is null)

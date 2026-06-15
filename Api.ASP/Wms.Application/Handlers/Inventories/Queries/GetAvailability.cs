@@ -17,12 +17,14 @@ public sealed record AvailabilityDto(
     int Reserved,
     int Available,
     decimal UnitPrice,
-    decimal OnHandValue);
+    decimal OnHandValue,
+    Guid? HandlingUnitId = null);
 
 public sealed record GetAvailabilityQuery(
     Guid ProductId,
     Guid? LocationId,
-    Guid? LotId) : IQuery<AvailabilityDto>;
+    Guid? LotId,
+    Guid? HandlingUnitId = null) : IQuery<AvailabilityDto>;
 
 
 public sealed class GetAvailabilityQueryHandler(IAppDbContext context)
@@ -51,6 +53,9 @@ public sealed class GetAvailabilityQueryHandler(IAppDbContext context)
         if (query.LotId.HasValue)
             inventories = inventories.Where(i => i.LotId == query.LotId.Value);
 
+        if (query.HandlingUnitId.HasValue)
+            inventories = inventories.Where(i => i.HandlingUnitId == query.HandlingUnitId.Value);
+
         var totals = await inventories
             .GroupBy(_ => 1)
             .Select(g => new
@@ -73,6 +78,7 @@ public sealed class GetAvailabilityQueryHandler(IAppDbContext context)
             reserved,
             onHand - reserved,
             product.UnitPrice,
-            onHand * product.UnitPrice);
+            onHand * product.UnitPrice,
+            query.HandlingUnitId);
     }
 }

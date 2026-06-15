@@ -16,7 +16,8 @@ public sealed record ListStockMovementsQuery(
     StockMovementType? Type,
     StockMovementSource? Source,
     int Page = 1,
-    int PageSize = 20) : IQuery<PagedResult<StockMovementDto>>;
+    int PageSize = 20,
+    Guid? HandlingUnitId = null) : IQuery<PagedResult<StockMovementDto>>;
 
 
 public sealed class ListStockMovementsQueryHandler(IAppDbContext context)
@@ -43,6 +44,9 @@ public sealed class ListStockMovementsQueryHandler(IAppDbContext context)
         if (query.Source.HasValue)
             movementsQuery = movementsQuery.Where(m => m.Source == query.Source.Value);
 
+        if (query.HandlingUnitId.HasValue)
+            movementsQuery = movementsQuery.Where(m => m.HandlingUnitId == query.HandlingUnitId.Value);
+
         var totalCount = await movementsQuery.CountAsync(cancellationToken);
 
         var page = await movementsQuery
@@ -55,6 +59,7 @@ public sealed class ListStockMovementsQueryHandler(IAppDbContext context)
                 m.ProductId,
                 m.LocationId,
                 m.LotId,
+                m.HandlingUnitId,
                 m.QuantityChange,
                 m.Type,
                 m.Source,
@@ -66,10 +71,16 @@ public sealed class ListStockMovementsQueryHandler(IAppDbContext context)
         var productIds = page.Select(m => m.ProductId).Distinct().ToList();
         var locationIds = page.Select(m => m.LocationId).Distinct().ToList();
         var lotIds = page.Where(m => m.LotId.HasValue).Select(m => m.LotId!.Value).Distinct().ToList();
+        var handlingUnitIds = page
+            .Where(m => m.HandlingUnitId.HasValue)
+            .Select(m => m.HandlingUnitId!.Value)
+            .Distinct()
+            .ToList();
 
         var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
         var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
         var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
+        var handlingUnits = await RefLookup.LoadHandlingUnitRefsAsync(context, handlingUnitIds, cancellationToken);
 
         var items = page.Select(m => new StockMovementDto(
                 m.Id,
@@ -80,7 +91,8 @@ public sealed class ListStockMovementsQueryHandler(IAppDbContext context)
                 m.Type,
                 m.Source,
                 m.SourceId,
-                m.CreatedAt))
+                m.CreatedAt,
+                m.HandlingUnitId.HasValue ? handlingUnits[m.HandlingUnitId.Value] : null))
             .ToList();
 
         return new PagedResult<StockMovementDto>(items, query.Page, query.PageSize, totalCount);

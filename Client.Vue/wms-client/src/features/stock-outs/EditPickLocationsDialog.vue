@@ -8,13 +8,14 @@ import InputNumber from 'primevue/inputnumber'
 import Button from 'primevue/button'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
+import Tag from 'primevue/tag'
 import { useToast } from 'primevue/usetoast'
 import { inventoryApi } from '@/api/endpoints/inventory'
 import { qk } from '@/api/query-keys'
 import { useModifyPickLocations } from './useStockOuts'
 import type { StockOutLineDto } from '@/types/stock-outs'
 import type { InventoryFilters } from '@/types/inventory'
-import type { LocationRef, LotRef } from '@/types/refs'
+import type { HandlingUnitRef, LocationRef, LotRef } from '@/types/refs'
 
 const visible = defineModel<boolean>('visible', { default: false })
 const props = defineProps<{ stockOutId: string; line: StockOutLineDto | null }>()
@@ -24,22 +25,26 @@ const modify = useModifyPickLocations(props.stockOutId)
 
 /** One inventory source the line can draw from. */
 interface PickableRow {
+  key: string
   locationId: string
   location: LocationRef
   lotId: string | null
   lot: LotRef | null
+  handlingUnitId: string | null
+  handlingUnit: HandlingUnitRef | null
   available: number
 }
 
 interface SelectedEntry {
   locationId: string
   lotId: string | null
+  handlingUnitId: string | null
   quantity: number
 }
 
-// A source is identified by its location + lot (lot may be absent).
-function keyOf(locationId: string, lotId: string | null) {
-  return `${locationId}|${lotId ?? ''}`
+// A source is identified by its location + lot + handling unit (each may be absent).
+function keyOf(locationId: string, lotId: string | null, handlingUnitId: string | null) {
+  return `${locationId}|${lotId ?? ''}|${handlingUnitId ?? ''}`
 }
 
 const serverError = ref<string | null>(null)
@@ -65,10 +70,15 @@ const {
 
 // The line's own reservation at a source (added back to Available so the user can
 // keep or move what this line already holds — CreateStockOut reserved it).
-function reservedByLine(locationId: string, lotId: string | null) {
+function reservedByLine(locationId: string, lotId: string | null, handlingUnitId: string | null) {
   if (!props.line) return 0
   return props.line.items
-    .filter((it) => it.location.id === locationId && (it.lot?.id ?? null) === lotId)
+    .filter(
+      (it) =>
+        it.location.id === locationId &&
+        (it.lot?.id ?? null) === lotId &&
+        (it.handlingUnit?.id ?? null) === handlingUnitId,
+    )
     .reduce((sum, it) => sum + it.quantity, 0)
 }
 
@@ -77,12 +87,16 @@ const rows = computed<PickableRow[]>(() => {
   return items
     .map((inv) => {
       const lotId = inv.lot?.id ?? null
+      const handlingUnitId = inv.handlingUnit?.id ?? null
       return {
+        key: keyOf(inv.location.id, lotId, handlingUnitId),
         locationId: inv.location.id,
         location: inv.location,
         lotId,
         lot: inv.lot,
-        available: inv.available + reservedByLine(inv.location.id, lotId),
+        handlingUnitId,
+        handlingUnit: inv.handlingUnit,
+        available: inv.available + reservedByLine(inv.location.id, lotId, handlingUnitId),
       }
     })
     .sort(
@@ -100,7 +114,7 @@ const matches = computed(() => selectedTotal.value === required.value)
 const canSave = computed(() => selectedTotal.value > 0 && matches.value)
 
 function selectedQty(row: PickableRow) {
-  return selected.value[keyOf(row.locationId, row.lotId)]?.quantity ?? 0
+  return selected.value[row.key]?.quantity ?? 0
 }
 
 // Seed the editor from the line's current picks each time it opens.
@@ -109,10 +123,12 @@ watch(visible, (open) => {
     const seed: Record<string, SelectedEntry> = {}
     for (const it of props.line.items) {
       const lotId = it.lot?.id ?? null
-      const key = keyOf(it.location.id, lotId)
+      const handlingUnitId = it.handlingUnit?.id ?? null
+      const key = keyOf(it.location.id, lotId, handlingUnitId)
       seed[key] = {
         locationId: it.location.id,
         lotId,
+        handlingUnitId,
         quantity: (seed[key]?.quantity ?? 0) + it.quantity,
       }
     }
@@ -150,10 +166,14 @@ function confirmAmount() {
   const row = amountTarget.value
   const qty = amountQty.value
   if (!row || qty === null || !isAmountValid.value) return
-  const key = keyOf(row.locationId, row.lotId)
   selected.value = {
     ...selected.value,
-    [key]: { locationId: row.locationId, lotId: row.lotId, quantity: qty },
+    [row.key]: {
+      locationId: row.locationId,
+      lotId: row.lotId,
+      handlingUnitId: row.handlingUnitId,
+      quantity: qty,
+    },
   }
   amountVisible.value = false
 }
@@ -162,7 +182,7 @@ function removeSelection() {
   const row = amountTarget.value
   if (!row) return
   const next = { ...selected.value }
-  delete next[keyOf(row.locationId, row.lotId)]
+  delete next[row.key]
   selected.value = next
   amountVisible.value = false
 }
@@ -177,6 +197,7 @@ function save() {
         locationId: e.locationId,
         lotId: e.lotId,
         quantity: e.quantity,
+        handlingUnitId: e.handlingUnitId,
       })),
     },
     {
@@ -193,7 +214,7 @@ function save() {
 </script>
 
 <template>
-  <Dialog v-model:visible="visible" modal header="Edit locations" :style="{ width: '44rem' }">
+  <Dialog v-model:visible="visible" modal header="Edit locations" :style="{ width: '50rem' }">
     <div v-if="line" class="flex flex-col gap-4">
       <div class="text-sm text-surface-600">
         <span class="font-medium text-surface-900">{{ line.product.sku }}</span>
@@ -215,11 +236,22 @@ function save() {
       </Message>
 
       <template v-else>
-        <DataTable :value="rows" data-key="locationId" size="small" scrollable scroll-height="22rem">
-          <Column header="Lot" style="width: 9rem">
+        <DataTable :value="rows" data-key="key" size="small" scrollable scroll-height="22rem">
+          <Column header="Lot" style="width: 8rem">
             <template #body="{ data: row }: { data: PickableRow }">
               <span v-if="row.lot">{{ row.lot.number }}</span>
               <span v-else class="text-surface-400">—</span>
+            </template>
+          </Column>
+          <Column header="Handling Unit" style="width: 10rem">
+            <template #body="{ data: row }: { data: PickableRow }">
+              <Tag
+                v-if="row.handlingUnit"
+                :value="row.handlingUnit.code"
+                severity="info"
+                icon="pi pi-inbox"
+              />
+              <span v-else class="text-surface-400">Loose</span>
             </template>
           </Column>
           <Column header="Location">
@@ -279,6 +311,9 @@ function save() {
         <div class="font-medium text-surface-900">{{ amountTarget.location.code }}</div>
         <div>{{ amountTarget.location.address }}</div>
         <div v-if="amountTarget.lot">Lot {{ amountTarget.lot.number }}</div>
+        <div v-if="amountTarget.handlingUnit">
+          Handling unit {{ amountTarget.handlingUnit.code }}
+        </div>
         <div class="mt-2">Available: <b>{{ amountTarget.available }}</b></div>
       </div>
 

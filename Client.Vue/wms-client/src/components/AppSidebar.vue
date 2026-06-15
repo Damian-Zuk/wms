@@ -12,6 +12,7 @@ const items: NavItem[] = [
   { label: 'Locations', icon: 'pi pi-map-marker', to: '/locations' },
   { label: 'Lots', icon: 'pi pi-tags', to: '/lots' },
   { label: 'Inventory', icon: 'pi pi-database', to: '/inventory' },
+  { label: 'Handling Units', icon: 'pi pi-inbox', to: '/handling-units' },
   { label: 'Stock-Ins', icon: 'pi pi-download', to: '/stock-ins' },
   { label: 'Stock-Outs', icon: 'pi pi-upload', to: '/stock-outs' },
   { label: 'Stock Movements', icon: 'pi pi-history', to: '/stock-movements' },

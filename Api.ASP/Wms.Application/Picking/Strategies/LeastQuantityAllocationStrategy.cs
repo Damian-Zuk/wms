@@ -16,5 +16,6 @@ internal sealed class LeastQuantityAllocationStrategy : IPickingAllocationStrate
             .OrderBy(c => c.Available)
             .ThenBy(c => context.GetLot(c.LotId)?.Number.Value, StringComparer.Ordinal)
             .ThenBy(c => context.GetLocation(c.LocationId)?.Address)
+            .ThenBy(c => c.HandlingUnitId)
             .ToList();
 }

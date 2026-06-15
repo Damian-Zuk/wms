@@ -18,7 +18,8 @@ internal sealed class StockInItemPutawayDomainEventHandler(IAppDbContext context
             domainEvent.Quantity,
             StockMovementType.In,
             StockMovementSource.StockIn,
-            domainEvent.StockInId);
+            domainEvent.StockInId,
+            domainEvent.HandlingUnitId);
 
         await context.StockMovements.AddAsync(movement, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);

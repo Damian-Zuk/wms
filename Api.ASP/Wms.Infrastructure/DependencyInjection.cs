@@ -12,7 +12,9 @@ using Wms.Infrastructure.DomainEvents;
 using Wms.Application.Common.Events;
 using Wms.Application.Common.Auth;
 using Wms.Application.Common.Data;
+using Wms.Application.HandlingUnits;
 using Wms.Application.Putaway;
+using Wms.Infrastructure.HandlingUnits;
 using Wms.Infrastructure.Putaway;
 
 namespace Wms.Infrastructure;
@@ -81,6 +83,9 @@ public static class DependencyInjection
 
         // Capacity reservations (needs DB transaction + row locking)
         services.AddScoped<ICapacityReservationService, CapacityReservationService>();
+
+        // Handling unit codes (drawn from a DB sequence)
+        services.AddScoped<IHandlingUnitCodeGenerator, HandlingUnitCodeGenerator>();
 
         return services;
     }

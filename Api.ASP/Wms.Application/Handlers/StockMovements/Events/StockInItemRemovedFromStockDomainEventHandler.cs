@@ -18,7 +18,8 @@ internal sealed class StockInItemRemovedFromStockDomainEventHandler(IAppDbContex
             domainEvent.Quantity,
             StockMovementType.Out,
             StockMovementSource.StockInCancellation,
-            domainEvent.StockInId);
+            domainEvent.StockInId,
+            domainEvent.HandlingUnitId);
 
         await context.StockMovements.AddAsync(movement, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);

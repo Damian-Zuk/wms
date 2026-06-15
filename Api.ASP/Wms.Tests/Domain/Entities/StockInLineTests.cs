@@ -67,7 +67,7 @@ public class StockInLineTests
         var line = NewLine(10);
         line.SetPlacements([new(Guid.NewGuid(), 10, PutawayStrategyType.NearestEmpty)]);
 
-        var result = line.ReplacePlacementsManual([(Guid.NewGuid(), 4), (Guid.NewGuid(), 6)]);
+        var result = line.ReplacePlacementsManual([(Guid.NewGuid(), 4, null), (Guid.NewGuid(), 6, null)]);
 
         result.IsSuccess.Should().BeTrue();
         line.Items.Should().HaveCount(2);
@@ -81,9 +81,43 @@ public class StockInLineTests
         var line = NewLine(10);
         line.SetPlacements([new(Guid.NewGuid(), 10, PutawayStrategyType.NearestEmpty)]);
 
-        var result = line.ReplacePlacementsManual([(Guid.NewGuid(), 4)]);
+        var result = line.ReplacePlacementsManual([(Guid.NewGuid(), 4, null)]);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("StockIn.PlacementsDoNotMatchLineTotal");
+    }
+
+    [Fact]
+    public void SetPlacements_carries_handling_units_onto_items()
+    {
+        var line = NewLine(10);
+        var huId = Guid.NewGuid();
+
+        var result = line.SetPlacements(
+        [
+            new(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty, huId),
+            new(Guid.NewGuid(), 4, PutawayStrategyType.NearestEmpty)
+        ]);
+
+        result.IsSuccess.Should().BeTrue();
+        line.Items.Should().ContainSingle(i => i.HandlingUnitId == huId);
+        line.Items.Should().ContainSingle(i => i.HandlingUnitId == null);
+    }
+
+    [Fact]
+    public void SetPlacements_rejects_a_handling_unit_split_across_placements()
+    {
+        var line = NewLine(10);
+        var huId = Guid.NewGuid();
+
+        var result = line.SetPlacements(
+        [
+            new(Guid.NewGuid(), 6, PutawayStrategyType.NearestEmpty, huId),
+            new(Guid.NewGuid(), 4, PutawayStrategyType.NearestEmpty, huId)
+        ]);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Code.Should().Be("HandlingUnit.SplitAcrossPlacements");
+        line.Items.Should().BeEmpty();
     }
 }

@@ -15,7 +15,9 @@ public sealed record TransferStockCommand(
     Guid SourceLocationId,
     Guid DestinationLocationId,
     Guid? LotId,
-    int Quantity) : ICommand<Guid>;
+    int Quantity,
+    Guid? SourceHandlingUnitId = null,
+    Guid? DestinationHandlingUnitId = null) : ICommand<Guid>;
 
 public sealed class TransferStockValidator : AbstractValidator<TransferStockCommand>
 {
@@ -66,11 +68,25 @@ public sealed class TransferStockCommandHandler(IAppDbContext context)
                 return StockTransferErrors.LotNotFound(command.LotId.Value);
         }
 
+        // A transfer into a handling unit targets one standing at the destination.
+        if (command.DestinationHandlingUnitId.HasValue)
+        {
+            var destinationUnit = await context.HandlingUnits
+                .FirstOrDefaultAsync(h => h.Id == command.DestinationHandlingUnitId.Value, cancellationToken);
+
+            if (destinationUnit is null)
+                return HandlingUnitErrors.NotFound(command.DestinationHandlingUnitId.Value);
+
+            if (destinationUnit.LocationId != command.DestinationLocationId)
+                return HandlingUnitErrors.NotAtLocation(destinationUnit.Id, command.DestinationLocationId);
+        }
+
         var sourceInventory = await context.Inventories
             .FirstOrDefaultAsync(
                 i => i.ProductId == command.ProductId
                     && i.LocationId == command.SourceLocationId
-                    && i.LotId == command.LotId,
+                    && i.LotId == command.LotId
+                    && i.HandlingUnitId == command.SourceHandlingUnitId,
                 cancellationToken);
 
         if (sourceInventory is null)
@@ -97,14 +113,17 @@ public sealed class TransferStockCommandHandler(IAppDbContext context)
             return Result.Failure<Guid>(canAccept.Error);
 
         var destinationInventory = destinationContents.FirstOrDefault(i =>
-            i.ProductId == command.ProductId && i.LotId == command.LotId);
+            i.ProductId == command.ProductId
+            && i.LotId == command.LotId
+            && i.HandlingUnitId == command.DestinationHandlingUnitId);
 
         if (destinationInventory is null)
         {
             destinationInventory = new Inventory(
                 command.ProductId,
                 command.DestinationLocationId,
-                command.LotId);
+                command.LotId,
+                command.DestinationHandlingUnitId);
             await context.Inventories.AddAsync(destinationInventory, cancellationToken);
         }
 

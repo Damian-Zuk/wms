@@ -36,8 +36,9 @@ internal sealed class PickingPlanner(IEnumerable<IPickingAllocationStrategy> str
                 continue;
 
             var take = Math.Min(remaining, candidate.Available);
-            allocations.Add(new PickAllocation(candidate.LocationId, candidate.LotId, take, strategy));
-            context.Commit(productId, candidate.LocationId, candidate.LotId, take);
+            allocations.Add(new PickAllocation(
+                candidate.LocationId, candidate.LotId, take, strategy, candidate.HandlingUnitId));
+            context.Commit(productId, candidate.LocationId, candidate.LotId, candidate.HandlingUnitId, take);
             remaining -= take;
         }
 

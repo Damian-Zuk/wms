@@ -8,4 +8,6 @@ public sealed record StockTransferredDomainEvent(
     Guid SourceLocationId,
     Guid DestinationLocationId,
     Guid? LotId,
-    int Quantity) : IDomainEvent;
+    int Quantity,
+    Guid? SourceHandlingUnitId = null,
+    Guid? DestinationHandlingUnitId = null) : IDomainEvent;

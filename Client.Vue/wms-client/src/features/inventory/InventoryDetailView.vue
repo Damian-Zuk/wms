@@ -118,6 +118,18 @@ const transferVisible = ref(false)
           </RouterLink>
           <span v-else class="text-surface-900">—</span>
         </dd>
+
+        <dt class="text-surface-500">Handling Unit</dt>
+        <dd>
+          <RouterLink
+            v-if="inventory.handlingUnit"
+            :to="{ name: 'handling-unit-detail', params: { id: inventory.handlingUnit.id } }"
+            class="text-primary-600 hover:underline"
+          >
+            {{ inventory.handlingUnit.code }}
+          </RouterLink>
+          <span v-else class="text-surface-900">Loose stock</span>
+        </dd>
       </dl>
     </template>
 

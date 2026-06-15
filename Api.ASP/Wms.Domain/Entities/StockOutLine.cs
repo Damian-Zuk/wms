@@ -52,20 +52,21 @@ public class StockOutLine : Entity
 
         _items.Clear();
         foreach (var a in allocations)
-            _items.Add(new StockOutItem(a.LocationId, a.LotId, new Quantity(a.Quantity), a.Strategy));
+            _items.Add(new StockOutItem(a.LocationId, a.LotId, new Quantity(a.Quantity), a.Strategy, a.HandlingUnitId));
 
         return Result.Success();
     }
 
     /// <summary>
     /// Replaces the allocations with a user-supplied set (location + optional lot +
-    /// quantity). Enforces the same sum-equals-requested invariant and stamps both the
-    /// line and every item as <see cref="PickingStrategyType.Manual"/>.
+    /// optional handling unit + quantity). Enforces the same sum-equals-requested
+    /// invariant and stamps both the line and every item as
+    /// <see cref="PickingStrategyType.Manual"/>.
     /// </summary>
-    public Result ReplaceAllocationsManual(IEnumerable<(Guid LocationId, Guid? LotId, int Quantity)> allocations)
+    public Result ReplaceAllocationsManual(IEnumerable<(Guid LocationId, Guid? LotId, Guid? HandlingUnitId, int Quantity)> allocations)
     {
         var list = allocations
-            .Select(a => new PickAllocation(a.LocationId, a.LotId, a.Quantity, PickingStrategyType.Manual))
+            .Select(a => new PickAllocation(a.LocationId, a.LotId, a.Quantity, PickingStrategyType.Manual, a.HandlingUnitId))
             .ToList();
 
         var validation = ValidateAllocations(list);
@@ -75,7 +76,7 @@ public class StockOutLine : Entity
         Strategy = PickingStrategyType.Manual;
         _items.Clear();
         foreach (var a in list)
-            _items.Add(new StockOutItem(a.LocationId, a.LotId, new Quantity(a.Quantity), PickingStrategyType.Manual));
+            _items.Add(new StockOutItem(a.LocationId, a.LotId, new Quantity(a.Quantity), PickingStrategyType.Manual, a.HandlingUnitId));
 
         return Result.Success();
     }
@@ -96,7 +97,7 @@ public class StockOutLine : Entity
         Strategy = strategy;
         _items.Clear();
         foreach (var a in allocations)
-            _items.Add(new StockOutItem(a.LocationId, a.LotId, new Quantity(a.Quantity), a.Strategy));
+            _items.Add(new StockOutItem(a.LocationId, a.LotId, new Quantity(a.Quantity), a.Strategy, a.HandlingUnitId));
 
         return Result.Success();
     }

@@ -22,7 +22,8 @@ internal sealed class InventoryAdjustedDomainEventHandler(IAppDbContext context)
             Math.Abs(domainEvent.QuantityChange),
             type,
             StockMovementSource.Adjustment,
-            domainEvent.InventoryId);
+            domainEvent.InventoryId,
+            domainEvent.HandlingUnitId);
 
         await context.StockMovements.AddAsync(movement, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);

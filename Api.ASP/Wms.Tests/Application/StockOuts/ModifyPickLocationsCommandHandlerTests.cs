@@ -279,4 +279,56 @@ public class ModifyPickLocationsCommandHandlerTests : IntegrationTestBase
         result.IsFailure.Should().BeTrue();
         result.Error.Code.Should().Be("StockOut.NotFound");
     }
+
+    [Fact]
+    public async Task Reallocating_between_loose_and_handling_unit_rows_moves_the_reservation()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var product = TestData.Product("MP-HU-1");
+        var location = TestData.Location("MP-HU-1-LOC");
+        var handlingUnit = TestData.HandlingUnit("MP-HU-1-PAL", locationId: location.Id);
+
+        // Draft reserves all 10 on the loose row; the user redirects the pick to the pallet.
+        var looseRow = TestData.Inventory(product.Id, location.Id, onHand: 10);
+        looseRow.Reserve(new Quantity(10));
+        var huRow = TestData.Inventory(product.Id, location.Id, onHand: 15, handlingUnitId: handlingUnit.Id);
+
+        var stockOut = TestData.StockOut(product.Id, location.Id, 10);
+
+        Context.Products.Add(product);
+        Context.Locations.Add(location);
+        Context.HandlingUnits.Add(handlingUnit);
+        Context.Inventories.AddRange(looseRow, huRow);
+        Context.StockOuts.Add(stockOut);
+        await Context.SaveChangesAsync(ct);
+
+        var lineId = stockOut.Lines.Single().Id;
+
+        await using var actContext = CreateContext();
+        var handler = new ModifyPickLocationsCommandHandler(actContext);
+
+        var result = await handler.Handle(
+            new ModifyPickLocationsCommand(stockOut.Id, lineId,
+                [new PickAllocationRequest(location.Id, null, 10, handlingUnit.Id)]),
+            ct);
+
+        result.IsSuccess.Should().BeTrue();
+
+        await using var verify = CreateContext();
+
+        var item = (await verify.StockOuts
+                .AsNoTracking()
+                .Include(s => s.Lines)
+                .ThenInclude(l => l.Items)
+                .SingleAsync(s => s.Id == stockOut.Id, ct))
+            .Lines.Single().Items.Single();
+        item.HandlingUnitId.Should().Be(handlingUnit.Id);
+
+        var reloadedLoose = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == looseRow.Id, ct);
+        reloadedLoose.Reserved.Value.Should().Be(0);
+
+        var reloadedHu = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == huRow.Id, ct);
+        reloadedHu.Reserved.Value.Should().Be(10);
+    }
 }

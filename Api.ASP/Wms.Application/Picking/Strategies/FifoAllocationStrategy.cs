@@ -18,5 +18,6 @@ internal sealed class FifoAllocationStrategy : IPickingAllocationStrategy
             .ThenBy(c => c.ReceivedAt)
             .ThenBy(c => context.GetLot(c.LotId)?.Number.Value, StringComparer.Ordinal)
             .ThenBy(c => context.GetLocation(c.LocationId)?.Address)
+            .ThenBy(c => c.HandlingUnitId)
             .ToList();
 }

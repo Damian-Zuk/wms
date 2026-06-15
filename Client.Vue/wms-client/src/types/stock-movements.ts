@@ -1,4 +1,4 @@
-import type { LocationRef, LotRef, ProductRef } from './refs'
+import type { HandlingUnitRef, LocationRef, LotRef, ProductRef } from './refs'
 import type { StockMovementSource, StockMovementType } from './enums'
 
 export interface StockMovementDto {
@@ -11,6 +11,8 @@ export interface StockMovementDto {
   source: StockMovementSource
   sourceId: string
   createdAt: string
+  /** The handling unit involved; null = loose stock. */
+  handlingUnit: HandlingUnitRef | null
 }
 
 export interface StockMovementFilters {
@@ -21,4 +23,5 @@ export interface StockMovementFilters {
   lotId?: string
   type?: StockMovementType
   source?: StockMovementSource
+  handlingUnitId?: string
 }

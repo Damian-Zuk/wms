@@ -11,7 +11,7 @@ using Wms.Shared.Common;
 
 namespace Wms.Application.Handlers.StockIns.Commands;
 
-public sealed record ModifyPlacementRequest(Guid LocationId, int Quantity);
+public sealed record ModifyPlacementRequest(Guid LocationId, int Quantity, Guid? HandlingUnitId = null);
 
 /// <summary>Request body for re-planning a line's placements (route supplies the ids).</summary>
 public sealed record ModifyStockInLinePlacementsRequest(List<ModifyPlacementRequest> Placements);
@@ -59,6 +59,28 @@ public sealed class ModifyStockInLinePlacementsCommandHandler(
         var requestedTotal = command.Placements.Sum(p => p.Quantity);
         if (requestedTotal != line.Quantity.Value)
             return StockInErrors.PlacementsDoNotMatchLineTotal(line.ProductId, line.Quantity.Value, requestedTotal);
+
+        // Handling units were declared at creation, so the request must keep exactly one
+        // placement per unit with its declared quantity — only the location may change.
+        // Loose placements can be reshaped freely.
+        var currentHuQuantities = line.Items
+            .Where(i => i.HandlingUnitId.HasValue)
+            .ToDictionary(i => i.HandlingUnitId!.Value, i => i.Quantity.Value);
+
+        var requestedHuPlacements = command.Placements
+            .Where(p => p.HandlingUnitId.HasValue)
+            .ToList();
+
+        var unitsPreserved =
+            requestedHuPlacements.Count == currentHuQuantities.Count
+            && requestedHuPlacements
+                .GroupBy(p => p.HandlingUnitId!.Value)
+                .All(g => g.Count() == 1
+                    && currentHuQuantities.TryGetValue(g.Key, out var declaredQuantity)
+                    && g.Single().Quantity == declaredQuantity);
+
+        if (!unitsPreserved)
+            return HandlingUnitErrors.PlacementsMustPreserveHandlingUnits(line.Id);
 
         var locationIds = command.Placements.Select(p => p.LocationId).Distinct().ToList();
 
@@ -129,7 +151,7 @@ public sealed class ModifyStockInLinePlacementsCommandHandler(
 
         var result = stockIn.ModifyLinePlacements(
             command.LineId,
-            command.Placements.Select(p => (p.LocationId, p.Quantity)),
+            command.Placements.Select(p => (p.LocationId, p.Quantity, p.HandlingUnitId)),
             currentUser.UserName,
             DateTime.UtcNow);
 

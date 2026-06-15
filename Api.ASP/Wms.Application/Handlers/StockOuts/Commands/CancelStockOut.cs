@@ -48,7 +48,8 @@ public sealed class CancelStockOutCommandHandler(IAppDbContext context)
                 var inventory = inventories.FirstOrDefault(i =>
                     i.ProductId == line.ProductId
                     && i.LocationId == item.LocationId
-                    && i.LotId == item.LotId);
+                    && i.LotId == item.LotId
+                    && i.HandlingUnitId == item.HandlingUnitId);
 
                 // Release the reservation on units that were never picked.
                 if (item.Remaining > 0 && inventory is not null)
@@ -63,7 +64,7 @@ public sealed class CancelStockOutCommandHandler(IAppDbContext context)
                 {
                     if (inventory is null)
                     {
-                        inventory = new Inventory(line.ProductId, item.LocationId, item.LotId);
+                        inventory = new Inventory(line.ProductId, item.LocationId, item.LotId, item.HandlingUnitId);
                         await context.Inventories.AddAsync(inventory, cancellationToken);
                         inventories.Add(inventory);
                     }

@@ -11,4 +11,5 @@ public sealed record StockInItemRemovedFromStockDomainEvent(
     Guid ProductId,
     Guid LocationId,
     Guid? LotId,
-    int Quantity) : IDomainEvent;
+    int Quantity,
+    Guid? HandlingUnitId = null) : IDomainEvent;

@@ -77,9 +77,10 @@ public static class TestData
         Guid locationId,
         Guid? lotId = null,
         int onHand = 0,
-        DateTime? receivedAt = null)
+        DateTime? receivedAt = null,
+        Guid? handlingUnitId = null)
     {
-        var inv = new Inventory(productId, locationId, lotId);
+        var inv = new Inventory(productId, locationId, lotId, handlingUnitId);
         if (onHand > 0)
         {
             if (receivedAt.HasValue)
@@ -89,6 +90,12 @@ public static class TestData
         }
         return inv;
     }
+
+    public static HandlingUnit HandlingUnit(
+        string code = "HU-TEST-1",
+        HandlingUnitType type = HandlingUnitType.Pallet,
+        Guid? locationId = null) =>
+        new(new HandlingUnitCode(code), type, locationId);
 
     /// <summary>
     /// A StockIn with a single line placed entirely into one location. Keeps the
@@ -100,14 +107,15 @@ public static class TestData
         Guid locationId,
         int quantity,
         Guid? lotId = null,
-        PutawayStrategyType strategy = PutawayStrategyType.NearestEmpty)
+        PutawayStrategyType strategy = PutawayStrategyType.NearestEmpty,
+        Guid? handlingUnitId = null)
     {
         var stockIn = new StockIn(Guid.NewGuid());
         stockIn.AddLineWithPlacements(
             productId,
             lotId,
             new Quantity(quantity),
-            [new(locationId, quantity, strategy)]);
+            [new(locationId, quantity, strategy, handlingUnitId)]);
         return stockIn;
     }
 
@@ -121,14 +129,15 @@ public static class TestData
         Guid locationId,
         int quantity,
         Guid? lotId = null,
-        PickingStrategyType strategy = PickingStrategyType.Fefo)
+        PickingStrategyType strategy = PickingStrategyType.Fefo,
+        Guid? handlingUnitId = null)
     {
         var stockOut = new StockOut(Guid.NewGuid());
         stockOut.AddLineWithAllocations(
             productId,
             strategy,
             new Quantity(quantity),
-            [new PickAllocation(locationId, lotId, quantity, strategy)]);
+            [new PickAllocation(locationId, lotId, quantity, strategy, handlingUnitId)]);
         return stockOut;
     }
 

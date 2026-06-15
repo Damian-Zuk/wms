@@ -48,5 +48,15 @@ public class StockMovementConfiguration : EntityConfiguration<StockMovement>
             .WithMany()
             .HasForeignKey(m => m.LotId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Property(m => m.HandlingUnitId)
+            .IsRequired(false);
+
+        builder.HasOne<HandlingUnit>()
+            .WithMany()
+            .HasForeignKey(m => m.HandlingUnitId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasIndex(m => m.HandlingUnitId);
     }
 }

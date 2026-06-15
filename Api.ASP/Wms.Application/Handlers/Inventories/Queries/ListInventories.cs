@@ -19,7 +19,8 @@ public sealed record ListInventoriesQuery(
     bool SortDescending = false,
     int Page = 1,
     int PageSize = 20,
-    Guid? CategoryId = null) : IQuery<PagedResult<InventoryDto>>;
+    Guid? CategoryId = null,
+    Guid? HandlingUnitId = null) : IQuery<PagedResult<InventoryDto>>;
 
 
 public sealed class ListInventoriesQueryHandler(IAppDbContext context)
@@ -39,6 +40,9 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
 
         if (query.LotId.HasValue)
             inventoriesQuery = inventoriesQuery.Where(i => i.LotId == query.LotId.Value);
+
+        if (query.HandlingUnitId.HasValue)
+            inventoriesQuery = inventoriesQuery.Where(i => i.HandlingUnitId == query.HandlingUnitId.Value);
 
         if (query.ExpiringWithinDays.HasValue)
         {
@@ -91,6 +95,12 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
             "reserved" => inventoriesQuery.OrderByDirection(i => i.Reserved.Value, desc),
             "available" => inventoriesQuery.OrderByDirection(
                 i => i.OnHand.Value - i.Reserved.Value, desc),
+            "handlingunit" => inventoriesQuery.OrderByDirection(
+                i => context.HandlingUnits
+                    .Where(h => h.Id == i.HandlingUnitId)
+                    .Select(h => h.Code.Value)
+                    .FirstOrDefault(),
+                desc),
             _ => inventoriesQuery.OrderBy(i => i.ProductId),
         };
 
@@ -103,6 +113,7 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
                 i.ProductId,
                 i.LocationId,
                 i.LotId,
+                i.HandlingUnitId,
                 OnHand = i.OnHand.Value,
                 Reserved = i.Reserved.Value,
                 UnitPrice = context.Products
@@ -115,10 +126,16 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
         var productIds = page.Select(i => i.ProductId).Distinct().ToList();
         var locationIds = page.Select(i => i.LocationId).Distinct().ToList();
         var lotIds = page.Where(i => i.LotId.HasValue).Select(i => i.LotId!.Value).Distinct().ToList();
+        var handlingUnitIds = page
+            .Where(i => i.HandlingUnitId.HasValue)
+            .Select(i => i.HandlingUnitId!.Value)
+            .Distinct()
+            .ToList();
 
         var products = await RefLookup.LoadProductRefsAsync(context, productIds, cancellationToken);
         var locations = await RefLookup.LoadLocationRefsAsync(context, locationIds, cancellationToken);
         var lots = await RefLookup.LoadLotRefsAsync(context, lotIds, cancellationToken);
+        var handlingUnits = await RefLookup.LoadHandlingUnitRefsAsync(context, handlingUnitIds, cancellationToken);
 
         var items = page.Select(i => new InventoryDto(
                 i.Id,
@@ -129,7 +146,8 @@ public sealed class ListInventoriesQueryHandler(IAppDbContext context)
                 i.OnHand,
                 i.Reserved,
                 i.OnHand - i.Reserved,
-                i.OnHand * i.UnitPrice))
+                i.OnHand * i.UnitPrice,
+                i.HandlingUnitId.HasValue ? handlingUnits[i.HandlingUnitId.Value] : null))
             .ToList();
 
         return new PagedResult<InventoryDto>(items, query.Page, query.PageSize, totalCount);

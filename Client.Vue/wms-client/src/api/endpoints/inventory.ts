@@ -17,6 +17,7 @@ export const inventoryApi = {
           locationId: filters.locationId || undefined,
           lotId: filters.lotId || undefined,
           categoryId: filters.categoryId || undefined,
+          handlingUnitId: filters.handlingUnitId || undefined,
           expiringWithinDays: filters.expiringWithinDays ?? undefined,
           sortBy: filters.sortBy || undefined,
           sortDescending: filters.sortDescending || undefined,

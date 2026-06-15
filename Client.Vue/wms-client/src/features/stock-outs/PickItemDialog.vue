@@ -6,13 +6,14 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { useToast } from 'primevue/usetoast'
 import { usePickItem } from './useStockOuts'
-import type { LocationRef, LotRef, ProductRef } from '@/types/refs'
+import type { HandlingUnitRef, LocationRef, LotRef, ProductRef } from '@/types/refs'
 
 /** The item being picked, flattened for the dialog. */
 export interface PickItem {
   id: string
   product: ProductRef
   lot: LotRef | null
+  handlingUnit: HandlingUnitRef | null
   location: LocationRef
   quantity: number
   pickedQuantity: number
@@ -69,6 +70,9 @@ function save() {
         </div>
         <div>{{ item.location.code }} · {{ item.location.address }}</div>
         <div v-if="item.lot">Lot {{ item.lot.number }}</div>
+        <div v-if="item.handlingUnit">
+          <i class="pi pi-inbox text-xs" /> Take from handling unit {{ item.handlingUnit.code }}
+        </div>
         <div class="mt-2">
           Planned: <b>{{ item.quantity }}</b> · Picked: <b>{{ item.pickedQuantity }}</b> ·
           Left: <b>{{ remaining }}</b>

@@ -1,4 +1,4 @@
-import type { LocationRef, LotRef, ProductRef } from './refs'
+import type { HandlingUnitRef, LocationRef, LotRef, ProductRef } from './refs'
 import type { PickingStrategyType, StockOutStatus } from './enums'
 
 /** A single planned pick: a quantity drawn from one location (and lot, if tracked). */
@@ -9,6 +9,8 @@ export interface StockOutItemDto {
   quantity: number
   pickedQuantity: number
   strategy: PickingStrategyType
+  /** The handling unit the pick draws from; null = loose stock. */
+  handlingUnit: HandlingUnitRef | null
 }
 
 /** A requested line; its quantity is split across one or more picks by the planner. */
@@ -59,6 +61,8 @@ export interface PickAllocationInput {
   locationId: string
   lotId: string | null
   quantity: number
+  /** Pin the pick to a handling unit at the location; null = loose stock. */
+  handlingUnitId: string | null
 }
 
 /** PUT /api/stock-outs/{id}/lines/{lineId}/pick-locations body. */

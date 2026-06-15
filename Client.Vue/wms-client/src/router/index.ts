@@ -97,6 +97,16 @@ const router = createRouter({
       component: () => import('@/features/inventory/InventoryDetailView.vue'),
     },
     {
+      path: '/handling-units',
+      name: 'handling-units',
+      component: () => import('@/features/handling-units/HandlingUnitsView.vue'),
+    },
+    {
+      path: '/handling-units/:id',
+      name: 'handling-unit-detail',
+      component: () => import('@/features/handling-units/HandlingUnitDetailView.vue'),
+    },
+    {
       path: '/stock-ins',
       name: 'stock-ins',
       component: () => import('@/features/stock-ins/StockInsView.vue'),

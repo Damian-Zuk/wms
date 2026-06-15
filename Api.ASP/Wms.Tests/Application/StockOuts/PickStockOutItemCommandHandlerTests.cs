@@ -226,6 +226,54 @@ public class PickStockOutItemCommandHandlerTests : IntegrationTestBase
         result.Error.Code.Should().Be("StockOut.CannotPick");
     }
 
+    [Fact]
+    public async Task Pick_pinned_to_a_handling_unit_decrements_only_that_row()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        var product = TestData.Product("PICK-HU-1");
+        var location = TestData.Location("PICK-HU-1-LOC");
+        var handlingUnit = TestData.HandlingUnit("PICK-HU-1-PAL", locationId: location.Id);
+
+        // Same product twice at the location: on the pallet and loose.
+        var huRow = TestData.Inventory(product.Id, location.Id, onHand: 10, handlingUnitId: handlingUnit.Id);
+        var looseRow = TestData.Inventory(product.Id, location.Id, onHand: 10);
+        huRow.Reserve(new Quantity(4));
+
+        var stockOut = TestData.StockOut(product.Id, location.Id, 4, handlingUnitId: handlingUnit.Id);
+        stockOut.StartPicking();
+        stockOut.ClearDomainEvents();
+
+        Context.Products.Add(product);
+        Context.Locations.Add(location);
+        Context.HandlingUnits.Add(handlingUnit);
+        Context.Inventories.AddRange(huRow, looseRow);
+        Context.StockOuts.Add(stockOut);
+        await Context.SaveChangesAsync(ct);
+
+        var item = stockOut.Lines.Single().Items.Single();
+
+        await using var actContext = CreateContext();
+        WirePickedHandler(actContext);
+        var handler = new PickStockOutItemCommandHandler(actContext);
+
+        var result = await handler.Handle(new PickStockOutItemCommand(stockOut.Id, item.Id, 4), ct);
+
+        result.IsSuccess.Should().BeTrue();
+
+        await using var verify = CreateContext();
+
+        var reloadedHuRow = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == huRow.Id, ct);
+        reloadedHuRow.OnHand.Value.Should().Be(6);
+        reloadedHuRow.Reserved.Value.Should().Be(0);
+
+        var reloadedLooseRow = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == looseRow.Id, ct);
+        reloadedLooseRow.OnHand.Value.Should().Be(10, "the loose stock is untouched");
+
+        var movement = await verify.StockMovements.AsNoTracking().SingleAsync(m => m.SourceId == stockOut.Id, ct);
+        movement.HandlingUnitId.Should().Be(handlingUnit.Id);
+    }
+
     private void WirePickedHandler(IAppDbContext context)
     {
         EventDispatcher.Register<StockOutItemPickedDomainEvent>((evt, ct) =>

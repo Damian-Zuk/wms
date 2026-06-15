@@ -58,7 +58,7 @@ public class StockOut : Entity
     /// </summary>
     public Result ModifyLineAllocations(
         Guid lineId,
-        IEnumerable<(Guid LocationId, Guid? LotId, int Quantity)> allocations)
+        IEnumerable<(Guid LocationId, Guid? LotId, Guid? HandlingUnitId, int Quantity)> allocations)
     {
         if (Status != StockOutStatus.Draft)
             return StockOutErrors.CannotModifyItems(Status);
@@ -132,7 +132,8 @@ public class StockOut : Entity
             line.ProductId,
             item.LocationId,
             item.LotId,
-            qty.Value));
+            qty.Value,
+            item.HandlingUnitId));
 
         return Result.Success();
     }
@@ -178,7 +179,8 @@ public class StockOut : Entity
                         line.ProductId,
                         item.LocationId,
                         item.LotId,
-                        item.PickedQuantity.Value));
+                        item.PickedQuantity.Value,
+                        item.HandlingUnitId));
                 }
             }
         }

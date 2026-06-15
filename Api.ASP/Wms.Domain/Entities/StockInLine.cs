@@ -51,7 +51,7 @@ public class StockInLine : Entity
 
         _items.Clear();
         foreach (var p in placements)
-            _items.Add(new StockInItem(p.LocationId, new Quantity(p.Quantity), p.Strategy));
+            _items.Add(new StockInItem(p.LocationId, new Quantity(p.Quantity), p.Strategy, p.HandlingUnitId));
 
         return Result.Success();
     }
@@ -60,19 +60,19 @@ public class StockInLine : Entity
     /// Replaces the placements with a user-supplied set. Enforces the same invariant
     /// and stamps every placement as <see cref="PutawayStrategyType.Manual"/>.
     /// </summary>
-    public Result ReplacePlacementsManual(IEnumerable<(Guid LocationId, int Quantity)> placements)
+    public Result ReplacePlacementsManual(IEnumerable<(Guid LocationId, int Quantity, Guid? HandlingUnitId)> placements)
     {
-        var validation = ValidatePlacements(
-            placements.Select(p => new PlacementAllocation(
-                p.LocationId, p.Quantity, PutawayStrategyType.Manual)
-            ).ToList());
+        var list = placements
+            .Select(p => new PlacementAllocation(p.LocationId, p.Quantity, PutawayStrategyType.Manual, p.HandlingUnitId))
+            .ToList();
 
+        var validation = ValidatePlacements(list);
         if (validation.IsFailure)
             return validation;
 
         _items.Clear();
-        foreach (var p in placements)
-            _items.Add(new StockInItem(p.LocationId, new Quantity(p.Quantity), PutawayStrategyType.Manual));
+        foreach (var p in list)
+            _items.Add(new StockInItem(p.LocationId, new Quantity(p.Quantity), PutawayStrategyType.Manual, p.HandlingUnitId));
 
         return Result.Success();
     }
@@ -88,6 +88,15 @@ public class StockInLine : Entity
         var total = placements.Sum(p => p.Quantity);
         if (total != Quantity.Value)
             return StockInErrors.PlacementsDoNotMatchLineTotal(ProductId, Quantity.Value, total);
+
+        // A handling unit is placed whole into one location, so it appears at most once.
+        var splitHu = placements
+            .Where(p => p.HandlingUnitId.HasValue)
+            .GroupBy(p => p.HandlingUnitId!.Value)
+            .FirstOrDefault(g => g.Count() > 1);
+
+        if (splitHu is not null)
+            return HandlingUnitErrors.HandlingUnitSplitAcrossPlacements(splitHu.Key);
 
         return Result.Success();
     }

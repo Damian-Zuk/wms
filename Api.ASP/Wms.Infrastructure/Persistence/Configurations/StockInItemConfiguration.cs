@@ -39,6 +39,14 @@ public class StockInItemConfiguration : EntityConfiguration<StockInItem>
             .HasForeignKey(i => i.LocationId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Property(i => i.HandlingUnitId)
+            .IsRequired(false);
+
+        builder.HasOne<HandlingUnit>()
+            .WithMany()
+            .HasForeignKey(i => i.HandlingUnitId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex("StockInLineId");
         builder.HasIndex(i => i.LocationId);
     }

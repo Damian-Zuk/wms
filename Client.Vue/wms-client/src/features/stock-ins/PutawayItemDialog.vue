@@ -6,13 +6,14 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 import { useToast } from 'primevue/usetoast'
 import { usePutawayItem } from './useStockIns'
-import type { LocationRef, LotRef, ProductRef } from '@/types/refs'
+import type { HandlingUnitRef, LocationRef, LotRef, ProductRef } from '@/types/refs'
 
 /** The placement being put away, flattened for the dialog. */
 export interface PutawayItem {
   id: string
   product: ProductRef
   lot: LotRef | null
+  handlingUnit: HandlingUnitRef | null
   location: LocationRef
   quantity: number
   placedQuantity: number
@@ -69,6 +70,9 @@ function save() {
         </div>
         <div>{{ item.location.code }} · {{ item.location.address }}</div>
         <div v-if="item.lot">Lot {{ item.lot.number }}</div>
+        <div v-if="item.handlingUnit">
+          <i class="pi pi-inbox text-xs" /> Handling unit {{ item.handlingUnit.code }}
+        </div>
         <div class="mt-2">
           Planned: <b>{{ item.quantity }}</b> · Placed: <b>{{ item.placedQuantity }}</b> ·
           Left: <b>{{ remaining }}</b>

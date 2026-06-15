@@ -10,7 +10,7 @@ using Wms.Shared.Common;
 
 namespace Wms.Application.Handlers.StockOuts.Commands;
 
-public sealed record PickAllocationRequest(Guid LocationId, Guid? LotId, int Quantity);
+public sealed record PickAllocationRequest(Guid LocationId, Guid? LotId, int Quantity, Guid? HandlingUnitId = null);
 
 public sealed record ModifyPickLocationsRequest(List<PickAllocationRequest> Allocations);
 
@@ -110,21 +110,22 @@ public sealed class ModifyPickLocationsCommandHandler(IAppDbContext context)
         // Snapshot the line's current reservations before the domain replaces its items.
         // A draft never has picked units, so each item's full quantity is still reserved.
         var currentReservations = line.Items
-            .Select(i => (i.LocationId, i.LotId, i.Quantity.Value))
+            .Select(i => (i.LocationId, i.LotId, i.HandlingUnitId, i.Quantity.Value))
             .ToList();
 
         // Re-shape the document first (Draft-only; re-checks the sum; stamps Manual).
         var modify = stockOut.ModifyLineAllocations(
             command.LineId,
-            command.Allocations.Select(a => (a.LocationId, a.LotId, a.Quantity)));
-        
+            command.Allocations.Select(a => (a.LocationId, a.LotId, a.HandlingUnitId, a.Quantity)));
+
         if (modify.IsFailure)
             return modify.Error;
 
         // Release the old reservations first so kept sources free up before we re-reserve.
-        foreach (var (locationId, lotId, quantity) in currentReservations)
+        foreach (var (locationId, lotId, handlingUnitId, quantity) in currentReservations)
         {
-            var inventory = inventories.FirstOrDefault(i => i.LocationId == locationId && i.LotId == lotId);
+            var inventory = inventories.FirstOrDefault(i =>
+                i.LocationId == locationId && i.LotId == lotId && i.HandlingUnitId == handlingUnitId);
             if (inventory is null)
                 continue;
 
@@ -137,7 +138,9 @@ public sealed class ModifyPickLocationsCommandHandler(IAppDbContext context)
         foreach (var allocation in command.Allocations)
         {
             var inventory = inventories.FirstOrDefault(i =>
-                i.LocationId == allocation.LocationId && i.LotId == allocation.LotId);
+                i.LocationId == allocation.LocationId
+                && i.LotId == allocation.LotId
+                && i.HandlingUnitId == allocation.HandlingUnitId);
 
             if (inventory is null)
                 return InventoryErrors.InsufficientAvailableStock(0, allocation.Quantity);

@@ -229,4 +229,55 @@ public class CreateStockOutCommandHandlerTests : IntegrationTestBase
         var unchanged = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == inv.Id, ct);
         unchanged.Reserved.Value.Should().Be(4);
     }
+
+    [Fact]
+    public async Task Fifo_treats_handling_unit_and_loose_stock_as_distinct_sources()
+    {
+        var ct = TestContext.Current.CancellationToken;
+
+        // One location, same product: an older pallet and newer loose stock.
+        // FIFO must drain the pallet first and stamp its allocation with the unit.
+        var product = TestData.Product("SO-HU");
+        var location = TestData.Location("SO-HU-LOC");
+        var handlingUnit = TestData.HandlingUnit("SO-HU-PAL", locationId: location.Id);
+
+        var huRow = TestData.Inventory(product.Id, location.Id, onHand: 8,
+            receivedAt: new DateTime(2026, 01, 01, 0, 0, 0, DateTimeKind.Utc),
+            handlingUnitId: handlingUnit.Id);
+        var looseRow = TestData.Inventory(product.Id, location.Id, onHand: 10,
+            receivedAt: new DateTime(2026, 03, 01, 0, 0, 0, DateTimeKind.Utc));
+
+        Context.Products.Add(product);
+        Context.Locations.Add(location);
+        Context.HandlingUnits.Add(handlingUnit);
+        Context.Inventories.AddRange(huRow, looseRow);
+        await Context.SaveChangesAsync(ct);
+
+        await using var actContext = CreateContext();
+        var handler = new CreateStockOutCommandHandler(actContext, Planner());
+
+        var result = await handler.Handle(
+            new CreateStockOutCommand([new StockOutLineRequest(product.Id, PickingStrategyType.Fifo, 12)], null),
+            ct);
+
+        result.IsSuccess.Should().BeTrue();
+
+        await using var verify = CreateContext();
+        var stockOut = await verify.StockOuts
+            .AsNoTracking()
+            .Include(s => s.Lines)
+            .ThenInclude(l => l.Items)
+            .SingleAsync(s => s.Id == result.Value, ct);
+
+        var line = stockOut.Lines.Single();
+        line.Items.Should().HaveCount(2);
+        line.Items.Single(i => i.HandlingUnitId == handlingUnit.Id).Quantity.Value.Should().Be(8);
+        line.Items.Single(i => i.HandlingUnitId == null).Quantity.Value.Should().Be(4);
+
+        var reloadedHuRow = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == huRow.Id, ct);
+        reloadedHuRow.Reserved.Value.Should().Be(8);
+
+        var reloadedLooseRow = await verify.Inventories.AsNoTracking().SingleAsync(i => i.Id == looseRow.Id, ct);
+        reloadedLooseRow.Reserved.Value.Should().Be(4);
+    }
 }

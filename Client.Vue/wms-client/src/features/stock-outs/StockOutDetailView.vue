@@ -6,6 +6,7 @@ import { useToast } from 'primevue/usetoast'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
+import Tag from 'primevue/tag'
 import Textarea from 'primevue/textarea'
 import Message from 'primevue/message'
 import ProgressSpinner from 'primevue/progressspinner'
@@ -25,7 +26,7 @@ import {
 } from '@/lib/enum-display'
 import { useStockOut, useStockOutTransition, useUpdateStockOutDescription, type StockOutAction } from './useStockOuts'
 import type { StockOutItemDto, StockOutLineDto } from '@/types/stock-outs'
-import type { LocationRef, LotRef, ProductRef } from '@/types/refs'
+import type { HandlingUnitRef, LocationRef, LotRef, ProductRef } from '@/types/refs'
 import type { PickingStrategyType } from '@/types/enums'
 
 const route = useRoute()
@@ -96,6 +97,7 @@ interface PickPathItem {
   id: string
   product: ProductRef
   lot: LotRef | null
+  handlingUnit: HandlingUnitRef | null
   quantity: number
   pickedQuantity: number
   strategy: PickingStrategyType
@@ -130,6 +132,7 @@ const pickPath = computed<PickPathStop[]>(() => {
         id: item.id,
         product: line.product,
         lot: item.lot,
+        handlingUnit: item.handlingUnit,
         quantity: item.quantity,
         pickedQuantity: item.pickedQuantity,
         strategy: item.strategy,
@@ -185,6 +188,7 @@ function openPick(item: PickPathItem, location: LocationRef) {
     id: item.id,
     product: item.product,
     lot: item.lot,
+    handlingUnit: item.handlingUnit,
     location,
     quantity: item.quantity,
     pickedQuantity: item.pickedQuantity,
@@ -411,6 +415,17 @@ function cancel() {
                 <span v-else class="text-surface-400">—</span>
               </template>
             </Column>
+            <Column header="Handling Unit" style="width: 10rem">
+              <template #body="{ data: item }: { data: PickPathItem }">
+                <RouterLink
+                  v-if="item.handlingUnit"
+                  :to="{ name: 'handling-unit-detail', params: { id: item.handlingUnit.id } }"
+                >
+                  <Tag :value="item.handlingUnit.code" severity="info" icon="pi pi-inbox" />
+                </RouterLink>
+                <span v-else class="text-surface-400">Loose</span>
+              </template>
+            </Column>
             <Column header="Pick" style="width: 13rem">
               <template #body="{ data: item }: { data: PickPathItem }">
                 <div class="flex items-center gap-2">
@@ -516,6 +531,17 @@ function cancel() {
                   {{ item.lot.number }}
                 </RouterLink>
                 <span v-else class="text-surface-400">—</span>
+              </template>
+            </Column>
+            <Column header="Handling Unit" style="width: 11rem">
+              <template #body="{ data: item }: { data: StockOutItemDto }">
+                <Tag
+                  v-if="item.handlingUnit"
+                  :value="item.handlingUnit.code"
+                  severity="info"
+                  icon="pi pi-inbox"
+                />
+                <span v-else class="text-surface-400">Loose</span>
               </template>
             </Column>
             <Column field="quantity" header="Quantity" style="width: 9rem" />

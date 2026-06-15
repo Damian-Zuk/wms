@@ -19,6 +19,9 @@ public class StockInItem : Entity
     public Quantity Quantity { get; private set; } = new Quantity(0);
     public PutawayStrategyType Strategy { get; private set; }
 
+    /// <summary>The declared handling unit this placement receives onto; null = loose stock.</summary>
+    public Guid? HandlingUnitId { get; private set; }
+
     /// <summary>How much of <see cref="Quantity"/> has been physically put away so far.</summary>
     public Quantity PlacedQuantity { get; private set; } = new Quantity(0);
 
@@ -29,12 +32,13 @@ public class StockInItem : Entity
 
     private StockInItem() { }
 
-    public StockInItem(Guid locationId, Quantity quantity, PutawayStrategyType strategy)
+    public StockInItem(Guid locationId, Quantity quantity, PutawayStrategyType strategy, Guid? handlingUnitId = null)
     {
         Id = Guid.NewGuid();
         LocationId = locationId;
         Quantity = quantity;
         Strategy = strategy;
+        HandlingUnitId = handlingUnitId;
     }
 
     /// <summary>

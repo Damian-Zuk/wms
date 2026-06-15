@@ -69,6 +69,43 @@ internal sealed class PutawayPlanner(IEnumerable<IPutawayAllocationStrategy> str
         return Result.Success<IReadOnlyList<PlacementAllocation>>(allocations);
     }
 
+    public Result<PlacementAllocation> PlanSingle(
+        Product product,
+        Lot? lot,
+        Quantity quantity,
+        PutawayPlanContext context)
+    {
+        foreach (var strategy in strategies)
+        {
+            foreach (var locationId in strategy.CandidateLocations(product, lot, context))
+            {
+                var location = context.GetLocation(locationId);
+                if (location is null)
+                    continue;
+
+                var contents = context.ContentsAt(locationId);
+                var occupancy = context.OccupancyFor(locationId);
+
+                if (location.CanAccept(product, lot, new Quantity(1), contents, occupancy, context.Products).IsFailure)
+                    continue;
+
+                if (context.WouldConflictWithPlanned(location, product, lot))
+                    continue;
+
+                // Unlike Plan, partial fits are useless here: the chunk is one
+                // physical unit and must land whole.
+                var headroom = location.UnitsThatFit(product, contents, occupancy, context.Products);
+                if (headroom is not null && headroom.Value < quantity.Value)
+                    continue;
+
+                context.Commit(locationId, product, lot, quantity);
+                return new PlacementAllocation(locationId, quantity.Value, strategy.Type);
+            }
+        }
+
+        return PutawayErrors.NoSingleLocationFitsHandlingUnit(product.Id, lot?.Id, quantity.Value);
+    }
+
     private static void AddOrMerge(
         List<PlacementAllocation> allocations,
         Guid locationId,

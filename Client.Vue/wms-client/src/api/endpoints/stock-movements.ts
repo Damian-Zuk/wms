@@ -14,6 +14,7 @@ export const stockMovementsApi = {
           lotId: filters.lotId,
           type: filters.type,
           source: filters.source,
+          handlingUnitId: filters.handlingUnitId,
         },
       })
       .then((r) => r.data),

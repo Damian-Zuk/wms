@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import InputNumber from 'primevue/inputnumber'
+import Tag from 'primevue/tag'
 import DataTableWrapper from '@/components/common/DataTableWrapper.vue'
 import ListingHeader from '@/components/common/ListingHeader.vue'
 import ProductSelect from '@/components/pickers/ProductSelect.vue'
@@ -24,11 +25,12 @@ const router = useRouter()
 const auth = useAuthStore()
 
 // Seed the filters from the query string so "Check inventory" links from the
-// product/lot/location detail pages land pre-filtered.
+// product/lot/location/handling-unit detail pages land pre-filtered.
 const productFilter = ref<string | null>((route.query.productId as string) ?? null)
 const locationFilter = ref<string | null>((route.query.locationId as string) ?? null)
 const lotFilter = ref<string | null>((route.query.lotId as string) ?? null)
 const categoryFilter = ref<string | null>((route.query.categoryId as string) ?? null)
+const handlingUnitFilter = ref<string | null>((route.query.handlingUnitId as string) ?? null)
 const expiringWithinDays = ref<number | null>(
   route.query.expiringWithinDays != null ? Number(route.query.expiringWithinDays) : null,
 )
@@ -38,6 +40,7 @@ const filters = ref<InventoryFilters>({
   locationId: locationFilter.value ?? undefined,
   lotId: lotFilter.value ?? undefined,
   categoryId: categoryFilter.value ?? undefined,
+  handlingUnitId: handlingUnitFilter.value ?? undefined,
   expiringWithinDays: expiringWithinDays.value ?? undefined,
   page: 1,
   pageSize: 20,
@@ -203,6 +206,17 @@ function openTransfer(row: InventoryDto) {
       <Column header="Lot" sortable sort-field="lot" style="width: 12rem">
         <template #body="{ data: row }: { data: InventoryDto }">
           {{ row.lot?.number ?? '—' }}
+        </template>
+      </Column>
+      <Column header="Handling Unit" sortable sort-field="handlingunit" style="width: 11rem">
+        <template #body="{ data: row }: { data: InventoryDto }">
+          <Tag
+            v-if="row.handlingUnit"
+            :value="row.handlingUnit.code"
+            severity="info"
+            icon="pi pi-inbox"
+          />
+          <span v-else class="text-surface-400">Loose</span>
         </template>
       </Column>
       <Column header="Expires" sortable sort-field="expirationDate" style="width: 9rem">

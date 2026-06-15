@@ -25,6 +25,7 @@ public class InventoryController : ControllerBase
         [FromQuery, Range(0, int.MaxValue)] int page,
         [FromQuery, Range(0, 100)] int pageSize,
         [FromQuery] Guid? categoryId,
+        [FromQuery] Guid? handlingUnitId,
         [FromServices] IQueryHandler<ListInventoriesQuery, PagedResult<InventoryDto>> handler,
         CancellationToken cancellationToken)
     {
@@ -38,7 +39,8 @@ public class InventoryController : ControllerBase
                 sortDescending,
                 page == 0 ? 1 : page,
                 pageSize == 0 ? 20 : pageSize,
-                categoryId),
+                categoryId,
+                handlingUnitId),
             cancellationToken);
 
         return result.Match(Results.Ok, CustomResults.Problem);
@@ -75,11 +77,12 @@ public class InventoryController : ControllerBase
         [FromQuery] Guid productId,
         [FromQuery] Guid? locationId,
         [FromQuery] Guid? lotId,
+        [FromQuery] Guid? handlingUnitId,
         [FromServices] IQueryHandler<GetAvailabilityQuery, AvailabilityDto> handler,
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(
-            new GetAvailabilityQuery(productId, locationId, lotId),
+            new GetAvailabilityQuery(productId, locationId, lotId, handlingUnitId),
             cancellationToken);
 
         return result.Match(Results.Ok, CustomResults.Problem);

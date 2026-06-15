@@ -89,7 +89,8 @@ public sealed class CreateStockOutCommandHandler(IAppDbContext context, IPicking
                 var inventory = inventories.FirstOrDefault(i =>
                     i.ProductId == line.ProductId
                     && i.LocationId == allocation.LocationId
-                    && i.LotId == allocation.LotId);
+                    && i.LotId == allocation.LotId
+                    && i.HandlingUnitId == allocation.HandlingUnitId);
 
                 if (inventory is null)
                     return InventoryErrors.InsufficientAvailableStock(0, allocation.Quantity);

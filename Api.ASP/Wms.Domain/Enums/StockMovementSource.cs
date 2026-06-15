@@ -8,5 +8,6 @@ public enum StockMovementSource
     Adjustment = 3,
     Transfer = 4,
     StockOutCancellation = 5,
-    StockInCancellation = 6
+    StockInCancellation = 6,
+    HandlingUnitMove = 7
 }
