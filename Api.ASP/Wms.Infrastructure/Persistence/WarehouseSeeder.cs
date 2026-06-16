@@ -213,6 +213,7 @@ public static class WarehouseSeeder
         var sim = new SimState(random, products, locations, special, now);
         sim.SeedBaselineStock();
         sim.SimulateHistory();
+        sim.AssignHandlingUnits();
         sim.AssertConsistent();
 
         var inventories = sim.MaterializeInventories();
@@ -232,13 +233,31 @@ public static class WarehouseSeeder
         context.Locations.AddRange(locations);
         context.Products.AddRange(products.Select(p => p.Product));
         context.Lots.AddRange(sim.Lots);
+        context.HandlingUnits.AddRange(sim.HandlingUnits);
         context.Inventories.AddRange(inventories);
         context.StockIns.AddRange(sim.StockIns);
         context.StockOuts.AddRange(sim.StockOuts);
         context.StockMovements.AddRange(sim.Movements);
         context.CapacityReservations.AddRange(reservations);
 
+        // Point the palletised inventory rows at their unit. HandlingUnitId is a
+        // private-set domain property with no in-place "assign" operation (real flows
+        // create the row already on its unit), so the seeder sets it through the change
+        // tracker — consistent with how it backdates audit fields elsewhere.
+        foreach (var inventory in inventories)
+            if (sim.HandlingUnitByInventoryId.TryGetValue(inventory.Id, out var handlingUnitId))
+                context.Entry(inventory).Property(i => i.HandlingUnitId).CurrentValue = handlingUnitId;
+
         await context.SaveChangesAsync(cancellationToken);
+
+        // The live generator draws codes from the HandlingUnitCodes sequence; advance it
+        // past the seeded units (HU-000001..) so the first runtime-created unit doesn't
+        // collide on the unique code index.
+        if (sim.HandlingUnits.Count > 0)
+            await context.Database.ExecuteSqlRawAsync(
+                "SELECT setval('\"HandlingUnitCodes\"', {0})",
+                [sim.HandlingUnits.Count],
+                cancellationToken);
     }
 
     // ============================== Catalog =====================================
@@ -554,6 +573,7 @@ public static class WarehouseSeeder
         public DateTime FirstReceivedAt;
         public DateTime LastChangedAt;
         public bool KeepStock; // anchor for transfers/adjustments: never drained below the floor
+        public Guid? HandlingUnitId; // set post-simulation when this stock sits on a unit
         public int Available => OnHand - Reserved;
     }
 
@@ -608,6 +628,10 @@ public static class WarehouseSeeder
         public List<StockIn> StockIns { get; } = [];
         public List<StockOut> StockOuts { get; } = [];
         public List<StockMovement> Movements { get; } = [];
+        public List<HandlingUnit> HandlingUnits { get; } = [];
+
+        /// <summary>Inventory-row id → the handling unit it sits on, applied at save time.</summary>
+        public Dictionary<Guid, Guid> HandlingUnitByInventoryId { get; } = new();
 
         public SimState(
             Random random,
@@ -1637,6 +1661,57 @@ public static class WarehouseSeeder
                     StockMovementSource.Adjustment, bucket.Entity.Id, worker));
         }
 
+        // ---------------------------- Handling units ----------------------------
+
+        /// <summary>
+        /// Puts at least half of the final on-hand stock onto handling units — single-SKU
+        /// pallets, boxes and containers standing at the bucket's location — mirroring how
+        /// a real warehouse stores palletised goods. Runs after the simulation so it can
+        /// target a precise share of the end state. The live code generator draws from the
+        /// same HU-###### sequence, which <see cref="SeedAsync"/> advances past these units
+        /// so runtime codes never collide.
+        /// </summary>
+        public void AssignHandlingUnits()
+        {
+            var onHand = _buckets.Values.Where(b => b.OnHand > 0).ToList();
+            var totalUnits = onHand.Sum(b => (long)b.OnHand);
+            if (totalUnits == 0)
+                return;
+
+            // Aim a little above half so the promise holds with margin while still
+            // leaving a realistic amount of loose stock on the floor.
+            var target = (long)Math.Ceiling(totalUnits * 0.58);
+
+            long palletised = 0;
+            var seq = 0;
+            foreach (var bucket in ShuffledCopy(onHand))
+            {
+                if (palletised >= target)
+                    break;
+
+                var unit = new HandlingUnit(
+                    new HandlingUnitCode($"HU-{++seq:D6}"),
+                    PickHandlingUnitType(),
+                    bucket.LocationId);
+                unit.SetCreated(bucket.FirstReceivedAt, SystemUser);
+                unit.SetUpdated(bucket.LastChangedAt, SystemUser);
+
+                bucket.HandlingUnitId = unit.Id;
+                HandlingUnits.Add(unit);
+                HandlingUnitByInventoryId[bucket.Entity.Id] = unit.Id;
+                palletised += bucket.OnHand;
+            }
+        }
+
+        // Mostly pallets, with a scattering of boxes and containers for variety.
+        private HandlingUnitType PickHandlingUnitType()
+        {
+            var roll = _random.NextDouble();
+            return roll < 0.70 ? HandlingUnitType.Pallet
+                : roll < 0.90 ? HandlingUnitType.Box
+                : HandlingUnitType.Container;
+        }
+
         // ---------------------------- Materialization ---------------------------
 
         public List<Inventory> MaterializeInventories()
@@ -1674,6 +1749,14 @@ public static class WarehouseSeeder
             var shipped = Movements.Where(m => m.Source == StockMovementSource.StockOut).Sum(m => (long)m.QuantityChange);
             if (received <= shipped)
                 throw new InvalidOperationException($"Seeder shipped more than it received ({shipped} vs {received})");
+
+            // At least half the on-hand stock must sit on handling units.
+            var palletisedOnHand = _buckets.Values
+                .Where(b => b.OnHand > 0 && b.HandlingUnitId is not null)
+                .Sum(b => (long)b.OnHand);
+            if (palletisedOnHand * 2 < onHand)
+                throw new InvalidOperationException(
+                    $"Less than half of on-hand stock is on handling units ({palletisedOnHand} of {onHand})");
 
             // Designated-empty locations stayed empty; the empty-bin promise holds.
             if (_buckets.Values.Any(b => _special.NeverStocked.Contains(b.LocationId)))
