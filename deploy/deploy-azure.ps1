@@ -30,11 +30,11 @@
 [CmdletBinding()]
 param(
     [string]$ResourceGroup = "wms-rg",
-    [string]$Location      = "westeurope",
+    [string]$Location      = "northeurope",
     [string]$EnvName       = "wms-env",
     [string]$AppName       = "wms-api",
     # Postgres server name must be globally unique -> random suffix by default.
-    [string]$PgServer      = "wms-pg-$((New-Guid).ToString('N').Substring(0,6))",
+    [string]$PgServer      = "wms-pg-9d20f9",#$((New-Guid).ToString('N').Substring(0,6))",
     [string]$PgAdminUser   = "wmsadmin",
 
     [Parameter(Mandatory)] [string]$PgAdminPassword,      # Postgres admin password
@@ -45,6 +45,9 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+# `az` is a native command, so its non-zero exit codes don't trip
+# $ErrorActionPreference on their own. This makes a failed `az` call stop the script.
+$PSNativeCommandUseErrorActionPreference = $true
 
 # Fresh JWT signing key so the placeholder in appsettings.json is never used in prod.
 $JwtSecret = [Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))
@@ -53,11 +56,19 @@ Write-Host "==> Ensuring containerapp CLI extension + resource providers..." -Fo
 az extension add --name containerapp --upgrade --only-show-errors | Out-Null
 az provider register --namespace Microsoft.App --wait | Out-Null
 az provider register --namespace Microsoft.OperationalInsights --wait | Out-Null
+az provider register --namespace Microsoft.DBforPostgreSQL --wait | Out-Null
 
 Write-Host "==> Creating resource group '$ResourceGroup' ($Location)..." -ForegroundColor Cyan
+$rgExists = az group exists -n $ResourceGroup
+if ($rgExists -eq "false") {
 az group create -n $ResourceGroup -l $Location --only-show-errors | Out-Null
+} else { Write-Host "    (already exists, skipping)" -ForegroundColor DarkGray }
 
 Write-Host "==> Creating PostgreSQL flexible server '$PgServer' (this takes a few minutes)..." -ForegroundColor Cyan
+# Idempotent: skip if a server with this name already exists, so a re-run that
+# passes -PgServer <existing-name> reuses it instead of provisioning a duplicate.
+$pgExists = az postgres flexible-server list -g $ResourceGroup --query "[?name=='$PgServer'] | length(@)" -o tsv
+if ($pgExists -eq "0") {
 az postgres flexible-server create `
     --resource-group $ResourceGroup `
     --name $PgServer `
@@ -68,24 +79,42 @@ az postgres flexible-server create `
     --version 17 `
     --admin-user $PgAdminUser `
     --admin-password $PgAdminPassword `
-    --database-name wms `
     --public-access 0.0.0.0 `
     --yes --only-show-errors | Out-Null
+} else { Write-Host "    (server already exists, skipping creation)" -ForegroundColor DarkGray }
+
+# The DB is created separately. Two CLI quirks: on `flexible-server create` the
+# --database-name flag is reserved for elastic clusters, and on `db create` the
+# database-name flag is --name (not --database-name).
+Write-Host "==> Creating database 'wms'..." -ForegroundColor Cyan
+$dbExists = az postgres flexible-server db list -g $ResourceGroup --server-name $PgServer --query "[?name=='wms'] | length(@)" -o tsv
+if ($dbExists -eq "0") {
+az postgres flexible-server db create `
+    --resource-group $ResourceGroup `
+    --server-name $PgServer `
+    --name wms `
+    --only-show-errors | Out-Null
+} else { Write-Host "    (database already exists, skipping)" -ForegroundColor DarkGray }
 
 $PgFqdn     = "$PgServer.postgres.database.azure.com"
 $ConnString = "Host=$PgFqdn;Port=5432;Database=wms;Username=$PgAdminUser;Password=$PgAdminPassword;SSL Mode=Require;Trust Server Certificate=true"
 
 Write-Host "==> Creating Container Apps environment '$EnvName'..." -ForegroundColor Cyan
+$envExists = az containerapp env list -g $ResourceGroup --query "[?name=='$EnvName'] | length(@)" -o tsv
+if ($envExists -eq "0") {
 az containerapp env create `
     --name $EnvName `
     --resource-group $ResourceGroup `
     --location $Location `
     --only-show-errors | Out-Null
+} else { Write-Host "    (already exists, skipping)" -ForegroundColor DarkGray }
 
 Write-Host "==> Creating container app '$AppName' (placeholder image; CI replaces it)..." -ForegroundColor Cyan
 # Placeholder listens on :80 so its revision shows unhealthy until the first CI
 # deploy pushes the real image (which listens on :8080). The public FQDN is
 # assigned immediately regardless, which is all we need to wire up CORS + client.
+$appExists = az containerapp list -g $ResourceGroup --query "[?name=='$AppName'] | length(@)" -o tsv
+if ($appExists -eq "0") {
 az containerapp create `
     --name $AppName `
     --resource-group $ResourceGroup `
@@ -103,6 +132,7 @@ az containerapp create `
         "AdminAccount__Password=secretref:admin-pwd" `
         "Cors__AllowedOrigins=$SwaOrigin" `
     --only-show-errors | Out-Null
+} else { Write-Host "    (app already exists, skipping; delete it to recreate with fresh secrets)" -ForegroundColor DarkGray }
 
 $ApiFqdn = az containerapp show -n $AppName -g $ResourceGroup `
     --query "properties.configuration.ingress.fqdn" -o tsv
