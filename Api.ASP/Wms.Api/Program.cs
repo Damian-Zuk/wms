@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -27,6 +28,15 @@ builder.Services
     {
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("spa", policy => policy
+        .WithOrigins((builder.Configuration["Cors:AllowedOrigins"] ?? string.Empty)
+            .Split(';', StringSplitOptions.RemoveEmptyEntries))
+        .AllowAnyHeader()
+        .AllowAnyMethod());
+});
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
@@ -78,9 +88,19 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options => options.SwaggerEndpoint("/openapi/v1.json", "Wms API v1"));
 }
 
+var forwardedOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedProto
+};
+forwardedOptions.KnownIPNetworks.Clear();
+forwardedOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedOptions);
+
 app.UseSerilogRequestLogging();
 
 app.UseHttpsRedirection();
+
+app.UseCors("spa");
 
 app.UseAuthentication();
 app.UseAuthorization();
