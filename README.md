@@ -78,7 +78,7 @@ The backend follows a **clean / layered architecture** with dependencies pointin
 Wms.Api            →  Wms.Application + Wms.Infrastructure + Wms.Shared   (HTTP layer)
 Wms.Infrastructure →  Wms.Application + Wms.Domain + Wms.Shared           (EF Core, Identity, dispatching)
 Wms.Application    →  Wms.Domain + Wms.Shared                             (use cases / CQRS handlers)
-Wms.Domain         →  (no project dependencies)                           (entities, rules, events)
+Wms.Domain         →  Wms.Shared                                          (entities, rules, events)
 Wms.Shared         →  (no project dependencies)                           (Result / Error primitives)
 ```
 
