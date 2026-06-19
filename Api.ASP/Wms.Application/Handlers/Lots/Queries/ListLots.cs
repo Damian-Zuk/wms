@@ -18,15 +18,6 @@ public sealed record ListLotsQuery(
     int PageSize = 20,
     Guid? CategoryId = null) : IQuery<PagedResult<LotDto>>;
 
-public sealed class ListLotsValidator : AbstractValidator<ListLotsQuery>
-{
-    public ListLotsValidator()
-    {
-        RuleFor(x => x.Page).GreaterThan(0).WithMessage("Page must be greater than 0");
-        RuleFor(x => x.PageSize).InclusiveBetween(1, 100).WithMessage("Page size must be between 1 and 100");
-    }
-}
-
 public sealed class ListLotsQueryHandler(IAppDbContext context)
     : IQueryHandler<ListLotsQuery, PagedResult<LotDto>>
 {

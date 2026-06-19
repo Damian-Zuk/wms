@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Common.Messaging;
@@ -19,8 +20,8 @@ public class StockMovementController : ControllerBase
         [FromQuery] Guid? lotId,
         [FromQuery] StockMovementType? type,
         [FromQuery] StockMovementSource? source,
-        [FromQuery] int page,
-        [FromQuery] int pageSize,
+        [FromQuery, Range(0, int.MaxValue)] int page,
+        [FromQuery, Range(0, 100)] int pageSize,
         [FromServices] IQueryHandler<ListStockMovementsQuery, PagedResult<StockMovementDto>> handler,
         CancellationToken cancellationToken)
     {

@@ -33,15 +33,6 @@ public sealed record ListProductsQuery(
     Guid? CategoryId = null,
     TemperatureZone? TemperatureZone = null) : IQuery<PagedResult<ProductDto>>;
 
-public sealed class ListProductsValidator : AbstractValidator<ListProductsQuery>
-{
-    public ListProductsValidator()
-    {
-        RuleFor(x => x.Page).GreaterThan(0).WithMessage("Page must be greater than 0");
-        RuleFor(x => x.PageSize).InclusiveBetween(1, 100).WithMessage("Page size must be between 1 and 100");
-    }
-}
-
 public sealed class ListProductsQueryHandler(IAppDbContext context)
     : IQueryHandler<ListProductsQuery, PagedResult<ProductDto>>
 {

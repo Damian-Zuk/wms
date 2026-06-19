@@ -50,17 +50,6 @@ public sealed record DashboardOverviewDto(
 /// </summary>
 public sealed record GetDashboardOverviewQuery(int Days = 14) : IQuery<DashboardOverviewDto>;
 
-public sealed class GetDashboardOverviewValidator : AbstractValidator<GetDashboardOverviewQuery>
-{
-    public GetDashboardOverviewValidator()
-    {
-        // Note: queries are not run through the validation pipeline (only commands are),
-        // so the handler also clamps Days defensively. This validator documents intent.
-        RuleFor(x => x.Days).InclusiveBetween(2, 90)
-            .WithMessage("Days must be between 2 and 90");
-    }
-}
-
 public sealed class GetDashboardOverviewQueryHandler(IAppDbContext context)
     : IQueryHandler<GetDashboardOverviewQuery, DashboardOverviewDto>
 {

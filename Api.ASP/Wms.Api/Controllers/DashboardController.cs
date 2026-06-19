@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
 using Wms.Application.Common.Messaging;
@@ -12,12 +13,12 @@ public class DashboardController : ControllerBase
 {
     [HttpGet("overview")]
     public async Task<IResult> GetOverview(
-        [FromQuery] int days,
+        [FromQuery, Range(2, 90)] int days,
         [FromServices] IQueryHandler<GetDashboardOverviewQuery, DashboardOverviewDto> handler,
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(
-            new GetDashboardOverviewQuery(days == 0 ? 14 : days),
+            new GetDashboardOverviewQuery(days),
             cancellationToken);
 
         return result.Match(Results.Ok, CustomResults.Problem);
@@ -25,12 +26,12 @@ public class DashboardController : ControllerBase
 
     [HttpGet("inbound")]
     public async Task<IResult> GetInbound(
-        [FromQuery] int days,
+        [FromQuery, Range(1, 90)] int days,
         [FromServices] IQueryHandler<GetInboundOverviewQuery, InboundOverviewDto> handler,
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(
-            new GetInboundOverviewQuery(days == 0 ? 14 : days),
+            new GetInboundOverviewQuery(days),
             cancellationToken);
 
         return result.Match(Results.Ok, CustomResults.Problem);
@@ -38,12 +39,12 @@ public class DashboardController : ControllerBase
 
     [HttpGet("outbound")]
     public async Task<IResult> GetOutbound(
-        [FromQuery] int days,
+        [FromQuery, Range(1, 90)] int days,
         [FromServices] IQueryHandler<GetOutboundOverviewQuery, OutboundOverviewDto> handler,
         CancellationToken cancellationToken)
     {
         var result = await handler.Handle(
-            new GetOutboundOverviewQuery(days == 0 ? 14 : days),
+            new GetOutboundOverviewQuery(days),
             cancellationToken);
 
         return result.Match(Results.Ok, CustomResults.Problem);

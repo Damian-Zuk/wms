@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
@@ -19,8 +20,8 @@ public class ProductController : ControllerBase
         [FromQuery] string? search,
         [FromQuery] string? sortBy,
         [FromQuery] bool sortDescending,
-        [FromQuery] int page,
-        [FromQuery] int pageSize,
+        [FromQuery, Range(0, int.MaxValue)] int page,
+        [FromQuery, Range(0, 100)] int pageSize,
         [FromQuery] Guid? categoryId,
         [FromQuery] TemperatureZone? temperatureZone,
         [FromServices] IQueryHandler<ListProductsQuery, PagedResult<ProductDto>> handler,

@@ -24,13 +24,6 @@ public sealed record GetAvailabilityQuery(
     Guid? LocationId,
     Guid? LotId) : IQuery<AvailabilityDto>;
 
-public sealed class GetAvailabilityValidator : AbstractValidator<GetAvailabilityQuery>
-{
-    public GetAvailabilityValidator()
-    {
-        RuleFor(x => x.ProductId).NotEmpty().WithMessage("Product ID is required");
-    }
-}
 
 public sealed class GetAvailabilityQueryHandler(IAppDbContext context)
     : IQueryHandler<GetAvailabilityQuery, AvailabilityDto>

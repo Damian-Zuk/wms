@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
@@ -21,8 +22,8 @@ public class InventoryController : ControllerBase
         [FromQuery] int? expiringWithinDays,
         [FromQuery] string? sortBy,
         [FromQuery] bool sortDescending,
-        [FromQuery] int page,
-        [FromQuery] int pageSize,
+        [FromQuery, Range(0, int.MaxValue)] int page,
+        [FromQuery, Range(0, 100)] int pageSize,
         [FromQuery] Guid? categoryId,
         [FromServices] IQueryHandler<ListInventoriesQuery, PagedResult<InventoryDto>> handler,
         CancellationToken cancellationToken)

@@ -21,14 +21,6 @@ public sealed record ListInventoriesQuery(
     int PageSize = 20,
     Guid? CategoryId = null) : IQuery<PagedResult<InventoryDto>>;
 
-public sealed class ListInventoriesValidator : AbstractValidator<ListInventoriesQuery>
-{
-    public ListInventoriesValidator()
-    {
-        RuleFor(x => x.Page).GreaterThan(0).WithMessage("Page must be greater than 0");
-        RuleFor(x => x.PageSize).InclusiveBetween(1, 100).WithMessage("Page size must be between 1 and 100");
-    }
-}
 
 public sealed class ListInventoriesQueryHandler(IAppDbContext context)
     : IQueryHandler<ListInventoriesQuery, PagedResult<InventoryDto>>

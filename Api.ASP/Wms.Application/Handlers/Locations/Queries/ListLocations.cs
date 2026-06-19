@@ -22,17 +22,6 @@ public sealed record ListLocationsQuery(
     TemperatureZone? TemperatureZone = null,
     string? Status = null) : IQuery<PagedResult<LocationDto>>;
 
-public sealed class ListLocationsValidator : AbstractValidator<ListLocationsQuery>
-{
-    public ListLocationsValidator()
-    {
-        RuleFor(x => x.Page).GreaterThan(0).WithMessage("Page must be greater than 0");
-        RuleFor(x => x.PageSize).InclusiveBetween(1, 100).WithMessage("Page size must be between 1 and 100");
-        RuleFor(x => x.Type)
-            .IsInEnum().When(x => x.Type.HasValue)
-            .WithMessage("Type must be a valid LocationType");
-    }
-}
 
 public sealed class ListLocationsQueryHandler(IAppDbContext context)
     : IQueryHandler<ListLocationsQuery, PagedResult<LocationDto>>

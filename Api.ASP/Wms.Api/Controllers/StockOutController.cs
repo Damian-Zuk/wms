@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Wms.Api.Infrastructure;
@@ -16,8 +17,8 @@ public class StockOutController : ControllerBase
     [HttpGet]
     public async Task<IResult> ListStockOuts(
         [FromQuery] string? search,
-        [FromQuery] int page,
-        [FromQuery] int pageSize,
+        [FromQuery, Range(0, int.MaxValue)] int page,
+        [FromQuery, Range(0, 100)] int pageSize,
         [FromServices] IQueryHandler<ListStockOutsQuery, PagedResult<StockOutDto>> handler,
         CancellationToken cancellationToken)
     {
