@@ -117,5 +117,4 @@ src/.vs/config/applicationhost.config
 # JetBrains Rider's auto generated files
 .idea/
 
-Api.ASP/Wms.Infrastructure/Migrations
 Api.ASP/.containers/*
