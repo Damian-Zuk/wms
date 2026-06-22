@@ -110,7 +110,10 @@ public sealed class ModifyStockInLinePlacementsCommandHandler(
         foreach (var reservation in otherReservations)
             if (products.TryGetValue(reservation.ProductId, out var reservationProduct))
                 OccupancyFor(occupancyByLocation, reservation.LocationId)
-                    .Add(CapacityLoadCalculator.Load(reservationProduct, reservation.Quantity));
+                    .Add(
+                        CapacityLoadCalculator.Load(reservationProduct, reservation.Quantity),
+                        reservation.ProductId,
+                        reservation.LotId);
 
         // Validate each target accepts its share, accumulating sibling placements as we go.
         foreach (var placement in command.Placements)
@@ -124,7 +127,7 @@ public sealed class ModifyStockInLinePlacementsCommandHandler(
             if (canAccept.IsFailure)
                 return canAccept;
 
-            occupancy.Add(CapacityLoadCalculator.Load(product, quantity));
+            occupancy.Add(CapacityLoadCalculator.Load(product, quantity), product.Id, lot?.Id);
         }
 
         var result = stockIn.ModifyLinePlacements(

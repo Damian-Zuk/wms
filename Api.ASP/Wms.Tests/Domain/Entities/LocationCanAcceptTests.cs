@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Wms.Domain.Entities;
 using Wms.Domain.Enums;
+using Wms.Domain.Services;
 using Wms.Domain.ValueObjects;
 using Wms.Tests.Common;
 using Xunit;
@@ -45,6 +46,15 @@ public class LocationCanAcceptTests
 
     private static IReadOnlyDictionary<Guid, Product> Lookup(params Product[] products) =>
         products.ToDictionary(p => p.Id);
+
+    // Pending (not-yet-on-hand) capacity held at the bin: another stock-in's reservation
+    // or a sibling placement in the same draft, carrying its product/lot identity.
+    private static CapacityOccupancy PendingOccupancy(Product product, Lot? lot, int units = 1)
+    {
+        var occupancy = new CapacityOccupancy();
+        occupancy.Add(CapacityLoadCalculator.Load(product, new Quantity(units)), product.Id, lot?.Id);
+        return occupancy;
+    }
 
     [Fact]
     public void Empty_location_accepts_compatible_product()
@@ -287,6 +297,36 @@ public class LocationCanAcceptTests
 
             result.IsSuccess.Should().BeTrue();
         }
+
+        [Fact]
+        public void Single_sku_location_rejects_a_pending_reservation_for_another_product()
+        {
+            // No committed inventory — only a pending capacity hold (another stock-in's
+            // reservation, or a sibling placement) for a different SKU. Still rejected.
+            var loc = BuildLocation(mixedSku: false);
+            var product = BuildProduct();
+            var otherProduct = BuildProduct();
+            var pending = PendingOccupancy(otherProduct, lot: null);
+
+            var result = loc.CanAccept(
+                product, null, new Quantity(1), Array.Empty<Inventory>(), pending, Lookup(product, otherProduct));
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Location.MixedSkuNotAllowed");
+        }
+
+        [Fact]
+        public void Single_sku_location_accepts_a_pending_reservation_for_the_same_product()
+        {
+            var loc = BuildLocation(mixedSku: false);
+            var product = BuildProduct();
+            var pending = PendingOccupancy(product, lot: null);
+
+            var result = loc.CanAccept(
+                product, null, new Quantity(1), Array.Empty<Inventory>(), pending, Lookup(product));
+
+            result.IsSuccess.Should().BeTrue();
+        }
     }
 
     public class MixedLotRules
@@ -318,6 +358,41 @@ public class LocationCanAcceptTests
             var result = loc.CanAccept(product, lot, new Quantity(1), new[] { existing }, Lookup(product));
 
             result.IsSuccess.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Single_lot_location_rejects_a_pending_reservation_for_another_lot()
+        {
+            // No committed inventory — only a pending hold for a different lot of the
+            // same product (another stock-in or a sibling placement). Still rejected.
+            var loc = BuildLocation(mixedLot: false);
+            var product = BuildProduct();
+            var newLot = new Lot(new LotNumber("NEW"), product.Id);
+            var pendingLot = new Lot(new LotNumber("OLD"), product.Id);
+            var pending = PendingOccupancy(product, pendingLot);
+
+            var result = loc.CanAccept(
+                product, newLot, new Quantity(1), Array.Empty<Inventory>(), pending, Lookup(product));
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Location.MixedLotNotAllowed");
+        }
+
+        [Fact]
+        public void Single_lot_location_rejects_a_lotless_item_when_a_lot_is_pending()
+        {
+            // A lotless incoming item conflicts with any pending lot, mirroring the
+            // committed-inventory rule which flags any row whose LotId.HasValue.
+            var loc = BuildLocation(mixedLot: false);
+            var product = BuildProduct();
+            var pendingLot = new Lot(new LotNumber("LOT-A"), product.Id);
+            var pending = PendingOccupancy(product, pendingLot);
+
+            var result = loc.CanAccept(
+                product, lot: null, new Quantity(1), Array.Empty<Inventory>(), pending, Lookup(product));
+
+            result.IsFailure.Should().BeTrue();
+            result.Error.Code.Should().Be("Location.MixedLotNotAllowed");
         }
     }
 

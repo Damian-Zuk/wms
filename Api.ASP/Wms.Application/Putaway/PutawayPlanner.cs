@@ -44,12 +44,9 @@ internal sealed class PutawayPlanner(IEnumerable<IPutawayAllocationStrategy> str
                 var occupancy = context.OccupancyFor(locationId);
 
                 // Gate zone / mixed-sku / mixed-lot / blocked / capacity-for-one before sizing.
+                // The shared occupancy carries earlier siblings' (and other stock-ins')
+                // SKU/lot identity, so CanAccept enforces mixed-SKU / mixed-lot here too.
                 if (location.CanAccept(product, lot, new Quantity(1), contents, occupancy, context.Products).IsFailure)
-                    continue;
-
-                // CanAccept only sees committed inventory; also reject if a different
-                // SKU/lot was already planned into this bin earlier in the same draft.
-                if (context.WouldConflictWithPlanned(location, product, lot))
                     continue;
 
                 var headroom = location.UnitsThatFit(product, contents, occupancy, context.Products);

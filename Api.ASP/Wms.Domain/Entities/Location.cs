@@ -161,6 +161,12 @@ public class Location : Entity
 
             if (otherProduct is not null)
                 return LocationErrors.MixedSkuNotAllowed(Id, otherProduct.ProductId);
+
+            // Pending stock-in reservations / sibling placements claim the bin too,
+            // even before they become on-hand inventory.
+            var pendingProduct = extraOccupancy.OtherProduct(product.Id);
+            if (pendingProduct is not null)
+                return LocationErrors.MixedSkuNotAllowed(Id, pendingProduct.Value);
         }
 
         if (!IsMixedLotAllowed)
@@ -170,6 +176,10 @@ public class Location : Entity
 
             if (otherLot is not null)
                 return LocationErrors.MixedLotNotAllowed(Id, otherLot.LotId!.Value);
+
+            var pendingLot = extraOccupancy.OtherLot(lot?.Id);
+            if (pendingLot is not null)
+                return LocationErrors.MixedLotNotAllowed(Id, pendingLot.Value);
         }
 
         return Result.Success();

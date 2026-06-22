@@ -91,7 +91,10 @@ internal sealed class CapacityReservationService(AppDbContext db) : ICapacityRes
         foreach (var reservation in otherActiveReservations)
             if (products.TryGetValue(reservation.ProductId, out var reservationProduct))
                 OccupancyFor(occupancyByLocation, reservation.LocationId)
-                    .Add(CapacityLoadCalculator.Load(reservationProduct, reservation.Quantity));
+                    .Add(
+                        CapacityLoadCalculator.Load(reservationProduct, reservation.Quantity),
+                        reservation.ProductId,
+                        reservation.LotId);
 
         var reservations = new List<CapacityReservation>();
 
@@ -118,7 +121,7 @@ internal sealed class CapacityReservationService(AppDbContext db) : ICapacityRes
                 if (canAccept.IsFailure)
                     return await RollbackAsync(transaction, canAccept.Error, ct);
 
-                occupancy.Add(CapacityLoadCalculator.Load(product, item.Quantity));
+                occupancy.Add(CapacityLoadCalculator.Load(product, item.Quantity), line.ProductId, line.LotId);
 
                 reservations.Add(new CapacityReservation(
                     stockIn.Id,
