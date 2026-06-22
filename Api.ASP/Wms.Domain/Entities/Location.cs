@@ -103,7 +103,7 @@ public class Location : Entity
         Product product,
         Lot? lot,
         Quantity quantity,
-        IEnumerable<Inventory> currentContents,
+        IReadOnlyCollection<Inventory> currentContents,
         IReadOnlyDictionary<Guid, Product> contentsProducts)
         => CanAccept(product, lot, quantity, currentContents, CapacityOccupancy.Empty(), contentsProducts);
 
@@ -121,7 +121,7 @@ public class Location : Entity
         Product product,
         Lot? lot,
         Quantity quantity,
-        IEnumerable<Inventory> currentContents,
+        IReadOnlyCollection<Inventory> currentContents,
         CapacityOccupancy extraOccupancy,
         IReadOnlyDictionary<Guid, Product> contentsProducts)
     {
@@ -137,7 +137,6 @@ public class Location : Entity
                 TemperatureZone,
                 product.RequiredTemperatureZone);
 
-        var contents = currentContents as IReadOnlyCollection<Inventory> ?? currentContents.ToList();
         var incoming = CapacityLoadCalculator.Load(product, quantity);
 
         foreach (var dimension in Capacity.ConfiguredDimensions())
@@ -145,7 +144,7 @@ public class Location : Entity
             // Capacity = physical occupancy. Reserved units still take up space,
             // so OnHand (not Available) is the right basis here.
             var limit = Capacity.Limit(dimension)!.Value;
-            var totalAfter = ExistingLoad(dimension, contents, contentsProducts)
+            var totalAfter = ExistingLoad(dimension, currentContents, contentsProducts)
                 + extraOccupancy.Get(dimension)
                 + incoming.GetValueOrDefault(dimension);
 
@@ -157,7 +156,7 @@ public class Location : Entity
         {
             // Another product is physically present if its OnHand > 0,
             // regardless of how much of it is reserved.
-            var otherProduct = contents.FirstOrDefault(i =>
+            var otherProduct = currentContents.FirstOrDefault(i =>
                 i.OnHand.Value > 0 && i.ProductId != product.Id);
 
             if (otherProduct is not null)
@@ -166,7 +165,7 @@ public class Location : Entity
 
         if (!IsMixedLotAllowed)
         {
-            var otherLot = contents.FirstOrDefault(i =>
+            var otherLot = currentContents.FirstOrDefault(i =>
                 i.OnHand.Value > 0 && i.LotId.HasValue && i.LotId != lot?.Id);
 
             if (otherLot is not null)
@@ -182,16 +181,15 @@ public class Location : Entity
     /// the most restrictive configured dimension (units / weight / volume). Returns null
     /// when no configured dimension constrains the product (caller should place the whole
     /// remainder in one go). Callers MUST first gate with
-    /// <see cref="CanAccept(Product, Lot?, Quantity, IEnumerable{Inventory}, CapacityOccupancy, IReadOnlyDictionary{Guid, Product})"/>
+    /// <see cref="CanAccept(Product, Lot?, Quantity, IReadOnlyCollection{Inventory}, CapacityOccupancy, IReadOnlyDictionary{Guid, Product})"/>
     /// for zone / mixed-SKU / mixed-lot / blocked rules before sizing with this.
     /// </summary>
     public int? UnitsThatFit(
         Product product,
-        IEnumerable<Inventory> currentContents,
+        IReadOnlyCollection<Inventory> currentContents,
         CapacityOccupancy extraOccupancy,
         IReadOnlyDictionary<Guid, Product> contentsProducts)
     {
-        var contents = currentContents as IReadOnlyCollection<Inventory> ?? currentContents.ToList();
         var perUnit = CapacityLoadCalculator.Load(product, new Quantity(1));
 
         int? fit = null;
@@ -202,7 +200,7 @@ public class Location : Entity
                 continue; // a zero-load product can never fill this dimension
 
             var remaining = Capacity.Limit(dimension)!.Value
-                - ExistingLoad(dimension, contents, contentsProducts)
+                - ExistingLoad(dimension, currentContents, contentsProducts)
                 - extraOccupancy.Get(dimension);
 
             var dimensionFit = remaining <= 0 ? 0 : (int)Math.Floor(remaining / perUnitLoad);

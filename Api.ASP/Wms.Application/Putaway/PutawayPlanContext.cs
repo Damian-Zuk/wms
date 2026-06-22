@@ -95,7 +95,7 @@ public sealed class PutawayPlanContext
     /// <summary>
     /// Whether placing <paramref name="product"/>/<paramref name="lot"/> into
     /// <paramref name="location"/> would mix with a different SKU or lot already
-    /// planned into that same location earlier in this draft. <see cref="Location.CanAccept(Product, Lot?, Quantity, IEnumerable{Inventory}, CapacityOccupancy, IReadOnlyDictionary{Guid, Product})"/>
+    /// planned into that same location earlier in this draft. <see cref="Location.CanAccept(Product, Lot?, Quantity, IReadOnlyCollection{Inventory}, CapacityOccupancy, IReadOnlyDictionary{Guid, Product})"/>
     /// only sees committed inventory, so sibling placements must be checked here.
     /// </summary>
     public bool WouldConflictWithPlanned(Location location, Product product, Lot? lot)
