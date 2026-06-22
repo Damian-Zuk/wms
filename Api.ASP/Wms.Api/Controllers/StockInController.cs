@@ -18,7 +18,7 @@ public class StockInController : ControllerBase
     public async Task<IResult> ListStockIns(
         [FromQuery] string? search,
         [FromQuery, Range(0, int.MaxValue)] int page,
-        [FromQuery, Range(0, 100)] int pageSize,
+        [FromQuery, Range(0, 200)] int pageSize,
         [FromServices] IQueryHandler<ListStockInsQuery, PagedResult<StockInDto>> handler,
         CancellationToken cancellationToken)
     {

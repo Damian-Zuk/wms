@@ -21,7 +21,7 @@ public class LotController : ControllerBase
         [FromQuery] string? sortBy,
         [FromQuery] bool sortDescending,
         [FromQuery, Range(0, int.MaxValue)] int page,
-        [FromQuery, Range(0, 100)] int pageSize,
+        [FromQuery, Range(0, 200)] int pageSize,
         [FromQuery] Guid? categoryId,
         [FromServices] IQueryHandler<ListLotsQuery, PagedResult<LotDto>> handler,
         CancellationToken cancellationToken)

@@ -25,7 +25,7 @@ public class LocationController : ControllerBase
         [FromQuery] string? sortBy,
         [FromQuery] bool sortDescending,
         [FromQuery, Range(0, int.MaxValue)] int page,
-        [FromQuery, Range(0, 100)] int pageSize,
+        [FromQuery, Range(0, 200)] int pageSize,
         [FromServices] IQueryHandler<ListLocationsQuery, PagedResult<LocationDto>> handler,
         CancellationToken cancellationToken)
     {

@@ -21,7 +21,7 @@ public class StockMovementController : ControllerBase
         [FromQuery] StockMovementType? type,
         [FromQuery] StockMovementSource? source,
         [FromQuery, Range(0, int.MaxValue)] int page,
-        [FromQuery, Range(0, 100)] int pageSize,
+        [FromQuery, Range(0, 200)] int pageSize,
         [FromServices] IQueryHandler<ListStockMovementsQuery, PagedResult<StockMovementDto>> handler,
         CancellationToken cancellationToken)
     {
