@@ -4,6 +4,8 @@ A full-stack warehouse management system covering the complete inbound → stora
 
 The backend is an ASP.NET Core (.NET 10) Web API built with a clean, layered architecture; the frontend is a Vue 3 single-page app. Data is stored in PostgreSQL.
 
+![](.github/preview.png)
+
 ---
 
 ## Features
