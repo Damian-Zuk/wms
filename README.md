@@ -1,8 +1,15 @@
 # Warehouse Management System
 
+[![Build](https://img.shields.io/github/actions/workflow/status/Damian-Zuk/wms/build.yml?branch=main&label=build&logo=dotnet&logoColor=white)](https://github.com/Damian-Zuk/wms/actions/workflows/build.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/Damian-Zuk/wms/tests.yml?branch=main&label=tests&logo=testinglibrary&logoColor=white)](https://github.com/Damian-Zuk/wms/actions/workflows/tests.yml)
+[![Deploy API](https://img.shields.io/github/actions/workflow/status/Damian-Zuk/wms/deploy-api.yml?branch=main&label=deploy%20api&logo=docker&logoColor=white)](https://github.com/Damian-Zuk/wms/actions/workflows/deploy-api.yml)
+[![Deploy web](https://img.shields.io/github/actions/workflow/status/Damian-Zuk/wms/azure-static-web-apps-ambitious-wave-066504303.yml?branch=main&label=deploy%20web&logo=vuedotjs&logoColor=white)](https://github.com/Damian-Zuk/wms/actions/workflows/azure-static-web-apps-ambitious-wave-066504303.yml)
+
 A full-stack warehouse management system covering the complete inbound → storage → outbound lifecycle: product and location master data, lot/expiry tracking, multi-dimensional location capacity, **planned putaway and picking**, an immutable stock-movement ledger, and an analytics dashboard.
 
 The backend is an ASP.NET Core (.NET 10) Web API built with a clean, layered architecture; the frontend is a Vue 3 single-page app. Data is stored in PostgreSQL.
+
+**Live demo:** [https://ambitious-wave-066504303.7.azurestaticapps.net/](https://ambitious-wave-066504303.7.azurestaticapps.net/)
 
 ![](.github/preview.png)
 
