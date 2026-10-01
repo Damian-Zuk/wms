@@ -30,7 +30,7 @@ const submitting = ref(false)
 const serverError = ref<string | null>(null)
 
 const demoEmail = 'demo@wms.local'
-const demoPassword = '1wFWvd8zrS7!'
+const demoPassword = 'Passw0rd!'
 const copiedField = ref<'email' | 'password' | null>(null)
 
 async function copyDemoValue(field: 'email' | 'password', value: string) {

@@ -118,6 +118,7 @@ using (var scope = app.Services.CreateScope())
 
     await RoleSeeder.SeedAsync(roleManager);
     await AdminSeeder.SeedAsync(userManager, config);
+    await DemoSeeder.SeedAsync(userManager, config);
 }
 
 app.Run();
